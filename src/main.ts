@@ -2,6 +2,42 @@ import DiceBox from "@3d-dice/dice-box";
 import { Util } from './util';
 import './styles.css';
 import { CONST } from "./constants";
+import buttonsImage from './buttons.svg';
+
+document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
+  <object id="buttons-svg" width="0" height="0" data="${buttonsImage}" type="image/svg+xml"></object>   
+`
+window.addEventListener("load", () => {
+    const svgButtons = document.getElementById('buttons-svg') as HTMLObjectElement
+    if (svgButtons.contentDocument) {
+        console.log("Button images loaded");
+        //set button images
+        Util.setImage('skills', traitdice, '--button-size')
+        Util.setImage('punch', damagedice, '--button-size')
+        Util.setImage('dice-twenty', standarddice, '--button-size')
+        Util.setImage('bullseye', targetNumberButton, '--button-size') //dice-target
+        Util.setImage('round-knobs', modifierButton, '--button-size')
+        Util.setImage('dice-fire', wildDieToggle, '--button-size')
+        Util.setImage('punch-blast', bonusDamageToggle, '--button-size')
+        Util.setImage('hammer-break', breakingObjectsToggle, '--button-size')
+        Util.setImage('compete', opposedRollToggle, '--button-size')
+        Util.setImage('jester-hat', jokerDrawnToggle, '--button-size')
+        Util.setImage('settings-knobs', adjustButton, '--button-size')
+        Util.setImage('trash-can', removeDiceButton, '--die-size')
+        Util.setImage('rolling-dice', rollDiceButton, '--die-size')
+        Util.setImage('anticlockwise', resetButton, '--die-size')
+        Util.setImage('broom', clearButton, '--die-size')
+        Util.setImage('d4_die', d4Button, '--die-size')
+        Util.setImage('d6_die', d6Button, '--die-size')
+        Util.setImage('d8_die', d8Button, '--die-size')
+        Util.setImage('d10_die', d10Button, '--die-size')
+        Util.setImage('d12_die', d12Button, '--die-size')
+        Util.setImage('d20_die', d20Button, '--die-size')
+        Util.setImage('d100_die', d100Button, '--die-size')
+    } else {
+        console.error("Failed to load SVG document")
+    }
+})
 
 // setting variables
 // get inputs
@@ -32,29 +68,7 @@ const d12Button = document.getElementById('d12Button') as unknown as SVGElement;
 const d20Button = document.getElementById('d20Button') as unknown as SVGElement;
 const d100Button = document.getElementById('d100Button') as unknown as SVGElement;
 
-//set button images
-Util.setImage('skills', traitdice, '--button-size')
-Util.setImage('punch', damagedice, '--button-size')
-Util.setImage('dice-twenty', standarddice, '--button-size')
-Util.setImage('bullseye', targetNumberButton, '--button-size') //dice-target
-Util.setImage('round-knobs', modifierButton, '--button-size')
-Util.setImage('dice-fire', wildDieToggle, '--button-size')
-Util.setImage('punch-blast', bonusDamageToggle, '--button-size')
-Util.setImage('hammer-break', breakingObjectsToggle, '--button-size')
-Util.setImage('compete', opposedRollToggle, '--button-size')
-Util.setImage('jester-hat', jokerDrawnToggle, '--button-size')
-Util.setImage('settings-knobs', adjustButton, '--button-size')
-Util.setImage('trash-can', removeDiceButton, '--die-size')
-Util.setImage('rolling-dice', rollDiceButton, '--die-size')
-Util.setImage('anticlockwise', resetButton, '--die-size')
-Util.setImage('broom', clearButton, '--die-size')
-Util.setImage('d4', d4Button, '--die-size')
-Util.setImage('d6', d6Button, '--die-size')
-Util.setImage('d8', d8Button, '--die-size')
-Util.setImage('d10', d10Button, '--die-size')
-Util.setImage('d12', d12Button, '--die-size')
-Util.setImage('d20', d20Button, '--die-size')
-Util.setImage('d100', d100Button, '--die-size')
+
 
 //setup click handlers
 setupRadio();
@@ -123,7 +137,7 @@ function getState(svgElement: SVGElement) {
 
 function toggleState(svgElement: SVGElement) {
     let state = !getState(svgElement);
-    setState(svgElement,state);
+    setState(svgElement, state);
 }
 
 // Reset functionality for spinners
@@ -138,11 +152,11 @@ function resetToDefaults() {
     setSpinner(targetNumberSpinner, CONST.DEFAULTS.TARGET_NUMBER);
     setSpinner(modifierSpinner, CONST.DEFAULTS.MODIFIER);
     setState(wildDieToggle, CONST.DEFAULTS.WILD_DIE_ENABLED);
-    setSelect(wildDieType , CONST.DEFAULTS.WILD_DIE);
+    setSelect(wildDieType, CONST.DEFAULTS.WILD_DIE);
     setState(bonusDamageToggle, CONST.DEFAULTS.BONUS_DAMAGE);
     setState(breakingObjectsToggle, CONST.DEFAULTS.BREAK_OBJECTS);
     setState(opposedRollToggle, CONST.DEFAULTS.OPPOSED_ENABLED);
-    setState(jokerDrawnToggle,CONST.DEFAULTS.JOKER_DRAWN_ENABLED);
+    setState(jokerDrawnToggle, CONST.DEFAULTS.JOKER_DRAWN_ENABLED);
     setRadio(traitdice);
     clearCounters();
 }
@@ -155,8 +169,8 @@ function clearCounters() {
 }
 
 function setRadio(svg: SVGElement) {
-    radios.forEach(r => setState(r, false)); 
-    setState(svg, true); 
+    radios.forEach(r => setState(r, false));
+    setState(svg, true);
     const selectedRadio = svg.getAttribute('data-value') || 'trait';
     showHideControls(selectedRadio);
     console.log('Selected:', selectedRadio);
@@ -196,9 +210,9 @@ function setupSvgToggle(svgElement: SVGElement) {
         } else {
             toggleState(svgElement);
             if (svgElement === bonusDamageToggle && getState(bonusDamageToggle)) {
-                setState(breakingObjectsToggle,false)
+                setState(breakingObjectsToggle, false)
             } else if (svgElement === breakingObjectsToggle && getState(breakingObjectsToggle)) {
-                setState(bonusDamageToggle,false)
+                setState(bonusDamageToggle, false)
             }
         }
     });
@@ -389,19 +403,19 @@ const diecolors = Util.generateRainbowColors(24);
 const DB = new DiceBox("#dice-tray", {
     id: 'dice-tray',
     assetPath: "/assets/",
-    theme: "default",
-    themeColor: CONST.COLOR_THEMES.PRIMARY,
+    //theme: "default",
+    //themeColor: CONST.COLOR_THEMES.PRIMARY,
     offscreen: true,
-    scale: 10.5,
+    //scale: 10.5,
     friction: .75,
     restitution: 0,
     gravity: 15,
-    throwForce: 75,
-    spinForce: 75,
+    throwForce: 20,
+    spinForce: 20,
     settleTimeout: 3000,
-    mass: 40,
+    //mass: 40,
     delay: 100,
-    lightIntensity: 1,
+    //lightIntensity: 1,
     discordResponse: null,
     onDieComplete: async (dieResult: DieResult) => {
         if (DB.acing && dieResult.value === sidesNumber(dieResult.sides)) {
@@ -427,7 +441,7 @@ const DB = new DiceBox("#dice-tray", {
                         DIE_ROLL.dieLabel = DIE_ROLL.isWildDie ? 'Wild Die' : 'Trait Die';
                         break;
                     case 'damage':
-                        DIE_ROLL.dieLabel = DIE_ROLL.isBonusDie ? 'Bonus Die': 'Damage Die';
+                        DIE_ROLL.dieLabel = DIE_ROLL.isBonusDie ? 'Bonus Die' : 'Damage Die';
                         break;
                     case 'standard':
                         DIE_ROLL.dieLabel = 'Die';
@@ -473,7 +487,7 @@ const DB = new DiceBox("#dice-tray", {
                             sides: getWildDieValue(),
                             modifier: 0,
                             themeColor: CONST.COLOR_THEMES.CRITICAL_FAILURE_DIE,
-                        });
+                        }) as RollResult[];
                         const CRIT_DIE_ROLL = CRIT_FAIL_CHECK_DIE_RESULT[0];
                         CRIT_DIE_ROLL.dieLabel = 'Critical Failure Check',
                             CRIT_DIE_ROLL.isWildDie = false,
@@ -664,10 +678,14 @@ function createRollDetailsElement(textOutput: string) {
     return ROLL_DETAILS_ELEMENT;
 }
 
-function breakdownResult(dieResult: RollResult) {
+function breakdownResult(dieResult: RollResult | DieResult) {
     let rollDetails = '';
-    const ROLLS = dieResult.rolls; //dieResult.rolls?.length ? dieResult.rolls : [dieResult];
-
+    let ROLLS: DieResult[] = []
+    if (dieResult instanceof RollResult) {
+        ROLLS = dieResult.rolls;
+    } else if (dieResult instanceof DieResult) {
+        ROLLS.push(dieResult)
+    }
     for (const ROLL of ROLLS) {
         rollDetails += `${ROLL.value}${ROLLS.indexOf(ROLL) !== ROLLS.length - 1 ? CONST.EMOJIS.ACE : ''}`;
     }
@@ -676,7 +694,7 @@ function breakdownResult(dieResult: RollResult) {
 }
 
 function sidesNumber(s: string) {
-    let resultString = s[0]==='d'? s.slice(1): s;
+    let resultString = s[0] === 'd' ? s.slice(1) : s;
     let numberResult = parseInt(resultString);
     if (isNaN(numberResult)) {
         return 0;
@@ -746,15 +764,14 @@ RESIZE_OBSERVER.observe(document.querySelector('.dice-roller')!, { box: "border-
 //     });
 // }
 
-//document.querySelector('#empty-cup').addEventListener('click', async e => emptyDiceCup());
 function getModifier(): number {
     return modifierSpinner.valueAsNumber
 }
-function isWildDieActive():boolean {
-   return getRollType()==='trait' && getState(wildDieToggle)
+function isWildDieActive(): boolean {
+    return getRollType() === 'trait' && getState(wildDieToggle)
 }
-function isBonusDamageActive():boolean {
-   return getRollType()==='damage' && getState(bonusDamageToggle)
+function isBonusDamageActive(): boolean {
+    return getRollType() === 'damage' && getState(bonusDamageToggle)
 }
 
 function getWildDieValue(): number {
@@ -771,12 +788,12 @@ class DiceConfig {
 function isDiceToRoll() {
     let count = 0;
     for (const die of document.querySelectorAll('.counter')) {
-        if (die.parentElement!.style.display!='none') {
-        const num = parseInt(die.textContent && die.textContent != '' ? die.textContent : '0')
-        count += num;
+        if (die.parentElement!.style.display != 'none') {
+            const num = parseInt(die.textContent && die.textContent != '' ? die.textContent : '0')
+            count += num;
         }
     }
-    return count>0;
+    return count > 0;
 }
 async function rollTheDice() {
     if (!isDiceToRoll()) return;
@@ -835,7 +852,7 @@ async function rollTheDice() {
             break;
     }
 
-    clearCounters();
+    //clearCounters();
     await DB.roll(DICE_CONFIGS);
 }
 

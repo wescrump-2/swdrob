@@ -10,7 +10,7 @@
 </head>
 
 <body>
-  <object type="image/svg+xml" data="/buttons.svg" id="buttons-svg" width="0" height="0"></object>
+
   <div class="sidebar">
     <form id="dice-roller" class="dice-roller">
       <div class="options">
@@ -61,16 +61,19 @@
             <svg id="jokerDrawnToggle" class="toggle-image inactive">
             </svg>
           </span>
+
+          <span title="Opposed mode, Target Number is the previous roll.">
+            <svg id="opposedRollToggle" class="toggle-image inactive">
+            </svg>
+          </span>
+        </div>
+        <div class="row">
           <span title="Bonus Damage! +1d6.">
             <svg id="bonusDamageToggle" class="toggle-image inactive">
             </svg>
           </span>
           <span title="Break object mode, no acing, no bonus damage.">
             <svg id="breakingObjectsToggle" class="toggle-image inactive">
-            </svg>
-          </span>
-          <span title="Opposed mode, Target Number is the previous roll.">
-            <svg id="opposedRollToggle" class="toggle-image inactive">
             </svg>
           </span>
         </div>
@@ -141,8 +144,6 @@
   <div class="main-content">
     <div class="row">
       <fieldset id="dice-tray">
-        <legend>Dice Tray</legend>
-        <canvas id="dice-tray"></canvas>
       </fieldset>
     </div>
     <div class="row">
@@ -153,6 +154,7 @@
       </fieldset>
     </div>
   </div>
+  <div id="app"></div>
 </body>
 
 </html>
