@@ -23,8 +23,10 @@ window.addEventListener("load", () => {
         Util.setImage('compete', opposedRollToggle, '--button-size')
         Util.setImage('jester-hat', jokerDrawnToggle, '--button-size')
         Util.setImage('settings-knobs', adjustButton, '--button-size')
-        Util.setImage('trash-can', removeDiceButton, '--die-size')
-        Util.setImage('rolling-dice', rollDiceButton, '--die-size')
+        Util.setImage('rolling-dice', rollDiceButton, '--button-size')
+        Util.setImage('clockwise', rerollDiceButton, '--button-size')
+        Util.setImage('trash-can', removeDiceButton, '--button-size')
+
         Util.setImage('anticlockwise', resetButton, '--die-size')
         Util.setImage('broom', clearButton, '--die-size')
         Util.setImage('d4_die', d4Button, '--die-size')
@@ -58,6 +60,7 @@ const jokerDrawnToggle = document.getElementById('jokerDrawnToggle') as unknown 
 const adjustButton = document.getElementById('adjustButton') as unknown as SVGElement;
 const removeDiceButton = document.getElementById('removeDiceButton') as unknown as SVGElement;
 const rollDiceButton = document.getElementById('rollDiceButton') as unknown as SVGElement;
+const rerollDiceButton = document.getElementById('rerollDiceButton') as unknown as SVGElement;
 const resetButton = document.getElementById('resetButton') as unknown as SVGElement;
 const clearButton = document.getElementById('clearButton') as unknown as SVGElement;
 const d4Button = document.getElementById('d4Button') as unknown as SVGElement;
@@ -82,6 +85,7 @@ setupSvgToggle(opposedRollToggle);
 setupSvgToggle(jokerDrawnToggle);
 setupSvgToggle(adjustButton);
 setupSvgToggle(rollDiceButton);
+setupSvgToggle(rerollDiceButton);
 setupSvgToggle(removeDiceButton);
 setupSvgToggle(resetButton);
 setupSvgToggle(clearButton);
@@ -168,6 +172,16 @@ function clearCounters() {
     }
 }
 
+async function opposedRollSet() {
+    const RECENT_ROLLS = [...ROLL_HISTORY].reverse();       //.toReversed();
+    for (let lr of RECENT_ROLLS) {
+        if (lr.rollType === CONST.ROLL_TYPES.TRAIT) {
+            setSpinner(targetNumberSpinner, `${lr.total}`)
+            break;
+        }
+    }
+}
+
 function setRadio(svg: SVGElement) {
     radios.forEach(r => setState(r, false));
     setState(svg, true);
@@ -183,12 +197,16 @@ function setupSvgToggle(svgElement: SVGElement) {
             setSpinner(targetNumberSpinner, CONST.DEFAULTS.TARGET_NUMBER);
         } else if (svgElement === modifierButton) {
             setSpinner(modifierSpinner, CONST.DEFAULTS.MODIFIER);
+        } else if (svgElement === opposedRollToggle) {
+            opposedRollSet();
         } else if (svgElement === adjustButton) {
-            adjustRoll();
+            adjustTheRoll();
         } else if (svgElement === removeDiceButton) {
             clearCounters();
         } else if (svgElement === rollDiceButton) {
             rollTheDice();
+        } else if (svgElement === rerollDiceButton) {
+            rerollTheDice();
         } else if (svgElement === resetButton) {
             resetToDefaults();
         } else if (svgElement === clearButton) {
@@ -235,17 +253,12 @@ function getCounter(target: HTMLElement): number {
     return Math.max(0, count);
 }
 
-function adjustRoll() {
-    let adjustedRoll = 'not implemented yet'
-    console.log('Adjusted Roll:', adjustedRoll);
-    alert(`Adjusted Roll: ${adjustedRoll}`);
-}
-
 function clearLog() {
-    const logContainer = document.getElementById('logContainer');
+    const logContainer = document.getElementById('log-entries');
     if (logContainer) {
         logContainer.innerHTML = '';
     }
+    DB.clear();
 }
 
 function showHideControls(selectedRadio: string) {
@@ -368,6 +381,7 @@ class SWDR {
     rollResult: RollResult[] = []
     total: number = 0
     onesCount: number = 0
+    isJoker: boolean = false
 };
 
 class DieResult {
@@ -403,10 +417,10 @@ const diecolors = Util.generateRainbowColors(24);
 const DB = new DiceBox("#dice-tray", {
     id: 'dice-tray',
     assetPath: "/assets/",
-    //theme: "default",
-    //themeColor: CONST.COLOR_THEMES.PRIMARY,
+    theme: "default",
+    themeColor: CONST.COLOR_THEMES.PRIMARY,
     offscreen: true,
-    //scale: 10.5,
+    scale: 4,
     friction: .75,
     restitution: 0,
     gravity: 15,
@@ -435,16 +449,15 @@ const DB = new DiceBox("#dice-tray", {
 
         if (ROLL_IS_COMPLETE) {
             for (const DIE_ROLL of rollResult) {
-
                 switch (DB.rollType) {
                     case 'trait':
-                        DIE_ROLL.dieLabel = DIE_ROLL.isWildDie ? 'Wild Die' : 'Trait Die';
+                        DIE_ROLL.dieLabel = DIE_ROLL.isWildDie ? CONST.DIELABELS.WILD : CONST.DIELABELS.TRAIT;
                         break;
                     case 'damage':
-                        DIE_ROLL.dieLabel = DIE_ROLL.isBonusDie ? 'Bonus Die' : 'Damage Die';
+                        DIE_ROLL.dieLabel = DIE_ROLL.isBonusDie ? CONST.DIELABELS.BONUS : CONST.DIELABELS.DAMAGE;
                         break;
                     case 'standard':
-                        DIE_ROLL.dieLabel = 'Die';
+                        DIE_ROLL.dieLabel = CONST.DIELABELS.STANDARD;
                         break;
                 }
 
@@ -453,6 +466,7 @@ const DB = new DiceBox("#dice-tray", {
 
             RollCollection.isReroll = DB.isReroll;
             RollCollection.modifier = rollResult[0].modifier;
+            RollCollection.isJoker = getState(jokerDrawnToggle);
             RollCollection.rollResult = rollResult;
 
             if (DB.rollType === CONST.ROLL_TYPES.TRAIT) {
@@ -512,7 +526,7 @@ const DB = new DiceBox("#dice-tray", {
                 }
 
                 // Format the roll details (i.e., break down of each die, if it aced, and whatever modifier might be applied).
-                const ROLL_DETAILS_ELEMENT = createRollDetailsElement(`${RollCollection.modifier !== 0 ? signModOutput(RollCollection.modifier) : ''}${rollDetails}`);
+                const ROLL_DETAILS_ELEMENT = createRollDetailsElement(`${RollCollection.modifier !== 0 ? signModOutput(RollCollection.modifier, RollCollection.isJoker) : ''}${rollDetails}`);
 
                 if (RollCollection.criticalFailure) {
                     descriptionString = `Critical Failure! ${CONST.EMOJIS.CRITICAL_FAILURE}`;
@@ -550,7 +564,7 @@ const DB = new DiceBox("#dice-tray", {
                 }
 
                 // Format the roll details (i.e., break down of each die, if it aced, and whatever modifier might be applied).
-                rollDetailsElement = createRollDetailsElement(`${RollCollection.modifier !== 0 ? signModOutput(RollCollection.modifier) : ''}${rollDetails}`);
+                rollDetailsElement = createRollDetailsElement(`${RollCollection.modifier !== 0 ? signModOutput(RollCollection.modifier, RollCollection.isJoker) : ''}${rollDetails}`);
                 LOG_ENTRY_WRAPPER_ELEMENT.append(rollDetailsElement);
                 // Generate the HTML markup for the description and result value.
                 const RESULTS = markupResult(RollCollection.total, { description: DESCRIPTION_STRING! });
@@ -658,9 +672,9 @@ function markupResult(rollTotal: number, options = { description: '' }) {
     DESCRIPTION_ELEMENT.classList.add('description');
 
     // If the description of successes and raises hasn't been created yet, generate one.
-    if (!DESCRIPTION && ['Trait Die', 'Damage Die'].includes(DIE_LABEL)) {
+    if (!DESCRIPTION && [CONST.DIELABELS.TRAIT, CONST.DEFAULTS.BONUS_DAMAGE, CONST.DIELABELS.BONUS].includes(DIE_LABEL)) {
         RollCollection.description = calculateRaises(rollTotal);
-    } else if (DESCRIPTION || DIE_LABEL === 'Die') {
+    } else if (DESCRIPTION || DIE_LABEL === CONST.DIELABELS.STANDARD) {
         RollCollection.description = DESCRIPTION;
     }
 
@@ -702,8 +716,8 @@ function sidesNumber(s: string) {
     return numberResult;
 }
 
-function signModOutput(modifier: number) {
-    return `<p class="modifier" data-modifier="${modifier}">Modifier: ${modifier < 0 ? '−' : '+'}${Math.abs(modifier)}</p>`;
+function signModOutput(modifier: number, joker: boolean) {
+    return `<p class="modifier" data-modifier="${modifier}">Modifier: ${modifier < 0 ? '−' : '+'}${Math.abs(modifier)}${joker ? CONST.EMOJIS.JOKER : ''}</p>`;
 }
 
 function markupDieRollDetails(dieRoll: RollResult) {
@@ -767,6 +781,10 @@ RESIZE_OBSERVER.observe(document.querySelector('.dice-roller')!, { box: "border-
 function getModifier(): number {
     return modifierSpinner.valueAsNumber
 }
+function getJokerModifier(): number {
+    const jokemod: number = getState(jokerDrawnToggle) && getRollType() != 'standard' ? 2 : 0;
+    return getModifier() + jokemod
+}
 function isWildDieActive(): boolean {
     return getRollType() === 'trait' && getState(wildDieToggle)
 }
@@ -811,7 +829,7 @@ async function rollTheDice() {
         const numsides = parseInt(DIE.id.slice(1))
         for (let i = 0; i < num; ++i) {
             DICE_CONFIGS.push({
-                modifier: getModifier(),
+                modifier: getJokerModifier(),
                 sides: numsides,
                 isWildDie: false,
                 themeColor: CONST.COLOR_THEMES.PRIMARY,
@@ -821,7 +839,7 @@ async function rollTheDice() {
     //add wild die to roll
     if (isWildDieActive()) {
         DICE_CONFIGS.push({
-            modifier: getModifier(),
+            modifier: getJokerModifier(),
             sides: getWildDieValue(),
             isWildDie: true,
             themeColor: CONST.COLOR_THEMES.SECONDARY,
@@ -829,7 +847,7 @@ async function rollTheDice() {
     }
     if (isBonusDamageActive()) {
         DICE_CONFIGS.push({
-            modifier: getModifier(),
+            modifier: getJokerModifier(),
             sides: 6,
             isWildDie: false,
             themeColor: CONST.COLOR_THEMES.BONUS,
@@ -840,19 +858,19 @@ async function rollTheDice() {
     switch (DB.rollType) {
         case CONST.ROLL_TYPES.TRAIT:
             DB.acing = true;
-            DB.dieLabel = 'Trait Die';
+            DB.dieLabel = CONST.DIELABELS.TRAIT;
             break;
         case CONST.ROLL_TYPES.DAMAGE:
             DB.acing = !getState(breakingObjectsToggle);
-            DB.dieLabel = 'Damage Die';
+            DB.dieLabel = CONST.DIELABELS.DAMAGE;
             break;
         case CONST.ROLL_TYPES.STANDARD:
             DB.acing = false;
-            DB.dieLabel = 'Die';
+            DB.dieLabel = CONST.DIELABELS.STANDARD;
             break;
     }
 
-    //clearCounters();
+    clearCounters();
     await DB.roll(DICE_CONFIGS);
 }
 
@@ -883,95 +901,95 @@ async function rerollTheDice() {
     }
 }
 
-// document.querySelector('#update').addEventListener('click', async e => {
-//     const RECENT_ROLLS = ROLL_HISTORY.toReversed();
-//     const LAST_ROLL = RECENT_ROLLS[0];
-//     const NEW_MODIFIER = Number(MODIFIER_INPUT_ELEMENT.value);
-//     const LOG_ENTRY_WRAPPER_ELEMENTS = document.querySelectorAll('.log-entry-wrapper');
+//document.querySelector('#update').addEventListener('click', async e => 
 
-//     for (const LOG_ENTRY_WRAPPER_ELEMENT of LOG_ENTRY_WRAPPER_ELEMENTS) {
-//         const INDEX = Array.from(LOG_ENTRY_WRAPPER_ELEMENTS).indexOf(LOG_ENTRY_WRAPPER_ELEMENT);
-//         const IS_REROLL = LOG_ENTRY_WRAPPER_ELEMENT.dataset.isReroll === 'true';
-//         const IS_NEW_ROLL = !IS_REROLL && INDEX === 0;
-//         const IS_ORIGINAL_ROLL = !IS_REROLL && LOG_ENTRY_WRAPPER_ELEMENT.previousElementSibling?.dataset?.isReroll === 'true';
+async function adjustTheRoll() {
+    const RECENT_ROLLS = [...ROLL_HISTORY].reverse();       //.toReversed();
+    const LAST_ROLL = RECENT_ROLLS[0];
+    const NEW_MODIFIER = getJokerModifier();
+    const LOG_ENTRY_WRAPPER_ELEMENTS: NodeListOf<HTMLElement> = document.querySelectorAll('.log-entry-wrapper');
 
-//         if (IS_NEW_ROLL || IS_REROLL || IS_ORIGINAL_ROLL) {
-//             LOG_ENTRY_WRAPPER_ELEMENT.querySelector('.modifier')?.remove();
-//             const OUTPUT_ELEMENT = LOG_ENTRY_WRAPPER_ELEMENT.querySelector('.output');
-//             const TOTAL_ELEMENT = LOG_ENTRY_WRAPPER_ELEMENT.querySelector('.total');
-//             const DESCRIPTION_ELEMENT = LOG_ENTRY_WRAPPER_ELEMENT.querySelector('.description');
-//             const NEW_TOTAL = Number(TOTAL_ELEMENT.innerText) - RECENT_ROLLS[INDEX].modifier + NEW_MODIFIER;
+    for (const LOG_ENTRY_WRAPPER_ELEMENT of LOG_ENTRY_WRAPPER_ELEMENTS) {
+        const INDEX = Array.from(LOG_ENTRY_WRAPPER_ELEMENTS).indexOf(LOG_ENTRY_WRAPPER_ELEMENT);
+        const IS_REROLL = LOG_ENTRY_WRAPPER_ELEMENT.dataset.isReroll === 'true';
+        const IS_NEW_ROLL = !IS_REROLL && INDEX === 0;
+        const PREV_ENTRY: HTMLElement = LOG_ENTRY_WRAPPER_ELEMENT.previousElementSibling as HTMLElement
+        const IS_ORIGINAL_ROLL = !IS_REROLL && PREV_ENTRY && PREV_ENTRY.dataset?.isReroll === 'true';
 
-//             OUTPUT_ELEMENT.innerHTML = '';
+        if (IS_NEW_ROLL || IS_REROLL || IS_ORIGINAL_ROLL) {
+            LOG_ENTRY_WRAPPER_ELEMENT.querySelector('.modifier')?.remove();
+            const OUTPUT_ELEMENT = LOG_ENTRY_WRAPPER_ELEMENT.querySelector('.output') as HTMLElement;
+            const TOTAL_ELEMENT = LOG_ENTRY_WRAPPER_ELEMENT.querySelector('.total') as HTMLElement;
+            const DESCRIPTION_ELEMENT = LOG_ENTRY_WRAPPER_ELEMENT.querySelector('.description') as HTMLElement;
+            const NEW_TOTAL = Number(TOTAL_ELEMENT!.innerText) - RECENT_ROLLS[INDEX].modifier + NEW_MODIFIER;
 
-//             if (NEW_MODIFIER !== 0) {
-//                 OUTPUT_ELEMENT.insertAdjacentHTML('afterbegin', signModOutput(NEW_MODIFIER));
-//             }
+            OUTPUT_ELEMENT.innerHTML = '';
 
-//             const TRAIT_ROLLS = LAST_ROLL.rollResult.filter(d => d.dieLabel === 'Trait Die');
+            if (NEW_MODIFIER !== 0) {
+                OUTPUT_ELEMENT.insertAdjacentHTML('afterbegin', signModOutput(NEW_MODIFIER, getState(jokerDrawnToggle)));
+            }
 
-//             if (TRAIT_ROLLS.length === 1 || DB.rollType !== CONST.ROLL_TYPES.TRAIT) {
-//                 TOTAL_ELEMENT.innerText = NEW_TOTAL;
-//                 DESCRIPTION_ELEMENT.innerText = DB.rollType === CONST.ROLL_TYPES.STANDARD ? '' : calculateRaises(NEW_TOTAL);
-//             }
+            const TRAIT_ROLLS = LAST_ROLL.rollResult.filter(d => d.dieLabel === CONST.DIELABELS.TRAIT);
 
-//             RECENT_ROLLS[INDEX].modifier = NEW_MODIFIER;
-//             RECENT_ROLLS[INDEX].total = NEW_TOTAL;
-//             RECENT_ROLLS[INDEX].description = DESCRIPTION_ELEMENT.innerText;
-//             let rollDetails = '';
+            if (TRAIT_ROLLS.length === 1 || DB.rollType !== CONST.ROLL_TYPES.TRAIT) {
+                TOTAL_ELEMENT.innerText = NEW_TOTAL.toString();
+                DESCRIPTION_ELEMENT.innerText = DB.rollType === CONST.ROLL_TYPES.STANDARD ? '' : calculateRaises(NEW_TOTAL);
+            }
 
-//             for (const DIE_ROLL of RECENT_ROLLS[INDEX].rollResult) {
-//                 DIE_ROLL.value = DB.rollType === CONST.ROLL_TYPES.TRAIT ? DIE_ROLL.value - DIE_ROLL.modifier + NEW_MODIFIER : DIE_ROLL.value;
-//                 DIE_ROLL.modifier = NEW_MODIFIER;
-//                 rollDetails += markupDieRollDetails(DIE_ROLL);
-//             }
+            RECENT_ROLLS[INDEX].modifier = NEW_MODIFIER;
+            RECENT_ROLLS[INDEX].total = NEW_TOTAL;
+            RECENT_ROLLS[INDEX].description = DESCRIPTION_ELEMENT.innerText;
+            let rollDetails = '';
 
-//             OUTPUT_ELEMENT.insertAdjacentHTML('beforeend', rollDetails);
+            for (const DIE_ROLL of RECENT_ROLLS[INDEX].rollResult) {
+                DIE_ROLL.value = DB.rollType === CONST.ROLL_TYPES.TRAIT ? DIE_ROLL.value - DIE_ROLL.modifier + NEW_MODIFIER : DIE_ROLL.value;
+                DIE_ROLL.modifier = NEW_MODIFIER;
+                rollDetails += markupDieRollDetails(DIE_ROLL);
+            }
 
-//             // Send to Discord
-//             if (DISCORD_SETTINGS.webhookURL && RECENT_ROLLS[INDEX].rollResult?.length) {
-//                 // Pass in the discord response to use the ID to update that specific message.
-//                 RECENT_ROLLS[INDEX].discordResponse = await sendToDiscord(RECENT_ROLLS[INDEX]);
-//             }
-//         }
+            OUTPUT_ELEMENT.insertAdjacentHTML('beforeend', rollDetails);
 
-//         if (IS_NEW_ROLL || IS_ORIGINAL_ROLL) {
-//             break;
-//         }
-//     }
+            // // Send to Discord
+            // if (DISCORD_SETTINGS.webhookURL && RECENT_ROLLS[INDEX].rollResult?.length) {
+            //     // Pass in the discord response to use the ID to update that specific message.
+            //     RECENT_ROLLS[INDEX].discordResponse = await sendToDiscord(RECENT_ROLLS[INDEX]);
+            // }
+        }
 
-//     if (window.innerWidth < 800) {
-//         document.querySelector('#dice-tray').scrollIntoView({ block: 'start', behavior: 'smooth' });
-//     }
+        if (IS_NEW_ROLL || IS_ORIGINAL_ROLL) {
+            break;
+        }
+    }
 
-//     e.preventDefault();
-// });
+    // if (window.innerWidth < 800) {
+    //     document.querySelector('#dice-tray').scrollIntoView({ block: 'start', behavior: 'smooth' });
+    // }
 
-// document.querySelector('#clear-log').addEventListener('click', e => clearLog());
+    // e.preventDefault();
+}
 
-// document.querySelector('#reset').addEventListener('click', e => {
-//     resetConditions();
-//     e.preventDefault();
-// });
 
-// function clearLog() {
-//     document.querySelector('#log-entries').innerHTML = '';
-//     DB.clear();
-// }
 
-// function emptyDiceCup() {
-//     for (const DIE of document.querySelectorAll('.dice-cup .die')) {
-//         DIE.remove();
-//     }
-// }
 
-// function resetConditions() {
-//     HAS_WILD_DIE_ELEMENT.checked = true;
-//     WILD_DIE_TYPE_ELEMENT.value = 6;
-//     BREAKING_THINGS_ELEMENT.checked = false;
-//     MODIFIER_INPUT_ELEMENT.value = 0;
-//     TARGET_NUMBER_ELEMENT.value = 4;
-// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // // Discord Webhook  
 
@@ -1034,7 +1052,7 @@ async function rerollTheDice() {
 //         },
 //     ];
 
-//     const TRAIT_ROLLS = roll.rollResult.filter(d => d.dieLabel === 'Trait Die');
+//     const TRAIT_ROLLS = roll.rollResult.filter(d => d.dieLabel === CONST.DIELABELS.TRAIT);
 
 //     if (TRAIT_ROLLS.length > 1) {
 //         FIELDS.shift();

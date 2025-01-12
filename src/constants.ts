@@ -13,12 +13,20 @@ export const CONST = {
 	  RAISE: '🌟',
 	  CRITICAL_FAILURE: '💀',
 	  CRITICAL_FAILURE_JODI: '🙌',
+	  JOKER: '🃏'
 	},
 	COLOR_THEMES: {
 	  PRIMARY: '#c6c4af',
 	  SECONDARY: '#ecd69b',
 	  BONUS: '#808080',
 	  CRITICAL_FAILURE_DIE: '#7d0000',
+	},
+	DIELABELS: {
+		TRAIT:'Trait',
+		DAMAGE: 'Damage',
+		STANDARD: 'Die',
+		WILD: 'Wild',
+		BONUS: 'Bonus',
 	},
 	DEFAULTS: {
 	  WILD_DIE: "d6",

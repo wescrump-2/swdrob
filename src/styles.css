@@ -12,32 +12,31 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
+  --container-width: 54ch;
+  --background-color: #000;
+  --theme-color: #C6C4AF;
+  --alt-theme-color: #ecd69b;
+  --heading-font: 'Anton', sans-serif;
+  --body-font: 'Open Sans', sans-serif;
+  --spacing: 0px;
+  --border: 1px solid var(--theme-color);
+  --border-radius: 6px;
+
   --button-size: 1.1rem;
   --die-size: 2rem;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-
-a:hover {
-  color: #535bf2;
-}
 
 body {
   font-family: Arial, sans-serif;
   margin: 0px;
   padding: 0px;
   display: flex;
-  place-items: center;
+  /* place-items:;
   align-items: center;
-  justify-items: center;
+  justify-items: center; */
   vertical-align: top;
   min-width: 300px;
-  max-width: 400px;
-  min-height: 20vh;
 }
 
 h1 {
@@ -45,19 +44,18 @@ h1 {
   line-height: 1.1;
 }
 
+hr {
+  margin-block-start: 0.15em;
+  margin-block-end: 0.15em;
+  margin-inline-start: auto;
+  margin-inline-end: auto;
+}
+
 #app {
   max-width: 2px;
   margin: 0 auto;
   padding: 0px;
   overflow: hidden;
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
 }
 
 button {
@@ -109,19 +107,14 @@ button:focus-visible {
   height: 8rem;
 }
 
-.row div {
+.rowxx div {
   display: inline;
   align-items: center;
 }
 
-.log {
-  overflow: hidden;
-  height: 100px;
-}
-
 .dice {
   display: inline-block;
-  line-height:var(--die-size);
+  line-height: var(--die-size);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -143,15 +136,13 @@ fieldset {
 
 fieldset#dice-tray {
   & canvas#dice-tray {
-      height: 400px;
-      width: 300px;
-      padding: 0px;
-
+    height: 400px;
+    padding: 0px;
+    width: 300px;
   }
 }
 
 .main-content {
-  flex-grow: 1;
   padding: 0px;
 }
 
@@ -159,7 +150,7 @@ fieldset#dice-tray {
 .custom-radio,
 .toggle-image {
   cursor: pointer;
-  margin: 0px;
+  margin: 2px;
   padding: 0px;
   vertical-align: middle;
 }
@@ -208,14 +199,14 @@ fieldset#dice-tray {
 }
 
 .inner-line {
-  border-top: 1px solid #ccc; 
+  border-top: 1px solid #ccc;
   height: 1px;
-  margin: 20px 0;
+  margin: 2px 0;
   width: 50%;
   margin-left: auto;
   margin-right: auto;
   border-radius: 5px;
-  border-color: #333; 
+  border-color: #333;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
@@ -286,4 +277,104 @@ input[type="number"]::before::before {
 input[type="number"]::after:hover,
 input[type="number"]::before:hover {
   background: #ddd;
+}
+
+.log {
+  padding-top: 0;
+  grid-column: 1/-1;
+  height: 100%;
+  margin: 0;
+  overflow: auto;
+
+  @media screen and (width >=800px) {
+      grid-row: 1/-1;
+      grid-column: 2;
+  }
+
+  & #log-entries {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing);
+  }
+
+  & #log-buttons {
+      position: sticky;
+      top: 0;
+      margin: 0 0 var(--spacing) 0;
+      width: 100%;
+      background-color: var(--background-color);
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: 40px;
+      gap: var(--spacing);
+  }
+
+  & #log-entries {
+      margin-top: var(--spacing);
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing);
+      font-size: .9em;
+      scroll-snap-type: block mandatory;
+
+      &>* {
+          scroll-snap-stop: always;
+          scroll-snap-align: end;
+      }
+  }
+
+  & .log-entry-wrapper {
+      display: grid;
+      grid-template-columns: 4fr 1fr;
+      grid-template-rows: auto 1fr;
+      border: var(--border);
+      border-radius: var(--border-radius);
+
+      & .output {
+          grid-column: 1 / -1;
+          grid-row: 2 / -1;
+          padding: var(--spacing);
+          border-top: var(--border);
+      }
+
+      & .output p {
+          margin-top: 0;
+          margin-bottom: .05em;
+      }
+
+      & .total {
+          margin: 0;
+          grid-row: 1;
+          grid-column: 2;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          flex-grow: 1;
+          border-left: var(--border);
+      }
+
+      & .description {
+          margin: 0;
+          grid-column: 1;
+          grid-row: 1;
+          display: flex;
+          padding: var(--spacing);
+      }
+  }
+
+  & #results {
+      margin: 0;
+      padding-left: 1.5em;
+  }
+}
+
+h2 {
+  display: block;
+  font-size: 1em;
+  margin-block-start: 0.83em;
+  margin-block-end: 0.83em;
+  margin-inline-start: 0px;
+  margin-inline-end: 0px;
+  font-weight: bold;
+  unicode-bidi: isolate;
 }
