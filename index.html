@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <title>Roll Options</title>
+  <script type="module" src="/src/main.ts"></script>
+</head>
+
+<body>
+  <object type="image/svg+xml" data="/buttons.svg" id="buttons-svg" width="0" height="0"></object>
+  <div class="sidebar">
+    <form id="dice-roller" class="dice-roller">
+      <div class="options">
+        <div class="row">
+          <span title="Trait Dice">
+            <svg id="traitdice" class="custom-radio active" data-value="trait">
+            </svg></span>
+          <span title="Damage Dice">
+            <svg id="damagedice" class="custom-radio" data-value="damage">
+            </svg></span>
+          <span title="Standard Dice">
+            <svg id="standarddice" class="custom-radio" data-value="standard">
+            </svg></span>
+        </div>
+        <hr />
+        <div class="row">
+          <label for="modifier" title="Reset Modifier to zero.">
+            <svg id="modifierButton" class="toggle-image inactive">
+            </svg>
+            <input type="number" id="modifier" name="modifier" title="Modifier" value="0" min="-42" max="42">
+          </label>
+        </div>
+        <div class="row">
+          <label for="targetNumber" title="Reset Target Number to default.">
+            <svg id="targetNumberButton" class="toggle-image inactive"> </svg>
+            <input type="number" id="targetNumber" name="targetNumber" title="Target Number" value="4" min="1" max="42">
+          </label>
+        </div>
+        <div class="div">
+          <label for="wildDieType" title="Include/exclude the Wild Die.">
+            <svg id="wildDieToggle" class="toggle-image active"> </svg>
+            <select id="wildDieType" name="wildDieType" title="Wild Die Type.">
+              <option value="d4">d4</option>
+              <option value="d6" selected>d6</option>
+              <option value="d8">d8</option>
+              <option value="d10">d10</option>
+              <option value="d12">d12</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="row">
+          <span title="Reapply modifier settings to the previous roll results.">
+            <svg id="adjustButton" class="toggle-image inactive">
+            </svg>
+          </span>
+          <span title="Joker! +2 to all Trait and Damage rolls.">
+            <svg id="jokerDrawnToggle" class="toggle-image inactive">
+            </svg>
+          </span>
+          <span title="Bonus Damage! +1d6.">
+            <svg id="bonusDamageToggle" class="toggle-image inactive">
+            </svg>
+          </span>
+          <span title="Break object mode, no acing, no bonus damage.">
+            <svg id="breakingObjectsToggle" class="toggle-image inactive">
+            </svg>
+          </span>
+          <span title="Opposed mode, Target Number is the previous roll.">
+            <svg id="opposedRollToggle" class="toggle-image inactive">
+            </svg>
+          </span>
+        </div>
+      </div>
+      <hr />
+      <div class="row">
+
+        <span id="d4Row" title="d4" class="dice">
+          <svg id="d4Button" class="toggle-image inactive">
+          </svg>
+          <span id="d4count" class="counter"></span>
+        </span>
+        <span id="d6Row" title="d6" class="dice">
+          <svg id="d6Button" class="toggle-image inactive">
+          </svg>
+          <span id="d6count" class="counter"></span>
+        </span>
+        <span id="d8Row" title="d8" class="dice">
+          <svg id="d8Button" class="toggle-image inactive">
+          </svg>
+          <span id="d8count" class="counter"></span>
+        </span>
+        <span id="d10Row" title="d10" class="dice">
+          <svg id="d10Button" class="toggle-image inactive">
+          </svg>
+          <span id="d10count" class="counter"></span>
+        </span>
+        <span id="d12Row" title="d12" class="dice">
+          <svg id="d12Button" class="toggle-image inactive">
+          </svg>
+          <span id="d12count" class="counter"></span>
+        </span>
+        <span id="d20Row" title="d20" class="dice">
+          <svg id="d20Button" class="toggle-image inactive">
+          </svg>
+          <span id="d20count" class="counter"></span>
+        </span>
+        <span id="d100Row" title="d100" class="dice">
+          <svg id="d100Button" class="toggle-image inactive">
+          </svg>
+          <span id="d100count" class="counter"></span>
+        </span>
+      </div>
+      <hr class="inner-line" />
+      <div>
+        <div class="dice">
+          <span title="Roll dice.">
+            <svg id="rollDiceButton" class="toggle-image inactive">
+            </svg>
+          </span>
+          <span title="Remove all dice.">
+            <svg id="removeDiceButton" class="toggle-image inactive">
+            </svg>
+          </span>
+        </div>
+      </div>
+      <hr>
+      <div class="row">
+        <span title="Reset all to defaults.">
+          <svg id="resetButton" class="toggle-image inactive"> </svg>
+        </span>
+        <span title="Clear dice log.">
+          <svg id="clearButton" class="toggle-image inactive"> </svg>
+        </span>
+      </div>
+    </form>
+  </div>
+  <div class="main-content">
+    <div class="row">
+      <fieldset id="dice-tray">
+        <legend>Dice Tray</legend>
+        <canvas id="dice-tray"></canvas>
+      </fieldset>
+    </div>
+    <div class="row">
+      <fieldset class="log">
+        <legend>Log</legend>
+        <div id="log-entries" class="fieldset-grid">
+        </div>
+      </fieldset>
+    </div>
+  </div>
+</body>
+
+</html>

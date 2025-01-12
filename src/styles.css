@@ -1,0 +1,271 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --button-size: 1.6rem;
+  --die-size: 2.6rem;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  display: flex;
+  place-items: center;
+  align-items: center;
+  justify-items: center;
+  vertical-align: top;
+  min-width: 320px;
+  min-height: 20vh;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+#app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+
+button:hover {
+  border-color: #646cff;
+}
+
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+
+  a:hover {
+    color: #747bff;
+  }
+
+  button {
+    background-color: #f9f9f9;
+  }
+}
+
+.sidebar {
+  width: 99px;
+  min-width: 99px;
+  overflow: hidden;
+  padding: 5px;
+  background-color: #3d3838;
+  display: flex;
+  flex-direction: column;
+}
+
+.options {
+  height: 10rem;
+}
+
+.row div {
+  display: inline;
+  align-items: center;
+}
+
+.dice {
+  display: inline-block;
+  line-height:var(--die-size);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  overflow: hidden;
+  padding: 0;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+fieldset#dice-tray {
+  & canvas#dice-tray {
+      height: 300px;
+      width: 300px;
+  }
+}
+
+.main-content {
+  flex-grow: 1;
+  padding: 0px;
+}
+
+/* Styling for custom radio buttons and toggle images */
+.custom-radio,
+.toggle-image {
+  cursor: pointer;
+  margin: 0px;
+  padding: 0px;
+  vertical-align: middle;
+}
+
+.custom-radio path,
+.toggle-image path {
+  transition: fill 0.3s ease;
+}
+
+.custom-radio.active path,
+.toggle-image.active path {
+  fill: #007BFF;
+  /* Active color */
+}
+
+.custom-radio path,
+.toggle-image path {
+  fill: #A9A9A9;
+  /* Default color */
+}
+
+/* Hover effect for SVGs */
+.custom-radio:hover path,
+.toggle-image:hover path {
+  fill: #0056b3;
+  /* A darker shade for hover */
+}
+
+.counter {
+  cursor: pointer;
+  display: inline-block;
+  border-radius: 50%;
+  width: 1.5rem;
+  height: 1.5rem;
+  line-height: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  background-color: #007BFF;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.counter:empty {
+  background-color: inherit;
+}
+
+.inner-line {
+  border-top: 1px solid #ccc; 
+  height: 1px;
+  margin: 20px 0;
+  width: 50%;
+  margin-left: auto;
+  margin-right: auto;
+  border-radius: 5px;
+  border-color: #333; 
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Styling for number inputs to look like spinners */
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: auto;
+}
+
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: inner-spin-button !important;
+  opacity: 1;
+  margin: 0;
+}
+
+/* Adding pseudo-elements for spinner buttons */
+input[type="number"] {
+  position: relative;
+}
+
+input[type="number"]::after,
+input[type="number"]::before {
+  content: '';
+  position: absolute;
+  right: 0px;
+  width: 10px;
+  height: 50%;
+  background: #eee;
+  text-align: center;
+  cursor: pointer;
+  z-index: 1;
+}
+
+input[type="number"]::after {
+  top: 0;
+  border-bottom: 1px solid #ccc;
+}
+
+input[type="number"]::before {
+  bottom: 0;
+  border-top: 1px solid #ccc;
+}
+
+input[type="number"]::after::before {
+  content: '\25B2';
+  /* Up arrow */
+  position: absolute;
+  top: -2px;
+  left: 0;
+  width: 100%;
+  color: #333;
+  font-size: 10px;
+}
+
+input[type="number"]::before::before {
+  content: '\25BC';
+  /* Down arrow */
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  color: #333;
+  font-size: 10px;
+}
+
+/* Hover effects for spinner buttons */
+input[type="number"]::after:hover,
+input[type="number"]::before:hover {
+  background: #ddd;
+}

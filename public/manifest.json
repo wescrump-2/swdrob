@@ -1,0 +1,16 @@
+{
+  "name": "Savage Owlbear Dice",
+  "version": "1.0.95041",
+  "manifest_version": 1,
+  "author": "Wes Crump",
+  "homepage_url": "",
+  "icon": "/logo.png",
+  "description": "Savage Worlds Dice for Owlbear Rodeo with Trait, Damage, and standard rolls.",
+  "action": {
+    "title": "Savage Owlbear Dice",
+    "icon": "/icon.svg",
+    "popover": "/",
+    "height": 800,
+    "width": 400
+  }
+}

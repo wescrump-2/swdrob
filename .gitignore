@@ -1,0 +1,73 @@
+# Node.js
+node_modules/
+package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp/
+.pnp.js
+
+# TypeScript
+*.tsbuildinfo
+
+# Vite
+dist/
+.vite/
+*.d.ts
+
+# IDE Configs
+.vscode/
+.idea/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.*
+
+# Test coverage
+coverage/
+
+# Temporary files
+*.tmp
+*.swp
+
+# Build artifacts
+build/
+*.js.map
+
+# Local configuration
+local.json
+
+# Other
+.vs/
+
+# Yarn
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Dependabot
+.dependabot/
+
+# Husky
+.husky/
+
+# TypeScript build output
+lib/
+out-tsc/
+
+# Jest
+jest.config.js
+
+# Vite's cache
+.vite-inspect/
