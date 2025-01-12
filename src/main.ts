@@ -27,8 +27,9 @@ window.addEventListener("load", () => {
         Util.setImage('clockwise', rerollDiceButton, '--button-size')
         Util.setImage('trash-can', removeDiceButton, '--button-size')
 
-        Util.setImage('anticlockwise', resetButton, '--die-size')
-        Util.setImage('broom', clearButton, '--die-size')
+        Util.setImage('anticlockwise', resetButton, '--button-size')
+        Util.setImage('shatter', colorButton, '--button-size')
+        Util.setImage('broom', clearButton, '--button-size')
         Util.setImage('d4_die', d4Button, '--die-size')
         Util.setImage('d6_die', d6Button, '--die-size')
         Util.setImage('d8_die', d8Button, '--die-size')
@@ -62,6 +63,7 @@ const removeDiceButton = document.getElementById('removeDiceButton') as unknown 
 const rollDiceButton = document.getElementById('rollDiceButton') as unknown as SVGElement;
 const rerollDiceButton = document.getElementById('rerollDiceButton') as unknown as SVGElement;
 const resetButton = document.getElementById('resetButton') as unknown as SVGElement;
+const colorButton = document.getElementById('colorButton') as unknown as SVGElement;
 const clearButton = document.getElementById('clearButton') as unknown as SVGElement;
 const d4Button = document.getElementById('d4Button') as unknown as SVGElement;
 const d6Button = document.getElementById('d6Button') as unknown as SVGElement;
@@ -70,8 +72,6 @@ const d10Button = document.getElementById('d10Button') as unknown as SVGElement;
 const d12Button = document.getElementById('d12Button') as unknown as SVGElement;
 const d20Button = document.getElementById('d20Button') as unknown as SVGElement;
 const d100Button = document.getElementById('d100Button') as unknown as SVGElement;
-
-
 
 //setup click handlers
 setupRadio();
@@ -88,6 +88,7 @@ setupSvgToggle(rollDiceButton);
 setupSvgToggle(rerollDiceButton);
 setupSvgToggle(removeDiceButton);
 setupSvgToggle(resetButton);
+setupSvgToggle(colorButton);
 setupSvgToggle(clearButton);
 setupSvgToggle(d4Button);
 setupSvgToggle(d6Button);
@@ -209,6 +210,10 @@ function setupSvgToggle(svgElement: SVGElement) {
             rerollTheDice();
         } else if (svgElement === resetButton) {
             resetToDefaults();
+        } else if (svgElement === colorButton) {
+            dice_color++;
+            if (dice_color>DICECOLORS.length-1) dice_color=0;
+            setDiceColor(dice_color);
         } else if (svgElement === clearButton) {
             clearLog();
         } else if (svgElement === d4Button) {
@@ -333,6 +338,13 @@ function showHideControls(selectedRadio: string) {
     }
 }
 
+function setDiceColor(n:number) {
+    n=Math.max(0,Math.min(n,DICECOLORS.length-1))
+    CONST.COLOR_THEMES.PRIMARY = DICECOLORS[n];
+    CONST.COLOR_THEMES.SECONDARY = Util.getContrast(CONST.COLOR_THEMES.PRIMARY);
+    CONST.COLOR_THEMES.BONUS = Util.getMidpointColor(CONST.COLOR_THEMES.PRIMARY, CONST.COLOR_THEMES.SECONDARY)
+}
+
 //const BREAKING_THINGS_ELEMENT = document.querySelector('#breakingObjectsToggle')!;
 //const TARGET_NUMBER_ELEMENT = document.querySelector('#target-number')!;
 //const MODIFIER_INPUT_ELEMENT = document.querySelector('#modifier')!;
@@ -407,13 +419,12 @@ class RollResult {
     themeColor: string = '#ecd69b'
     value: number = 0
 }
-if (false) await rerollTheDice();
-
 let RollCollection: SWDR = new SWDR();
 
 const ROLL_HISTORY: SWDR[] = [];
-const diecolors = Util.generateRainbowColors(24);
-
+const DICECOLORS = Util.generateColorCodes();
+let dice_color=0;
+setDiceColor(dice_color);
 const DB = new DiceBox("#dice-tray", {
     id: 'dice-tray',
     assetPath: "/assets/",
@@ -593,21 +604,6 @@ const DB = new DiceBox("#dice-tray", {
 
 DB.init();
 
-function setContrast(hexColor: string) {
-    CONST.COLOR_THEMES.PRIMARY = hexColor;
-    hexColor = hexColor.replace(/^#/, '');
-    if (hexColor.length === 3) {
-        hexColor = hexColor.split('').map(c => c + c).join('');
-    }
-    let r = parseInt(hexColor.slice(0, 2), 16);
-    let g = parseInt(hexColor.slice(2, 4), 16);
-    let b = parseInt(hexColor.slice(4, 6), 16);
-    r = 255 - r;
-    g = 255 - g;
-    b = 255 - b;
-    let complementaryHex = ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-    CONST.COLOR_THEMES.SECONDARY = '#' + complementaryHex;
-}
 function updateRollHistory(roll: SWDR) {
     ROLL_HISTORY.push(roll);
     localStorage.setItem(LOCAL_STORAGE_KEYS.rollHistory, JSON.stringify(ROLL_HISTORY));
@@ -643,9 +639,6 @@ function calculateRaises(rollResult: number) {
             // If raises equals one, output singular raise.
             description = `Success ${CONST.EMOJIS.SUCCESS} with a Raise! ${CONST.EMOJIS.RAISE}`;
         } else {
-            DB.updateConfig({
-                themeColor: setContrast(diecolors[Math.floor(Math.random() * diecolors.length)])
-            });
             // If raises greater than 1, output number of raises with multiple CONST.EMOJIS.
             let emojiCount = '';
 
@@ -799,6 +792,7 @@ class DiceConfig {
     modifier: number = 0
     sides: number = 0
     isWildDie: boolean = false
+    isBonusDie: boolean = false
     themeColor: string = ''
 }
 
@@ -832,6 +826,7 @@ async function rollTheDice() {
                 modifier: getJokerModifier(),
                 sides: numsides,
                 isWildDie: false,
+                isBonusDie: false,
                 themeColor: CONST.COLOR_THEMES.PRIMARY,
             });
         }
@@ -842,6 +837,7 @@ async function rollTheDice() {
             modifier: getJokerModifier(),
             sides: getWildDieValue(),
             isWildDie: true,
+            isBonusDie: false,
             themeColor: CONST.COLOR_THEMES.SECONDARY,
         });
     }
@@ -850,6 +846,7 @@ async function rollTheDice() {
             modifier: getJokerModifier(),
             sides: 6,
             isWildDie: false,
+            isBonusDie: true,
             themeColor: CONST.COLOR_THEMES.BONUS,
         });
 

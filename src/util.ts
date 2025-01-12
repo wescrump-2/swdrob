@@ -1,5 +1,103 @@
 
 export class Util {
+    static   hexToRgb(hex: string): { r: number; g: number; b: number } {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : { r: 0, g: 0, b: 0 };
+    }
+    
+    static   rgbToHex(r: number, g: number, b: number): string {
+        return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+    }
+    
+    static getMidpointColor(color1: string, color2: string): string {
+        const rgb1 = Util.hexToRgb(color1);
+        const rgb2 = Util.hexToRgb(color2);
+    
+        // Calculate midpoint for each component
+        const r = Math.round((rgb1.r + rgb2.r) / 2);
+        const g = Math.round((rgb1.g + rgb2.g) / 2);
+        const b = Math.round((rgb1.b + rgb2.b) / 2);
+    
+        return Util.rgbToHex(r, g, b);
+    }
+
+
+    static getContrast(hexColor: string) {
+        hexColor = hexColor.replace(/^#/, '');
+        if (hexColor.length === 3) {
+            hexColor = hexColor.split('').map(c => c + c).join('');
+        }
+        let r = parseInt(hexColor.slice(0, 2), 16);
+        let g = parseInt(hexColor.slice(2, 4), 16);
+        let b = parseInt(hexColor.slice(4, 6), 16);
+        r = 255 - r;
+        g = 255 - g;
+        b = 255 - b;
+        let complementaryHex = ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        return '#' + complementaryHex;
+    }
+    
+
+
+    static generateColorCodes(): string[] {
+        // Primary colors
+        const primaryColors: { [key: string]: string } = {
+            'Red': '#FF0000',
+            'Blue': '#0000FF',
+            'Yellow': '#FFFF00'
+        };
+    
+        // Secondary colors (mix of two primary colors)
+        const secondaryColors: { [key: string]: string } = {
+            'Green': '#00FF00', // Blue + Yellow
+            'Purple': '#800080', // Red + Blue
+            'Orange': '#FFA500'  // Red + Yellow
+        };
+    
+        // Tertiary colors (mix of one primary and one secondary color)
+        const tertiaryColors: { [key: string]: string } = {
+            'Red-Orange': '#FF4500',  // Red + Orange
+            'Yellow-Orange': '#FF8C00', // Yellow + Orange
+            'Yellow-Green': '#9ACD32',  // Yellow + Green
+            'Blue-Green': '#008080',    // Blue + Green
+            'Blue-Purple': '#4B0082',   // Blue + Purple
+            'Red-Purple': '#8B008B'     // Red + Purple
+        };
+    
+        // Quadiary colors (mix of various colors, examples)
+        const quadiaryColors: { [key: string]: string } = {
+            'Teal': '#008080',       // Often considered a mix of blue and green
+            'Magenta': '#FF00FF',    // Red + Blue (but more vibrant than purple)
+            'Chartreuse': '#7FFF00', // Yellow + Green
+            'Maroon': '#800000',     // A dark red, could be seen as red mixed with black/brown
+            'Turquoise': '#40E0D0'   // Blue + Green with a slight shift towards green
+        };
+    
+        // Additional colors
+        const additionalColors: { [key: string]: string } = {
+            'Black': '#000000',
+            'Grey': '#808080',  // This is a medium grey, can be adjusted for lighter or darker shades
+            'White': '#FFFFFF',
+            'Brown': '#A52A2A'   // This is 'SaddleBrown', one of many shades of brown
+        };
+    
+        // Combine all color categories into one object
+        const allColors = {
+            ...primaryColors,
+            ...secondaryColors,
+            ...tertiaryColors,
+            ...quadiaryColors,
+            ...additionalColors
+        };
+    
+        // Convert the object to an array of just the hex values
+        return Object.values(allColors);
+    }
+
     static generateRainbowColors(numberOfColors: number): string[] {
         const colors: string[] = [];
 

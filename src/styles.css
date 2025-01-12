@@ -136,7 +136,7 @@ fieldset {
 
 fieldset#dice-tray {
   & canvas#dice-tray {
-    height: 400px;
+    height: 350px;
     padding: 0px;
     width: 300px;
   }
