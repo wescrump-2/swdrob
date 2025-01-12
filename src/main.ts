@@ -533,7 +533,7 @@ const DB = new DiceBox("#dice-tray", {
                 let rollDetails = '';
 
                 for (const DIE_ROLL of rollResult) {
-                    rollDetails += markupDieRollDetails(DIE_ROLL);
+                    rollDetails += markupDieRollDetails(DIE_ROLL, RollCollection.isJoker);
                 }
 
                 // Format the roll details (i.e., break down of each die, if it aced, and whatever modifier might be applied).
@@ -571,7 +571,7 @@ const DB = new DiceBox("#dice-tray", {
                 let rollDetails = '';
 
                 for (const DIE_ROLL of rollResult) {
-                    rollDetails += markupDieRollDetails(DIE_ROLL);
+                    rollDetails += markupDieRollDetails(DIE_ROLL,RollCollection.isJoker);
                 }
 
                 // Format the roll details (i.e., break down of each die, if it aced, and whatever modifier might be applied).
@@ -713,8 +713,8 @@ function signModOutput(modifier: number, joker: boolean) {
     return `<p class="modifier" data-modifier="${modifier}">Modifier: ${modifier < 0 ? '−' : '+'}${Math.abs(modifier)}${joker ? CONST.EMOJIS.JOKER : ''}</p>`;
 }
 
-function markupDieRollDetails(dieRoll: RollResult) {
-    const SHOW_MODIFIER = DB.rollType === CONST.ROLL_TYPES.TRAIT && dieRoll.modifier !== 0;
+function markupDieRollDetails(dieRoll: RollResult, joker:boolean) {
+    const SHOW_MODIFIER = DB.rollType === CONST.ROLL_TYPES.TRAIT && (dieRoll.modifier !== 0 || joker);
     const SHOW_BREAKDOWN = dieRoll.rollDetails.includes(CONST.EMOJIS.ACE);
     const SHOW_MATH = SHOW_BREAKDOWN || SHOW_MODIFIER;
     const LABEL = `${dieRoll.dieLabel} (d${sidesNumber(dieRoll.sides)}):`;
@@ -737,39 +737,6 @@ function resizeLogElement() {
 const RESIZE_OBSERVER = new ResizeObserver(resizeLogElement);
 
 RESIZE_OBSERVER.observe(document.querySelector('.dice-roller')!, { box: "border-box" });
-
-// for (const DIE_BUTTON of DICE_BAG_ELEMENT.querySelectorAll('.dice-set .button-row button')) {
-//     DIE_BUTTON.addEventListener('click', async (e) => {
-//         DB.isReroll = false;
-//         const IS_TRAIT_DIE = document.querySelector('#trait-radio').checked;
-//         const ADD_WILD_DIE = IS_TRAIT_DIE && HAS_WILD_DIE_ELEMENT.checked && !DICE_CUP_ELEMENT.querySelector('.wild-die');
-//         const CLONED_DIE_BUTTON = e.currentTarget.cloneNode(true);
-//         CLONED_DIE_BUTTON.classList.add('die');
-//         CLONED_DIE_BUTTON.addEventListener('click', (e) => e.currentTarget.remove());
-//         const EXISTING_TRAIT_DICE = DICE_CUP_ELEMENT.querySelectorAll(`.die:not(.wild-die)`);
-//         const CHANGE_TRAIT_DIE = IS_TRAIT_DIE && EXISTING_TRAIT_DICE.length && !Array.from(EXISTING_TRAIT_DICE).some(d => d.value === CLONED_DIE_BUTTON.value);
-
-//         if (IS_TRAIT_DIE && ADD_WILD_DIE) {
-//             const CLONED_WILD_DIE_BUTTON = document.querySelector(`.die[value="${WILD_DIE_TYPE_ELEMENT.value}"`).cloneNode(true);
-//             CLONED_WILD_DIE_BUTTON.classList.add('die', 'wild-die');
-//             CLONED_WILD_DIE_BUTTON.querySelector('img').setAttribute('title', 'Wild Die');
-//             CLONED_WILD_DIE_BUTTON.addEventListener('click', (e) => e.currentTarget.remove());
-//             DICE_CUP_ELEMENT.append(CLONED_WILD_DIE_BUTTON);
-//         }
-
-//         if (CHANGE_TRAIT_DIE) {
-//             for (const DIE of EXISTING_TRAIT_DICE) {
-//                 DIE.value = CLONED_DIE_BUTTON.value;
-//                 DIE.querySelector('img').src = CLONED_DIE_BUTTON.querySelector('img').src;
-//                 DIE.querySelector('img').alt = CLONED_DIE_BUTTON.querySelector('img').alt;
-//             }
-//         } else {
-//             DICE_CUP_ELEMENT.append(CLONED_DIE_BUTTON);
-//         }
-
-//         resizeLogElement();
-//     });
-// }
 
 function getModifier(): number {
     return modifierSpinner.valueAsNumber
@@ -796,7 +763,6 @@ class DiceConfig {
     themeColor: string = ''
 }
 
-//document.querySelector('#roll').addEventListener('click', async e => 
 function isDiceToRoll() {
     let count = 0;
     for (const die of document.querySelectorAll('.counter')) {
@@ -807,6 +773,7 @@ function isDiceToRoll() {
     }
     return count > 0;
 }
+
 async function rollTheDice() {
     if (!isDiceToRoll()) return;
     RollCollection = new SWDR();
@@ -893,12 +860,8 @@ async function rerollTheDice() {
         if (LAST_ROLL.rollResult.length) {
             await DB.roll(DICE_CONFIGS);
         }
-
-        //e.preventDefault();
     }
 }
-
-//document.querySelector('#update').addEventListener('click', async e => 
 
 async function adjustTheRoll() {
     const RECENT_ROLLS = [...ROLL_HISTORY].reverse();       //.toReversed();
@@ -941,12 +904,14 @@ async function adjustTheRoll() {
             for (const DIE_ROLL of RECENT_ROLLS[INDEX].rollResult) {
                 DIE_ROLL.value = DB.rollType === CONST.ROLL_TYPES.TRAIT ? DIE_ROLL.value - DIE_ROLL.modifier + NEW_MODIFIER : DIE_ROLL.value;
                 DIE_ROLL.modifier = NEW_MODIFIER;
-                rollDetails += markupDieRollDetails(DIE_ROLL);
+                rollDetails += markupDieRollDetails(DIE_ROLL,RECENT_ROLLS[INDEX].isJoker);
             }
 
             OUTPUT_ELEMENT.insertAdjacentHTML('beforeend', rollDetails);
 
-            // // Send to Discord
+            // Send to Discord
+            // Send to OBR die rolls for all to see
+            //TODO
             // if (DISCORD_SETTINGS.webhookURL && RECENT_ROLLS[INDEX].rollResult?.length) {
             //     // Pass in the discord response to use the ID to update that specific message.
             //     RECENT_ROLLS[INDEX].discordResponse = await sendToDiscord(RECENT_ROLLS[INDEX]);
@@ -957,39 +922,9 @@ async function adjustTheRoll() {
             break;
         }
     }
-
-    // if (window.innerWidth < 800) {
-    //     document.querySelector('#dice-tray').scrollIntoView({ block: 'start', behavior: 'smooth' });
-    // }
-
-    // e.preventDefault();
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// // Discord Webhook  
-
+// Discord Webhook
 // // Event Listeners for Discord configuration  
 // document.querySelector('#save-discord-config').addEventListener('click', function () {
 //     localStorage.setItem(LOCAL_STORAGE_KEYS.webhookUrl, WEBHOOK_URL_ELEMENT.value);
