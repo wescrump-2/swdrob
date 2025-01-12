@@ -13,7 +13,6 @@ yarn-error.log*
 # Vite
 dist/
 .vite/
-*.d.ts
 
 # IDE Configs
 .vscode/
