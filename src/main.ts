@@ -431,7 +431,7 @@ const DB = new DiceBox("#dice-tray", {
     theme: "default",
     themeColor: CONST.COLOR_THEMES.PRIMARY,
     offscreen: true,
-    scale: 4,
+    scale: 6,
     friction: .75,
     restitution: 0,
     gravity: 15,
@@ -790,7 +790,7 @@ async function rollTheDice() {
                 sides: numsides,
                 isWildDie: false,
                 isBonusDie: false,
-                themeColor: CONST.COLOR_THEMES.PRIMARY,
+                themeColor: numsides<100?CONST.COLOR_THEMES.PRIMARY:Util.randomizeHue(CONST.COLOR_THEMES.PRIMARY),
             });
         }
     }
