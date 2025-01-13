@@ -685,14 +685,10 @@ function createRollDetailsElement(textOutput: string) {
     return ROLL_DETAILS_ELEMENT;
 }
 
-function breakdownResult(dieResult: RollResult | DieResult) {
+function breakdownResult(dieResult: RollResult) {
     let rollDetails = '';
     let ROLLS: DieResult[] = []
-    if (dieResult instanceof RollResult) {
-        ROLLS = dieResult.rolls;
-    } else if (dieResult instanceof DieResult) {
-        ROLLS.push(dieResult)
-    }
+    ROLLS = dieResult.rolls;
     for (const ROLL of ROLLS) {
         rollDetails += `${ROLL.value}${ROLLS.indexOf(ROLL) !== ROLLS.length - 1 ? CONST.EMOJIS.ACE : ''}`;
     }
