@@ -283,7 +283,7 @@ input[type="number"]::before:hover {
 .log {
   padding-top: 0;
   grid-column: 1/-1;
-  height: 235px;
+  height: 230px;
   margin: 0;
   overflow: auto;
 
