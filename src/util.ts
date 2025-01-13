@@ -1,5 +1,10 @@
 
 export class Util {
+    static ID = "com.wescrump.dice-roller";
+    static PlayerMkey = `${Util.ID}/player`;
+
+
+
     static   hexToRgb(hex: string): { r: number; g: number; b: number } {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         return result ? {
