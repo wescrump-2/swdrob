@@ -96,7 +96,7 @@ button:focus-visible {
 
 .sidebar {
   min-width: 78px;
-  min-height: 600px;
+  min-height: 595px;
   overflow: hidden;
   padding: 1px;
   background-color: #3d3838;
@@ -283,7 +283,7 @@ input[type="number"]::before:hover {
 .log {
   padding-top: 0;
   grid-column: 1/-1;
-  height: 250px;
+  height: 235px;
   margin: 0;
   overflow: auto;
 
