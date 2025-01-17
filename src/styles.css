@@ -95,8 +95,8 @@ button:focus-visible {
 }
 
 .sidebar {
-  min-width: 78px;
-  min-height: 595px;
+  min-width: 5rem;
+  min-height: 36rem;
   overflow: hidden;
   padding: 1px;
   background-color: #3d3838;
