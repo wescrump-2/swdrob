@@ -1,7 +1,7 @@
 
 export class Util {
     static ID = "com.wescrump.dice-roller";
-    static PlayerMkey = `${Util.ID}/player`;
+    static DiceHistoryMkey = `${Util.ID}/rollHistory`;
 
 
 

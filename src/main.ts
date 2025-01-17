@@ -1,7 +1,13 @@
-import DiceBox from "@3d-dice/dice-box";
+//import DiceBox from "@3d-dice/dice-box";
+// Using @ts-ignore to bypass TypeScript's type checking for this line
+// @ts-ignore
+import DiceBox from "https://unpkg.com/@3d-dice/dice-box@1.1.4/dist/dice-box.es.min.js";
+import OBR from "@owlbear-rodeo/sdk";
+import * as pako from 'pako';
+
 import { Util } from './util';
-import './styles.css';
 import { CONST } from "./constants";
+import './styles.css';
 import buttonsImage from './buttons.svg';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
@@ -174,9 +180,10 @@ function clearCounters() {
 }
 
 async function opposedRollSet() {
-    const RECENT_ROLLS = [...ROLL_HISTORY].reverse();       //.toReversed();
+    let pid = await OBR.player.getId()
+    const RECENT_ROLLS = [...ROLL_HISTORY].reverse();
     for (let lr of RECENT_ROLLS) {
-        if (lr.rollType === CONST.ROLL_TYPES.TRAIT) {
+        if (lr.rollType === CONST.ROLL_TYPES.TRAIT && lr.playerId!=pid) {
             setSpinner(targetNumberSpinner, `${lr.total}`)
             break;
         }
@@ -212,7 +219,7 @@ function setupSvgToggle(svgElement: SVGElement) {
             resetToDefaults();
         } else if (svgElement === colorButton) {
             dice_color++;
-            if (dice_color>DICECOLORS.length-1) dice_color=0;
+            if (dice_color > DICECOLORS.length - 1) dice_color = 0;
             setDiceColor(dice_color);
         } else if (svgElement === clearButton) {
             clearLog();
@@ -338,23 +345,14 @@ function showHideControls(selectedRadio: string) {
     }
 }
 
-function setDiceColor(n:number) {
-    n=Math.max(0,Math.min(n,DICECOLORS.length-1))
+function setDiceColor(n: number) {
+    n = Math.max(0, Math.min(n, DICECOLORS.length - 1))
     CONST.COLOR_THEMES.PRIMARY = DICECOLORS[n];
     CONST.COLOR_THEMES.SECONDARY = Util.getContrast(CONST.COLOR_THEMES.PRIMARY);
     CONST.COLOR_THEMES.BONUS = Util.getMidpointColor(CONST.COLOR_THEMES.PRIMARY, CONST.COLOR_THEMES.SECONDARY)
 }
 
-//const BREAKING_THINGS_ELEMENT = document.querySelector('#breakingObjectsToggle')!;
-//const TARGET_NUMBER_ELEMENT = document.querySelector('#target-number')!;
-//const MODIFIER_INPUT_ELEMENT = document.querySelector('#modifier')!;
-//const WILD_DIE_TYPE_ELEMENT = document.querySelector('#wildDieType')!;
 const LOG_ENTRIES_ELEMENT = document.querySelector('#log-entries')!;
-const LOCAL_STORAGE_KEYS = {
-    //displayName: 'yourName',
-    // webhookUrl: 'webhookUrl',
-    rollHistory: 'rollHistory',
-};
 
 /*
 ////start new stuffs
@@ -385,6 +383,8 @@ if (!DISCORD_SETTINGS.displayName) {
 }
     */
 class SWDR {
+    playerName: string = ""
+    playerId: string = ""
     criticalFailure: boolean = false
     description: string | null = ''
     rollType: string = ''
@@ -419,37 +419,59 @@ class RollResult {
     themeColor: string = '#ecd69b'
     value: number = 0
 }
-let RollCollection: SWDR = new SWDR();
 
-const ROLL_HISTORY: SWDR[] = [];
+async function setPlayer(r: SWDR) {
+    r.playerName = await OBR.player.getName()
+    r.playerId = await OBR.player.getId()
+}
+OBR.onReady(async () => {
+    try {
+        await initializeExtension()
+    } catch (error) {
+        console.error("Failed to get player name:", error);
+    }
+    const unsubscribe = OBR.room.onMetadataChange(onRoomMetadataChange)
+    window.addEventListener('beforeunload', () => unsubscribe());
+});
+
+let RollCollection: SWDR = new SWDR();
+const MAX_HISTORY: number = 20;
+let ROLL_HISTORY: SWDR[] = [];
 const DICECOLORS = Util.generateColorCodes();
-let dice_color=0;
+let dice_color = 0;
 setDiceColor(dice_color);
-const DB = new DiceBox("#dice-tray", {
+const DB = new DiceBox({
+    assetPath: "assets/",
+    origin: "https://unpkg.com/@3d-dice/dice-box@1.1.3/dist/",
     id: 'dice-tray',
-    assetPath: "/assets/",
+    container: "#dice-tray",
     theme: "default",
+    // theme: "diceOfRolling",
+    // externalThemes: {
+    //     diceOfRolling: "https://www.unpkg.com/@3d-dice/theme-dice-of-rolling@0.2.1",
+    //   },
     themeColor: CONST.COLOR_THEMES.PRIMARY,
     offscreen: true,
     scale: 6,
-    friction: .75,
-    restitution: 0,
-    gravity: 15,
-    throwForce: 20,
-    spinForce: 20,
-    settleTimeout: 3000,
-    //mass: 40,
-    delay: 100,
+    //friction: .75,
+    //restitution: 0,
+    gravity: 1,
+    throwForce: 5,
+    spinForce: 6,
+    //settleTimeout: 3000,
+    mass: 1,
+    //delay: 100,
     //lightIntensity: 1,
-    discordResponse: null,
+    //discordResponse: null,
     onDieComplete: async (dieResult: DieResult) => {
         if (DB.acing && dieResult.value === sidesNumber(dieResult.sides)) {
             await DB.add(dieResult);
         }
     },
     onRollComplete: async (rollResult: RollResult[]) => {
+        await setPlayer(RollCollection)
         RollCollection.rollType = DB.rollType;
-        const LOG_ENTRY_WRAPPER_ELEMENT = document.createElement('div');
+        const LOG_ENTRY_WRAPPER_ELEMENT = document.createElement('fieldset') //('div');
         LOG_ENTRY_WRAPPER_ELEMENT.classList.add('log-entry-wrapper');
         LOG_ENTRY_WRAPPER_ELEMENT.setAttribute('data-roll-type', DB.rollType);
         LOG_ENTRY_WRAPPER_ELEMENT.setAttribute('data-is-reroll', DB.isReroll);
@@ -480,133 +502,192 @@ const DB = new DiceBox("#dice-tray", {
             RollCollection.isJoker = getState(jokerDrawnToggle);
             RollCollection.rollResult = rollResult;
 
-            if (DB.rollType === CONST.ROLL_TYPES.TRAIT) {
-                RollCollection.onesCount = rollResult.filter(d => d.rolls[0].value === 1).length;
-                const TRAIT_DICE_ROLLED = rollResult.find(d => !d.isWildDie);
-                const IS_SINGLE_TRAIT_DIE = DB.rollType === CONST.ROLL_TYPES.TRAIT && rollResult.filter(d => !d.isWildDie).length === 1;
-                if (TRAIT_DICE_ROLLED != undefined) {
-                    RollCollection.total = IS_SINGLE_TRAIT_DIE ? TRAIT_DICE_ROLLED.value : 0;
-                } else {
-                    RollCollection.total = 0
-                }
-                const WILD_DIE_RESULT = rollResult.find(d => d.isWildDie);
-
-                if (WILD_DIE_RESULT && IS_SINGLE_TRAIT_DIE) {
-                    // If it's not a crit fail and is a single die, compare the values.
-                    if (TRAIT_DICE_ROLLED != undefined) {
-                        const HIGHER = WILD_DIE_RESULT.value > TRAIT_DICE_ROLLED.value ? WILD_DIE_RESULT.value : TRAIT_DICE_ROLLED.value;
-                        RollCollection.total = HIGHER;
-                    }
-                }
-
-                const POTENTIAL_CRIT_FAIL = WILD_DIE_RESULT ? RollCollection.onesCount > Math.floor(rollResult.length / 2) : RollCollection.onesCount >= rollResult.length / 2;
-
-                if (POTENTIAL_CRIT_FAIL) {
-                    if (WILD_DIE_RESULT && WILD_DIE_RESULT?.rolls[0].value === 1) {
-                        RollCollection.criticalFailure = true;
-                        RollCollection.total = 0;
-                    } else if (!WILD_DIE_RESULT) {
-                        DB.acing = false;
-                        DB.rollType = CONST.ROLL_TYPES.CRITICAL_FAILURE_CHECK;
-                        const CRIT_FAIL_CHECK_DIE_RESULT = await DB.add({
-                            sides: getWildDieValue(),
-                            modifier: 0,
-                            themeColor: CONST.COLOR_THEMES.CRITICAL_FAILURE_DIE,
-                        }) as RollResult[];
-                        const CRIT_DIE_ROLL = CRIT_FAIL_CHECK_DIE_RESULT[0];
-                        CRIT_DIE_ROLL.dieLabel = 'Critical Failure Check',
-                            CRIT_DIE_ROLL.isWildDie = false,
-                            CRIT_DIE_ROLL.rollDetails = breakdownResult(CRIT_DIE_ROLL),
-                            RollCollection.criticalFailure = CRIT_DIE_ROLL.value === 1;
-                        const tdrvalue = TRAIT_DICE_ROLLED ? TRAIT_DICE_ROLLED.value : 0;
-                        RollCollection.total = RollCollection.criticalFailure ? 0 : tdrvalue;
-                        rollResult.push(CRIT_DIE_ROLL);
-                        // Update the roll collection
-                        RollCollection.rollResult = rollResult;
-                    }
-                }
-
-                const TOTAL_VALUE = IS_SINGLE_TRAIT_DIE ? RollCollection.total : 0;
-                let descriptionString: string | null = IS_SINGLE_TRAIT_DIE ? calculateRaises(RollCollection.total) : 'See results';
-
-                // Build output HTML
-                let rollDetails = '';
-
-                for (const DIE_ROLL of rollResult) {
-                    rollDetails += markupDieRollDetails(DIE_ROLL, RollCollection.isJoker);
-                }
-
-                // Format the roll details (i.e., break down of each die, if it aced, and whatever modifier might be applied).
-                const ROLL_DETAILS_ELEMENT = createRollDetailsElement(`${RollCollection.modifier !== 0 ? signModOutput(RollCollection.modifier, RollCollection.isJoker) : ''}${rollDetails}`);
-
-                if (RollCollection.criticalFailure) {
-                    descriptionString = `Critical Failure! ${CONST.EMOJIS.CRITICAL_FAILURE}`;
-                }
-
-                RollCollection.description = descriptionString;
-                const RESULTS = markupResult(TOTAL_VALUE, { description: descriptionString });
-                LOG_ENTRY_WRAPPER_ELEMENT.append(ROLL_DETAILS_ELEMENT);
-
-                for (const ELEMENT of RESULTS) {
-                    LOG_ENTRY_WRAPPER_ELEMENT.append(ELEMENT);
-                }
-
-                LOG_ENTRIES_ELEMENT?.prepend(LOG_ENTRY_WRAPPER_ELEMENT);
-                updateRollHistory({ ...RollCollection });
-            } else if ([CONST.ROLL_TYPES.DAMAGE, CONST.ROLL_TYPES.STANDARD].includes(DB.rollType)) {
-                RollCollection.total = 0;
-
-                let rollDetailsElement = document.querySelector('.output');
-
-                // Loop through each die roll and output.
-                for (const DIE_ROLL of rollResult) {
-                    DIE_ROLL.value = DIE_ROLL.value - DIE_ROLL.modifier;
-                    RollCollection.total += DIE_ROLL.value;
-                }
-
-                // Add the modifier to the total.
-                RollCollection.total += RollCollection.modifier;
-                const DESCRIPTION_STRING = DB.rollType === CONST.ROLL_TYPES.DAMAGE ? calculateRaises(RollCollection.total) : null;
-                RollCollection.description = DESCRIPTION_STRING ? DESCRIPTION_STRING : '';
-                let rollDetails = '';
-
-                for (const DIE_ROLL of rollResult) {
-                    rollDetails += markupDieRollDetails(DIE_ROLL,RollCollection.isJoker);
-                }
-
-                // Format the roll details (i.e., break down of each die, if it aced, and whatever modifier might be applied).
-                rollDetailsElement = createRollDetailsElement(`${RollCollection.modifier !== 0 ? signModOutput(RollCollection.modifier, RollCollection.isJoker) : ''}${rollDetails}`);
-                LOG_ENTRY_WRAPPER_ELEMENT.append(rollDetailsElement);
-                // Generate the HTML markup for the description and result value.
-                const RESULTS = markupResult(RollCollection.total, { description: DESCRIPTION_STRING! });
-
-                for (const ELEMENT of RESULTS) {
-                    LOG_ENTRY_WRAPPER_ELEMENT.append(ELEMENT);
-                }
-
-                LOG_ENTRIES_ELEMENT?.prepend(LOG_ENTRY_WRAPPER_ELEMENT);
-                updateRollHistory({ ...RollCollection });
-            }
+            await buildOutputHTML(RollCollection, DB.rollType, rollResult, LOG_ENTRY_WRAPPER_ELEMENT)
+            updateRollHistory({ ...RollCollection });
 
             resizeLogElement();
 
             if (window.innerWidth < 800) {
                 document.querySelector('#dice-tray')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
             }
-
-            // if (DISCORD_SETTINGS.webhookURL) {
-            //     const LAST_ROLL = ROLL_HISTORY.toReversed()[0];
-            //     LAST_ROLL.discordResponse = await sendToDiscord(LAST_ROLL);
-            // }
         }
     }
 });
 
+
+async function buildOutputHTML(RollCollection: SWDR, rollType: string, rollResult: RollResult[], LOG_ENTRY_WRAPPER_ELEMENT: any,) {
+
+    if (rollType === CONST.ROLL_TYPES.TRAIT) {
+        RollCollection.onesCount = rollResult.filter(d => d.rolls[0].value === 1).length;
+        const TRAIT_DICE_ROLLED = rollResult.find(d => !d.isWildDie);
+        const IS_SINGLE_TRAIT_DIE = rollType === CONST.ROLL_TYPES.TRAIT && rollResult.filter(d => !d.isWildDie).length === 1;
+        if (TRAIT_DICE_ROLLED != undefined) {
+            RollCollection.total = IS_SINGLE_TRAIT_DIE ? TRAIT_DICE_ROLLED.value : 0;
+        } else {
+            RollCollection.total = 0
+        }
+        const WILD_DIE_RESULT = rollResult.find(d => d.isWildDie);
+
+        if (WILD_DIE_RESULT && IS_SINGLE_TRAIT_DIE) {
+            // If it's not a crit fail and is a single die, compare the values.
+            if (TRAIT_DICE_ROLLED != undefined) {
+                const HIGHER = WILD_DIE_RESULT.value > TRAIT_DICE_ROLLED.value ? WILD_DIE_RESULT.value : TRAIT_DICE_ROLLED.value;
+                RollCollection.total = HIGHER;
+            }
+        }
+
+        const POTENTIAL_CRIT_FAIL = WILD_DIE_RESULT ? RollCollection.onesCount > Math.floor(rollResult.length / 2) : RollCollection.onesCount >= rollResult.length / 2;
+
+        if (POTENTIAL_CRIT_FAIL) {
+            if (WILD_DIE_RESULT && WILD_DIE_RESULT?.rolls[0].value === 1) {
+                RollCollection.criticalFailure = true;
+                RollCollection.total = 0;
+            } else if (!WILD_DIE_RESULT) {
+                DB.acing = false;
+                rollType = CONST.ROLL_TYPES.CRITICAL_FAILURE_CHECK;
+                const CRIT_FAIL_CHECK_DIE_RESULT = await DB.add({
+                    sides: getWildDieValue(),
+                    modifier: 0,
+                    themeColor: CONST.COLOR_THEMES.CRITICAL_FAILURE_DIE,
+                }) as RollResult[];
+                const CRIT_DIE_ROLL = CRIT_FAIL_CHECK_DIE_RESULT[0];
+                CRIT_DIE_ROLL.dieLabel = 'Critical Failure Check',
+                    CRIT_DIE_ROLL.isWildDie = false,
+                    CRIT_DIE_ROLL.rollDetails = breakdownResult(CRIT_DIE_ROLL),
+                    RollCollection.criticalFailure = CRIT_DIE_ROLL.value === 1;
+                const tdrvalue = TRAIT_DICE_ROLLED ? TRAIT_DICE_ROLLED.value : 0;
+                RollCollection.total = RollCollection.criticalFailure ? 0 : tdrvalue;
+                rollResult.push(CRIT_DIE_ROLL);
+                // Update the roll collection
+                RollCollection.rollResult = rollResult;
+            }
+        }
+
+        const TOTAL_VALUE = IS_SINGLE_TRAIT_DIE ? RollCollection.total : 0;
+        let descriptionString: string | null = IS_SINGLE_TRAIT_DIE ? calculateRaises(RollCollection.total) : 'See results';
+
+        // Build output HTML
+        let rollDetails = '';
+
+        for (const DIE_ROLL of rollResult) {
+            rollDetails += markupDieRollDetails(DIE_ROLL, RollCollection.isJoker);
+        }
+
+        // Format the roll details (i.e., break down of each die, if it aced, and whatever modifier might be applied).
+        const ROLL_DETAILS_ELEMENT = createRollDetailsElement(`${RollCollection.modifier !== 0 ? signModOutput(RollCollection.modifier, RollCollection.isJoker) : ''}${rollDetails}`);
+
+        if (RollCollection.criticalFailure) {
+            descriptionString = `Critical Failure! ${CONST.EMOJIS.CRITICAL_FAILURE}`;
+        }
+
+        RollCollection.description = descriptionString;
+        const RESULTS = markupResult(TOTAL_VALUE, { description: descriptionString });
+        LOG_ENTRY_WRAPPER_ELEMENT.append(ROLL_DETAILS_ELEMENT);
+
+        for (const ELEMENT of RESULTS) {
+            LOG_ENTRY_WRAPPER_ELEMENT.append(ELEMENT);
+        }
+    } else if ([CONST.ROLL_TYPES.DAMAGE, CONST.ROLL_TYPES.STANDARD].includes(rollType)) {
+        RollCollection.total = 0;
+
+        let rollDetailsElement = document.querySelector('.output');
+
+        // Loop through each die roll and output.
+        for (const DIE_ROLL of rollResult) {
+            DIE_ROLL.value = DIE_ROLL.value - DIE_ROLL.modifier;
+            RollCollection.total += DIE_ROLL.value;
+        }
+
+        // Add the modifier to the total.
+        RollCollection.total += RollCollection.modifier;
+        const DESCRIPTION_STRING = rollType === CONST.ROLL_TYPES.DAMAGE ? calculateRaises(RollCollection.total) : null;
+        RollCollection.description = DESCRIPTION_STRING ? DESCRIPTION_STRING : '';
+        let rollDetails = '';
+
+        for (const DIE_ROLL of rollResult) {
+            rollDetails += markupDieRollDetails(DIE_ROLL, RollCollection.isJoker);
+        }
+
+        // Format the roll details (i.e., break down of each die, if it aced, and whatever modifier might be applied).
+        rollDetailsElement = createRollDetailsElement(`${RollCollection.modifier !== 0 ? signModOutput(RollCollection.modifier, RollCollection.isJoker) : ''}${rollDetails}`);
+        LOG_ENTRY_WRAPPER_ELEMENT.append(rollDetailsElement);
+        // Generate the HTML markup for the description and result value.
+        const RESULTS = markupResult(RollCollection.total, { description: DESCRIPTION_STRING! });
+
+        for (const ELEMENT of RESULTS) {
+            LOG_ENTRY_WRAPPER_ELEMENT.append(ELEMENT);
+        }
+    }
+    LOG_ENTRIES_ELEMENT?.prepend(LOG_ENTRY_WRAPPER_ELEMENT);
+    let leg = document.createElement('legend')
+    if (leg) {
+        leg.textContent = RollCollection.playerName
+        LOG_ENTRY_WRAPPER_ELEMENT.insertBefore(leg, LOG_ENTRY_WRAPPER_ELEMENT.firstChild);
+    }
+}
+
 DB.init();
 
-function updateRollHistory(roll: SWDR) {
+async function onRoomMetadataChange(metadata: any) {
+    if (metadata[Util.DiceHistoryMkey]) {
+        const storedHistory = metadata[Util.DiceHistoryMkey] as Uint8Array
+        ROLL_HISTORY = decompress(storedHistory)
+        const logContainer = document.getElementById('log-entries');
+        if (logContainer) {
+            logContainer.innerHTML = '';
+        }
+        renderLog(ROLL_HISTORY)
+    }
+}
+
+async function initializeExtension() {
+    try {
+        ROLL_HISTORY = await fetchStorage()
+        renderLog(ROLL_HISTORY)
+        console.log("Roll history loaded:", ROLL_HISTORY);
+    } catch (error) {
+        console.error("Failed to load roll history:", error);
+        //reset history in storage
+        ROLL_HISTORY = [];
+        updateStorage(ROLL_HISTORY)
+    }
+}
+
+async function updateRollHistory(roll: SWDR) {
     ROLL_HISTORY.push(roll);
-    localStorage.setItem(LOCAL_STORAGE_KEYS.rollHistory, JSON.stringify(ROLL_HISTORY));
+    //localStorage.setItem(LOCAL_STORAGE_KEYS.rollHistory, JSON.stringify(ROLL_HISTORY));
+    updateStorage(ROLL_HISTORY)
+}
+async function fetchStorage(): Promise<SWDR[]> {
+    const metadata = await OBR.room.getMetadata();
+    const storedHistory = metadata[Util.DiceHistoryMkey] as Uint8Array
+    return decompress(storedHistory)
+}
+
+async function updateStorage(rh: SWDR[]) {
+    while (rh.length > MAX_HISTORY) {
+        rh.shift()
+    }
+    try {
+        let buff: Uint8Array = compress(rh)
+        await OBR.room.setMetadata({ [Util.DiceHistoryMkey]: buff });
+    } catch (error) {
+        console.error('Failed to update OBR:', error);
+        rh = []
+        let buff: Uint8Array = compress(rh)
+        await OBR.room.setMetadata({ [Util.DiceHistoryMkey]: buff });
+    }
+}
+// Compress
+function compress(data: SWDR[]): Uint8Array {
+    const serialized = JSON.stringify(data);
+    return pako.deflate(serialized);
+}
+
+// Decompress
+function decompress(compressedData: Uint8Array): SWDR[] {
+    const decompressed = pako.inflate(compressedData);
+    return JSON.parse(new TextDecoder().decode(decompressed));
 }
 
 function getTargetNumber(): number {
@@ -709,7 +790,7 @@ function signModOutput(modifier: number, joker: boolean) {
     return `<p class="modifier" data-modifier="${modifier}">Modifier: ${modifier < 0 ? '−' : '+'}${Math.abs(modifier)}${joker ? CONST.EMOJIS.JOKER : ''}</p>`;
 }
 
-function markupDieRollDetails(dieRoll: RollResult, joker:boolean) {
+function markupDieRollDetails(dieRoll: RollResult, joker: boolean) {
     const SHOW_MODIFIER = DB.rollType === CONST.ROLL_TYPES.TRAIT && (dieRoll.modifier !== 0 || joker);
     const SHOW_BREAKDOWN = dieRoll.rollDetails.includes(CONST.EMOJIS.ACE);
     const SHOW_MATH = SHOW_BREAKDOWN || SHOW_MODIFIER;
@@ -790,7 +871,7 @@ async function rollTheDice() {
                 sides: numsides,
                 isWildDie: false,
                 isBonusDie: false,
-                themeColor: numsides<100?CONST.COLOR_THEMES.PRIMARY:Util.randomizeHue(CONST.COLOR_THEMES.PRIMARY),
+                themeColor: numsides < 100 ? CONST.COLOR_THEMES.PRIMARY : Util.randomizeHue(CONST.COLOR_THEMES.PRIMARY),
             });
         }
     }
@@ -835,9 +916,11 @@ async function rollTheDice() {
 }
 
 async function rerollTheDice() {
-    if (ROLL_HISTORY.length > 0) {
-        RollCollection = new SWDR();
-        const LAST_ROLL = ROLL_HISTORY[ROLL_HISTORY.length - 1];
+    RollCollection = new SWDR();
+    await setPlayer(RollCollection)
+    const player_history: SWDR[] = [...ROLL_HISTORY].reverse().filter(item => item.playerId === RollCollection.playerId);
+    if (player_history.length > 0) {
+        const LAST_ROLL = player_history[0];
         DB.isReroll = true;
         DB.clear();
         DB.rollType = LAST_ROLL.rollType;
@@ -900,7 +983,7 @@ async function adjustTheRoll() {
             for (const DIE_ROLL of RECENT_ROLLS[INDEX].rollResult) {
                 DIE_ROLL.value = DB.rollType === CONST.ROLL_TYPES.TRAIT ? DIE_ROLL.value - DIE_ROLL.modifier + NEW_MODIFIER : DIE_ROLL.value;
                 DIE_ROLL.modifier = NEW_MODIFIER;
-                rollDetails += markupDieRollDetails(DIE_ROLL,RECENT_ROLLS[INDEX].isJoker);
+                rollDetails += markupDieRollDetails(DIE_ROLL, RECENT_ROLLS[INDEX].isJoker);
             }
 
             OUTPUT_ELEMENT.insertAdjacentHTML('beforeend', rollDetails);
@@ -920,7 +1003,17 @@ async function adjustTheRoll() {
     }
 }
 
-// Discord Webhook
+async function renderLog(ROLL_HISTORY: SWDR[]) {
+    ROLL_HISTORY.forEach(roll => {
+        const LOG_ENTRY_WRAPPER_ELEMENT = document.createElement('fieldset');
+        LOG_ENTRY_WRAPPER_ELEMENT.classList.add('log-entry-wrapper');
+        LOG_ENTRY_WRAPPER_ELEMENT.setAttribute('data-roll-type', roll.rollType);
+        if (roll.isReroll) LOG_ENTRY_WRAPPER_ELEMENT.setAttribute('data-is-reroll', roll.isReroll.toString());
+
+        buildOutputHTML(roll, roll.rollType, roll.rollResult, LOG_ENTRY_WRAPPER_ELEMENT)
+
+    });
+}
 // // Event Listeners for Discord configuration  
 // document.querySelector('#save-discord-config').addEventListener('click', function () {
 //     localStorage.setItem(LOCAL_STORAGE_KEYS.webhookUrl, WEBHOOK_URL_ELEMENT.value);

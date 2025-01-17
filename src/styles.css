@@ -18,8 +18,8 @@
   --alt-theme-color: #ecd69b;
   --heading-font: 'Anton', sans-serif;
   --body-font: 'Open Sans', sans-serif;
-  --spacing: 0px;
-  --border: 1px solid var(--theme-color);
+  --spacing: 2px;
+  --border: 2px solid var(--theme-color);
   --border-radius: 6px;
 
   --button-size: 1.1rem;
@@ -215,6 +215,10 @@ fieldset#dice-tray {
 input[type="number"] {
   -moz-appearance: textfield;
   appearance: auto;
+  width: 2.5rem;
+}
+select {
+  width:3rem;
 }
 
 input[type=number]::-webkit-inner-spin-button,
@@ -280,6 +284,9 @@ input[type="number"]::before:hover {
   background: #ddd;
 }
 
+legend {
+  padding: 0px;
+}
 .log {
   padding-top: 0;
   grid-column: 1/-1;
@@ -356,6 +363,7 @@ input[type="number"]::before:hover {
 
       & .description {
           margin: 0;
+          margin: -3px; 
           grid-column: 1;
           grid-row: 1;
           display: flex;
