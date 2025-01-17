@@ -183,7 +183,7 @@ async function opposedRollSet() {
     let pid = await OBR.player.getId()
     const RECENT_ROLLS = [...ROLL_HISTORY].reverse();
     for (let lr of RECENT_ROLLS) {
-        if (lr.rollType === CONST.ROLL_TYPES.TRAIT && lr.playerId!=pid) {
+        if (lr.rollType === CONST.ROLL_TYPES.TRAIT && lr.playerId != pid) {
             setSpinner(targetNumberSpinner, `${lr.total}`)
             break;
         }
@@ -430,6 +430,7 @@ OBR.onReady(async () => {
     } catch (error) {
         console.error("Failed to get player name:", error);
     }
+
     const unsubscribe = OBR.room.onMetadataChange(onRoomMetadataChange)
     window.addEventListener('beforeunload', () => unsubscribe());
 });
