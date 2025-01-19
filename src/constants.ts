@@ -13,7 +13,9 @@ export const CONST = {
 	  RAISE: '🌟',
 	  CRITICAL_FAILURE: '💀',
 	  CRITICAL_FAILURE_JODI: '🙌',
-	  JOKER: '🃏'
+	  JOKER: '🃏',
+	  ADJUST: '🎚',
+	  REROLL: '🔄'
 	},
 	COLOR_THEMES: {
 	  PRIMARY: '#c6c4af',
@@ -37,6 +39,8 @@ export const CONST = {
 	  BONUS_DAMAGE: false,
 	  OPPOSED_ENABLED: false,
 	  JOKER_DRAWN_ENABLED: false,
+	  WOUND_ENABLED: false,
+	  FATIGUE_ENABLED: false,
 	  DICE_MODE: "trait"
 	}
   };

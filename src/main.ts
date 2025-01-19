@@ -16,7 +16,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 window.addEventListener("load", () => {
     const svgButtons = document.getElementById('buttons-svg') as HTMLObjectElement
     if (svgButtons.contentDocument) {
-        console.log("Button images loaded");
+        //console.log("Button images loaded");
         //set button images
         Util.setImage('skills', traitdice, '--button-size')
         Util.setImage('punch', damagedice, '--button-size')
@@ -33,6 +33,12 @@ window.addEventListener("load", () => {
         Util.setImage('clockwise', rerollDiceButton, '--button-size')
         Util.setImage('trash-can', removeDiceButton, '--button-size')
 
+        Util.setImage('bleeding-wound', wound1Toggle, '--button-size')
+        Util.setImage('bleeding-wound', wound2Toggle, '--button-size')
+        Util.setImage('bleeding-wound', wound3Toggle, '--button-size')
+        Util.setImage('tired-eye', fatigue1Toggle, '--button-size')
+        Util.setImage('tired-eye', fatigue2Toggle, '--button-size')
+
         Util.setImage('anticlockwise', resetButton, '--button-size')
         Util.setImage('shatter', colorButton, '--button-size')
         Util.setImage('broom', clearButton, '--button-size')
@@ -44,7 +50,7 @@ window.addEventListener("load", () => {
         Util.setImage('d20_die', d20Button, '--die-size')
         Util.setImage('d100_die', d100Button, '--die-size')
     } else {
-        console.error("Failed to load SVG document")
+        console.error("Failed to load SVG buttons")
     }
 })
 
@@ -65,6 +71,11 @@ const breakingObjectsToggle = document.getElementById('breakingObjectsToggle') a
 const opposedRollToggle = document.getElementById('opposedRollToggle') as unknown as SVGElement;
 const jokerDrawnToggle = document.getElementById('jokerDrawnToggle') as unknown as SVGElement;
 const adjustButton = document.getElementById('adjustButton') as unknown as SVGElement;
+const wound1Toggle = document.getElementById('wound1Toggle') as unknown as SVGElement;
+const wound2Toggle = document.getElementById('wound2Toggle') as unknown as SVGElement;
+const wound3Toggle = document.getElementById('wound3Toggle') as unknown as SVGElement;
+const fatigue1Toggle = document.getElementById('fatigue1Toggle') as unknown as SVGElement;
+const fatigue2Toggle = document.getElementById('fatigue2Toggle') as unknown as SVGElement;
 const removeDiceButton = document.getElementById('removeDiceButton') as unknown as SVGElement;
 const rollDiceButton = document.getElementById('rollDiceButton') as unknown as SVGElement;
 const rerollDiceButton = document.getElementById('rerollDiceButton') as unknown as SVGElement;
@@ -90,6 +101,15 @@ setupSvgToggle(breakingObjectsToggle);
 setupSvgToggle(opposedRollToggle);
 setupSvgToggle(jokerDrawnToggle);
 setupSvgToggle(adjustButton);
+
+
+setupSvgToggle(wound1Toggle);
+setupSvgToggle(wound2Toggle);
+setupSvgToggle(wound3Toggle);
+setupSvgToggle(fatigue1Toggle);
+setupSvgToggle(fatigue2Toggle);
+
+
 setupSvgToggle(rollDiceButton);
 setupSvgToggle(rerollDiceButton);
 setupSvgToggle(removeDiceButton);
@@ -109,10 +129,7 @@ setupCounters();
 resetToDefaults();
 
 // Initial log
-console.log('Initial Target Number:', targetNumberSpinner.value);
-console.log('Initial Modifier:', modifierSpinner.value);
-console.log('Globals: ', CONST)
-console.log('Savage Dice for Owlbear is online and fully functional.')
+console.log('Savage Dice for Owlbear is online and fully operational.')
 
 // Radio button 
 function setupRadio(): void {
@@ -168,6 +185,13 @@ function resetToDefaults() {
     setState(breakingObjectsToggle, CONST.DEFAULTS.BREAK_OBJECTS);
     setState(opposedRollToggle, CONST.DEFAULTS.OPPOSED_ENABLED);
     setState(jokerDrawnToggle, CONST.DEFAULTS.JOKER_DRAWN_ENABLED);
+
+    setState(wound1Toggle, CONST.DEFAULTS.WOUND_ENABLED);
+    setState(wound2Toggle, CONST.DEFAULTS.WOUND_ENABLED);
+    setState(wound3Toggle, CONST.DEFAULTS.WOUND_ENABLED);
+    setState(fatigue1Toggle, CONST.DEFAULTS.FATIGUE_ENABLED);
+    setState(fatigue2Toggle, CONST.DEFAULTS.FATIGUE_ENABLED);
+
     setRadio(traitdice);
     clearCounters();
 }
@@ -195,7 +219,6 @@ function setRadio(svg: SVGElement) {
     setState(svg, true);
     const selectedRadio = svg.getAttribute('data-value') || 'trait';
     showHideControls(selectedRadio);
-    console.log('Selected:', selectedRadio);
 }
 
 // Toggle click handler
@@ -270,6 +293,8 @@ function clearLog() {
     if (logContainer) {
         logContainer.innerHTML = '';
     }
+    ROLL_HISTORY = [];
+    updateStorage(ROLL_HISTORY)
     DB.clear();
 }
 
@@ -286,6 +311,12 @@ function showHideControls(selectedRadio: string) {
             wildDieType.style.display = show;
             opposedRollToggle.style.display = show;
             jokerDrawnToggle.style.display = show;
+            wound1Toggle.style.display=show;
+            wound2Toggle.style.display=show;
+            wound3Toggle.style.display=show;
+            fatigue1Toggle.style.display=show;
+            fatigue2Toggle.style.display=show;
+
             bonusDamageToggle.style.display = hide;
             breakingObjectsToggle.style.display = hide;
 
@@ -310,6 +341,11 @@ function showHideControls(selectedRadio: string) {
             wildDieToggle.style.display = hide;
             wildDieType.style.display = hide;
             opposedRollToggle.style.display = hide;
+            wound1Toggle.style.display=hide;
+            wound2Toggle.style.display=hide;
+            wound3Toggle.style.display=hide;
+            fatigue1Toggle.style.display=hide;
+            fatigue2Toggle.style.display=hide;
 
             d4Button.parentElement!.style.display = show;
             d6Button.parentElement!.style.display = show;
@@ -332,6 +368,14 @@ function showHideControls(selectedRadio: string) {
             wildDieType.style.display = hide;
             opposedRollToggle.style.display = hide;
             jokerDrawnToggle.style.display = hide;
+            wildDieToggle.style.display = hide;
+            wildDieType.style.display = hide;
+            opposedRollToggle.style.display = hide;
+            wound1Toggle.style.display=hide;
+            wound2Toggle.style.display=hide;
+            wound3Toggle.style.display=hide;
+            fatigue1Toggle.style.display=hide;
+            fatigue2Toggle.style.display=hide;
 
             d4Button.parentElement!.style.display = show;
             d6Button.parentElement!.style.display = show;
@@ -354,34 +398,6 @@ function setDiceColor(n: number) {
 
 const LOG_ENTRIES_ELEMENT = document.querySelector('#log-entries')!;
 
-/*
-////start new stuffs
-// Get input/output elements
-
-const HAS_WILD_DIE_ELEMENT = document.querySelector('#wild-die');
-
-const BREAKING_THINGS_ELEMENT = document.querySelector('#breaking-things');
-const TARGET_NUMBER_ELEMENT = document.querySelector('#target-number');
-const MODIFIER_INPUT_ELEMENT = document.querySelector('#modifier-input');
-const DICE_BAG_ELEMENT = document.querySelector('.dice-bag');
-const DICE_CUP_ELEMENT = document.querySelector('.dice-cup');
-//x Setup Discord variables 
-const APP_NAME = "Savage Owlbear Dice";
-const APP_URL = ''
-
-const WEBHOOK_URL_ELEMENT = document.querySelector('#webhook-url');
-const YOUR_NAME_ELEMENT = document.querySelector('#your-name');
-const DISCORD_SETTINGS = {
-    displayName: localStorage.getItem(LOCAL_STORAGE_KEYS.displayName),
-    webhookURL: localStorage.getItem(LOCAL_STORAGE_KEYS.webhookUrl),
-};
-WEBHOOK_URL_ELEMENT.value = DISCORD_SETTINGS.webhookURL;
-YOUR_NAME_ELEMENT.value = DISCORD_SETTINGS.displayName;
-
-if (!DISCORD_SETTINGS.displayName) {
-    DISCORD_SETTINGS.displayName = APP_NAME;
-}
-    */
 class SWDR {
     playerName: string = ""
     playerId: string = ""
@@ -394,6 +410,7 @@ class SWDR {
     total: number = 0
     onesCount: number = 0
     isJoker: boolean = false
+    isAdjustment: boolean = false
 };
 
 class DieResult {
@@ -472,10 +489,12 @@ const DB = new DiceBox({
     onRollComplete: async (rollResult: RollResult[]) => {
         await setPlayer(RollCollection)
         RollCollection.rollType = DB.rollType;
+        RollCollection.isReroll = DB.isReroll;
         const LOG_ENTRY_WRAPPER_ELEMENT = document.createElement('fieldset') //('div');
         LOG_ENTRY_WRAPPER_ELEMENT.classList.add('log-entry-wrapper');
-        LOG_ENTRY_WRAPPER_ELEMENT.setAttribute('data-roll-type', DB.rollType);
-        LOG_ENTRY_WRAPPER_ELEMENT.setAttribute('data-is-reroll', DB.isReroll);
+        LOG_ENTRY_WRAPPER_ELEMENT.setAttribute('data-roll-type', RollCollection.rollType);
+        LOG_ENTRY_WRAPPER_ELEMENT.setAttribute('data-is-reroll', RollCollection.isReroll.toString());
+        LOG_ENTRY_WRAPPER_ELEMENT.dataset.pid = RollCollection.playerId
 
 
         // Continue only if every roll has been resolved.
@@ -516,36 +535,36 @@ const DB = new DiceBox({
 });
 
 
-async function buildOutputHTML(RollCollection: SWDR, rollType: string, rollResult: RollResult[], LOG_ENTRY_WRAPPER_ELEMENT: any,) {
+async function buildOutputHTML(rCollection: SWDR, rType: string, rResult: RollResult[], wrapper: any,) {
 
-    if (rollType === CONST.ROLL_TYPES.TRAIT) {
-        RollCollection.onesCount = rollResult.filter(d => d.rolls[0].value === 1).length;
-        const TRAIT_DICE_ROLLED = rollResult.find(d => !d.isWildDie);
-        const IS_SINGLE_TRAIT_DIE = rollType === CONST.ROLL_TYPES.TRAIT && rollResult.filter(d => !d.isWildDie).length === 1;
+    if (rType === CONST.ROLL_TYPES.TRAIT) {
+        rCollection.onesCount = rResult.filter(d => d.rolls[0].value === 1).length;
+        const TRAIT_DICE_ROLLED = rResult.find(d => !d.isWildDie);
+        const IS_SINGLE_TRAIT_DIE = rType === CONST.ROLL_TYPES.TRAIT && rResult.filter(d => !d.isWildDie).length === 1;
         if (TRAIT_DICE_ROLLED != undefined) {
-            RollCollection.total = IS_SINGLE_TRAIT_DIE ? TRAIT_DICE_ROLLED.value : 0;
+            rCollection.total = IS_SINGLE_TRAIT_DIE ? TRAIT_DICE_ROLLED.value : 0;
         } else {
-            RollCollection.total = 0
+            rCollection.total = 0
         }
-        const WILD_DIE_RESULT = rollResult.find(d => d.isWildDie);
+        const WILD_DIE_RESULT = rResult.find(d => d.isWildDie);
 
         if (WILD_DIE_RESULT && IS_SINGLE_TRAIT_DIE) {
             // If it's not a crit fail and is a single die, compare the values.
             if (TRAIT_DICE_ROLLED != undefined) {
                 const HIGHER = WILD_DIE_RESULT.value > TRAIT_DICE_ROLLED.value ? WILD_DIE_RESULT.value : TRAIT_DICE_ROLLED.value;
-                RollCollection.total = HIGHER;
+                rCollection.total = HIGHER;
             }
         }
 
-        const POTENTIAL_CRIT_FAIL = WILD_DIE_RESULT ? RollCollection.onesCount > Math.floor(rollResult.length / 2) : RollCollection.onesCount >= rollResult.length / 2;
+        const POTENTIAL_CRIT_FAIL = WILD_DIE_RESULT ? rCollection.onesCount > Math.floor(rResult.length / 2) : rCollection.onesCount >= rResult.length / 2;
 
         if (POTENTIAL_CRIT_FAIL) {
             if (WILD_DIE_RESULT && WILD_DIE_RESULT?.rolls[0].value === 1) {
-                RollCollection.criticalFailure = true;
-                RollCollection.total = 0;
+                rCollection.criticalFailure = true;
+                rCollection.total = 0;
             } else if (!WILD_DIE_RESULT) {
                 DB.acing = false;
-                rollType = CONST.ROLL_TYPES.CRITICAL_FAILURE_CHECK;
+                rType = CONST.ROLL_TYPES.CRITICAL_FAILURE_CHECK;
                 const CRIT_FAIL_CHECK_DIE_RESULT = await DB.add({
                     sides: getWildDieValue(),
                     modifier: 0,
@@ -555,75 +574,76 @@ async function buildOutputHTML(RollCollection: SWDR, rollType: string, rollResul
                 CRIT_DIE_ROLL.dieLabel = 'Critical Failure Check',
                     CRIT_DIE_ROLL.isWildDie = false,
                     CRIT_DIE_ROLL.rollDetails = breakdownResult(CRIT_DIE_ROLL),
-                    RollCollection.criticalFailure = CRIT_DIE_ROLL.value === 1;
+                    rCollection.criticalFailure = CRIT_DIE_ROLL.value === 1;
                 const tdrvalue = TRAIT_DICE_ROLLED ? TRAIT_DICE_ROLLED.value : 0;
-                RollCollection.total = RollCollection.criticalFailure ? 0 : tdrvalue;
-                rollResult.push(CRIT_DIE_ROLL);
+                rCollection.total = rCollection.criticalFailure ? 0 : tdrvalue;
+                rResult.push(CRIT_DIE_ROLL);
                 // Update the roll collection
-                RollCollection.rollResult = rollResult;
+                rCollection.rollResult = rResult;
             }
         }
 
-        const TOTAL_VALUE = IS_SINGLE_TRAIT_DIE ? RollCollection.total : 0;
-        let descriptionString: string | null = IS_SINGLE_TRAIT_DIE ? calculateRaises(RollCollection.total) : 'See results';
+        const TOTAL_VALUE = IS_SINGLE_TRAIT_DIE ? rCollection.total : 0;
+        let descriptionString: string | null = IS_SINGLE_TRAIT_DIE ? calculateRaises(rCollection.total) : 'See results';
 
         // Build output HTML
         let rollDetails = '';
 
-        for (const DIE_ROLL of rollResult) {
-            rollDetails += markupDieRollDetails(DIE_ROLL, RollCollection.isJoker);
+        for (const DIE_ROLL of rResult) {
+            rollDetails += markupDieRollDetails(DIE_ROLL, rCollection.rollType,rCollection.isJoker);
         }
 
         // Format the roll details (i.e., break down of each die, if it aced, and whatever modifier might be applied).
-        const ROLL_DETAILS_ELEMENT = createRollDetailsElement(`${RollCollection.modifier !== 0 ? signModOutput(RollCollection.modifier, RollCollection.isJoker) : ''}${rollDetails}`);
+        const ROLL_DETAILS_ELEMENT = createRollDetailsElement(`${rCollection.modifier !== 0 || rCollection.isJoker ? signModOutput(rCollection.modifier, rCollection.isJoker) : ''}${rollDetails}`);
 
-        if (RollCollection.criticalFailure) {
+        if (rCollection.criticalFailure) {
             descriptionString = `Critical Failure! ${CONST.EMOJIS.CRITICAL_FAILURE}`;
         }
 
-        RollCollection.description = descriptionString;
-        const RESULTS = markupResult(TOTAL_VALUE, { description: descriptionString });
-        LOG_ENTRY_WRAPPER_ELEMENT.append(ROLL_DETAILS_ELEMENT);
+        rCollection.description = descriptionString;
+        const RESULTS = markupResult(rCollection, TOTAL_VALUE, { description: descriptionString });
+        wrapper.append(ROLL_DETAILS_ELEMENT);
 
         for (const ELEMENT of RESULTS) {
-            LOG_ENTRY_WRAPPER_ELEMENT.append(ELEMENT);
+            wrapper.append(ELEMENT);
         }
-    } else if ([CONST.ROLL_TYPES.DAMAGE, CONST.ROLL_TYPES.STANDARD].includes(rollType)) {
-        RollCollection.total = 0;
+    } else if ([CONST.ROLL_TYPES.DAMAGE, CONST.ROLL_TYPES.STANDARD].includes(rType)) {
+        rCollection.total = 0;
 
         let rollDetailsElement = document.querySelector('.output');
 
         // Loop through each die roll and output.
-        for (const DIE_ROLL of rollResult) {
+        for (const DIE_ROLL of rResult) {
             DIE_ROLL.value = DIE_ROLL.value - DIE_ROLL.modifier;
-            RollCollection.total += DIE_ROLL.value;
+            rCollection.total += DIE_ROLL.value;
         }
 
         // Add the modifier to the total.
-        RollCollection.total += RollCollection.modifier;
-        const DESCRIPTION_STRING = rollType === CONST.ROLL_TYPES.DAMAGE ? calculateRaises(RollCollection.total) : null;
-        RollCollection.description = DESCRIPTION_STRING ? DESCRIPTION_STRING : '';
+        rCollection.total += rCollection.modifier;
+        const DESCRIPTION_STRING = rType === CONST.ROLL_TYPES.DAMAGE ? calculateRaises(rCollection.total) : null;
+
+        rCollection.description = DESCRIPTION_STRING ? DESCRIPTION_STRING : '';
         let rollDetails = '';
 
-        for (const DIE_ROLL of rollResult) {
-            rollDetails += markupDieRollDetails(DIE_ROLL, RollCollection.isJoker);
+        for (const DIE_ROLL of rResult) {
+            rollDetails += markupDieRollDetails(DIE_ROLL, rCollection.rollType, rCollection.isJoker);
         }
 
         // Format the roll details (i.e., break down of each die, if it aced, and whatever modifier might be applied).
-        rollDetailsElement = createRollDetailsElement(`${RollCollection.modifier !== 0 ? signModOutput(RollCollection.modifier, RollCollection.isJoker) : ''}${rollDetails}`);
-        LOG_ENTRY_WRAPPER_ELEMENT.append(rollDetailsElement);
+        rollDetailsElement = createRollDetailsElement(`${rCollection.modifier !== 0 ? signModOutput(rCollection.modifier, rCollection.isJoker) : ''}${rollDetails}`);
+        wrapper.append(rollDetailsElement);
         // Generate the HTML markup for the description and result value.
-        const RESULTS = markupResult(RollCollection.total, { description: DESCRIPTION_STRING! });
+        const RESULTS = markupResult(rCollection, rCollection.total, { description: DESCRIPTION_STRING! });
 
         for (const ELEMENT of RESULTS) {
-            LOG_ENTRY_WRAPPER_ELEMENT.append(ELEMENT);
+            wrapper.append(ELEMENT);
         }
     }
-    LOG_ENTRIES_ELEMENT?.prepend(LOG_ENTRY_WRAPPER_ELEMENT);
+    LOG_ENTRIES_ELEMENT?.prepend(wrapper);
     let leg = document.createElement('legend')
     if (leg) {
-        leg.textContent = RollCollection.playerName
-        LOG_ENTRY_WRAPPER_ELEMENT.insertBefore(leg, LOG_ENTRY_WRAPPER_ELEMENT.firstChild);
+        leg.textContent = rCollection.playerName
+        wrapper.insertBefore(leg, wrapper.firstChild);
     }
 }
 
@@ -645,7 +665,7 @@ async function initializeExtension() {
     try {
         ROLL_HISTORY = await fetchStorage()
         renderLog(ROLL_HISTORY)
-        console.log("Roll history loaded:", ROLL_HISTORY);
+        //console.log("Roll history loaded:", ROLL_HISTORY);
     } catch (error) {
         console.error("Failed to load roll history:", error);
         //reset history in storage
@@ -671,12 +691,22 @@ async function updateStorage(rh: SWDR[]) {
     }
     try {
         let buff: Uint8Array = compress(rh)
-        await OBR.room.setMetadata({ [Util.DiceHistoryMkey]: buff });
+        await OBR.room.getMetadata().then(metadata => {
+            // Update or add new metadata here
+            delete metadata["com.wescrump.dice-roller/player/rollHistory"]
+            metadata[Util.DiceHistoryMkey] = buff;
+            OBR.room.setMetadata(metadata);
+        });
     } catch (error) {
         console.error('Failed to update OBR:', error);
         rh = []
         let buff: Uint8Array = compress(rh)
-        await OBR.room.setMetadata({ [Util.DiceHistoryMkey]: buff });
+        await OBR.room.getMetadata().then(metadata => {
+            // Update or add new metadata here
+            delete metadata["com.wescrump.dice-roller/player/rollHistory"]
+            metadata[Util.DiceHistoryMkey] = buff;
+            OBR.room.setMetadata(metadata);
+        });
     }
 }
 // Compress
@@ -736,9 +766,9 @@ function calculateRaises(rollResult: number) {
 }
 
 // Format the results generated
-function markupResult(rollTotal: number, options = { description: '' }) {
+function markupResult(rCollection: SWDR, rollTotal: number, options = { description: '' }) {
     const DESCRIPTION: string | null = options.description;
-    const DIE_LABEL: string = RollCollection.rollResult[0]?.dieLabel;
+    const DIE_LABEL: string = rCollection.rollResult[0]?.dieLabel;
 
     const RESULT_ELEMENT = document.createElement('h2');
     RESULT_ELEMENT.classList.add('total');
@@ -748,12 +778,12 @@ function markupResult(rollTotal: number, options = { description: '' }) {
 
     // If the description of successes and raises hasn't been created yet, generate one.
     if (!DESCRIPTION && [CONST.DIELABELS.TRAIT, CONST.DEFAULTS.BONUS_DAMAGE, CONST.DIELABELS.BONUS].includes(DIE_LABEL)) {
-        RollCollection.description = calculateRaises(rollTotal);
+        rCollection.description = calculateRaises(rollTotal);
     } else if (DESCRIPTION || DIE_LABEL === CONST.DIELABELS.STANDARD) {
-        RollCollection.description = DESCRIPTION;
+        rCollection.description = DESCRIPTION;
     }
-
-    DESCRIPTION_ELEMENT.innerText = RollCollection.description!;
+    rCollection.description = `${rCollection.isAdjustment?CONST.EMOJIS.ADJUST:''}${rCollection.isReroll?CONST.EMOJIS.REROLL:''}${rCollection.description}`
+    DESCRIPTION_ELEMENT.innerText = rCollection.description!;
 
     return [RESULT_ELEMENT, DESCRIPTION_ELEMENT];
 }
@@ -791,8 +821,8 @@ function signModOutput(modifier: number, joker: boolean) {
     return `<p class="modifier" data-modifier="${modifier}">Modifier: ${modifier < 0 ? '−' : '+'}${Math.abs(modifier)}${joker ? CONST.EMOJIS.JOKER : ''}</p>`;
 }
 
-function markupDieRollDetails(dieRoll: RollResult, joker: boolean) {
-    const SHOW_MODIFIER = DB.rollType === CONST.ROLL_TYPES.TRAIT && (dieRoll.modifier !== 0 || joker);
+function markupDieRollDetails(dieRoll: RollResult, rType:string, joker: boolean) {
+    const SHOW_MODIFIER = rType === CONST.ROLL_TYPES.TRAIT && (dieRoll.modifier !== 0 || joker);
     const SHOW_BREAKDOWN = dieRoll.rollDetails.includes(CONST.EMOJIS.ACE);
     const SHOW_MATH = SHOW_BREAKDOWN || SHOW_MODIFIER;
     const LABEL = `${dieRoll.dieLabel} (d${sidesNumber(dieRoll.sides)}):`;
@@ -819,9 +849,16 @@ RESIZE_OBSERVER.observe(document.querySelector('.dice-roller')!, { box: "border-
 function getModifier(): number {
     return modifierSpinner.valueAsNumber
 }
+function getWoundsModifier(): number {
+        const woundsmod: number = getRollType() === 'trait' ? (getState(wound1Toggle)?-1:0)+(getState(wound2Toggle)?-1:0)+(getState(wound3Toggle)?-1:0)+(getState(fatigue1Toggle)?-1:0)+(getState(fatigue2Toggle)?-1:0):0;
+        return woundsmod;
+}
 function getJokerModifier(): number {
-    const jokemod: number = getState(jokerDrawnToggle) && getRollType() != 'standard' ? 2 : 0;
-    return getModifier() + jokemod
+      const jokemod: number = getState(jokerDrawnToggle) && getRollType() != 'standard' ? 2 : 0; 
+      return jokemod; 
+}
+function getTotalModifier(): number {
+    return getModifier() + getJokerModifier() + getWoundsModifier()
 }
 function isWildDieActive(): boolean {
     return getRollType() === 'trait' && getState(wildDieToggle)
@@ -855,6 +892,7 @@ function isDiceToRoll() {
 async function rollTheDice() {
     if (!isDiceToRoll()) return;
     RollCollection = new SWDR();
+    DB.isReroll = false;
     // Clear the dice box
     DB.clear()
 
@@ -868,7 +906,7 @@ async function rollTheDice() {
         const numsides = parseInt(DIE.id.slice(1))
         for (let i = 0; i < num; ++i) {
             DICE_CONFIGS.push({
-                modifier: getJokerModifier(),
+                modifier: getTotalModifier(),
                 sides: numsides,
                 isWildDie: false,
                 isBonusDie: false,
@@ -879,7 +917,7 @@ async function rollTheDice() {
     //add wild die to roll
     if (isWildDieActive()) {
         DICE_CONFIGS.push({
-            modifier: getJokerModifier(),
+            modifier: getTotalModifier(),
             sides: getWildDieValue(),
             isWildDie: true,
             isBonusDie: false,
@@ -888,7 +926,7 @@ async function rollTheDice() {
     }
     if (isBonusDamageActive()) {
         DICE_CONFIGS.push({
-            modifier: getJokerModifier(),
+            modifier: getTotalModifier(),
             sides: 6,
             isWildDie: false,
             isBonusDie: true,
@@ -896,24 +934,42 @@ async function rollTheDice() {
         });
 
     }
-
-    switch (DB.rollType) {
-        case CONST.ROLL_TYPES.TRAIT:
-            DB.acing = true;
-            DB.dieLabel = CONST.DIELABELS.TRAIT;
-            break;
-        case CONST.ROLL_TYPES.DAMAGE:
-            DB.acing = !getState(breakingObjectsToggle);
-            DB.dieLabel = CONST.DIELABELS.DAMAGE;
-            break;
-        case CONST.ROLL_TYPES.STANDARD:
-            DB.acing = false;
-            DB.dieLabel = CONST.DIELABELS.STANDARD;
-            break;
-    }
+    DB.acing=canAce(DB.rollType,getState(breakingObjectsToggle))
+    DB.dieLabel=getDieLabel(DB.rollType)
 
     clearCounters();
     await DB.roll(DICE_CONFIGS);
+}
+function canAce(rollType:string,breaking:boolean):boolean{
+    let result = false;
+    switch (rollType) {
+        case CONST.ROLL_TYPES.TRAIT:
+            result = true
+            break;
+        case CONST.ROLL_TYPES.DAMAGE:
+            result =  !breaking;
+            break;
+        case CONST.ROLL_TYPES.STANDARD:
+            result = false;
+            break;
+    }
+    return result;
+}
+
+function getDieLabel(rollType:string, ):string {
+    let result = CONST.DIELABELS.STANDARD;
+    switch (rollType) {
+        case CONST.ROLL_TYPES.TRAIT:
+            result =CONST.DIELABELS.TRAIT;
+            break;
+        case CONST.ROLL_TYPES.DAMAGE:
+            result =CONST.DIELABELS.DAMAGE;
+            break;
+        case CONST.ROLL_TYPES.STANDARD:
+            result =CONST.DIELABELS.STANDARD;
+            break;
+    }
+    return result;
 }
 
 async function rerollTheDice() {
@@ -923,8 +979,11 @@ async function rerollTheDice() {
     if (player_history.length > 0) {
         const LAST_ROLL = player_history[0];
         DB.isReroll = true;
-        DB.clear();
         DB.rollType = LAST_ROLL.rollType;
+        DB.acing = canAce(LAST_ROLL.rollType, getState(breakingObjectsToggle))
+        DB.dieLabel = getDieLabel(LAST_ROLL.rollType)        
+        DB.clear();
+
         const DICE_CONFIGS = []
 
         for (const DIE_ROLL of LAST_ROLL.rollResult.filter(d => d.dieLabel !== 'Critical Failure Check')) {
@@ -944,62 +1003,69 @@ async function rerollTheDice() {
 }
 
 async function adjustTheRoll() {
-    const RECENT_ROLLS = [...ROLL_HISTORY].reverse();       //.toReversed();
+    let pid = await OBR.player.getId()
+    const RECENT_ROLLS = [...ROLL_HISTORY].reverse()
     const LAST_ROLL = RECENT_ROLLS[0];
-    const NEW_MODIFIER = getJokerModifier();
+    const DBrollType = LAST_ROLL.rollType;
+    const NEW_MODIFIER = getTotalModifier();
+    const IS_JOKER = LAST_ROLL.isJoker;
     const LOG_ENTRY_WRAPPER_ELEMENTS: NodeListOf<HTMLElement> = document.querySelectorAll('.log-entry-wrapper');
 
     for (const LOG_ENTRY_WRAPPER_ELEMENT of LOG_ENTRY_WRAPPER_ELEMENTS) {
-        const INDEX = Array.from(LOG_ENTRY_WRAPPER_ELEMENTS).indexOf(LOG_ENTRY_WRAPPER_ELEMENT);
-        const IS_REROLL = LOG_ENTRY_WRAPPER_ELEMENT.dataset.isReroll === 'true';
-        const IS_NEW_ROLL = !IS_REROLL && INDEX === 0;
-        const PREV_ENTRY: HTMLElement = LOG_ENTRY_WRAPPER_ELEMENT.previousElementSibling as HTMLElement
-        const IS_ORIGINAL_ROLL = !IS_REROLL && PREV_ENTRY && PREV_ENTRY.dataset?.isReroll === 'true';
+        if (LOG_ENTRY_WRAPPER_ELEMENT.dataset.pid === pid) {
+            const INDEX = Array.from(LOG_ENTRY_WRAPPER_ELEMENTS).indexOf(LOG_ENTRY_WRAPPER_ELEMENT);
+            const IS_REROLL = LOG_ENTRY_WRAPPER_ELEMENT.dataset.isReroll === 'true';
+            const IS_NEW_ROLL = !IS_REROLL && INDEX === 0;
+            const PREV_ENTRY: HTMLElement = LOG_ENTRY_WRAPPER_ELEMENT.previousElementSibling as HTMLElement
+            const IS_ORIGINAL_ROLL = !IS_REROLL && PREV_ENTRY && PREV_ENTRY.dataset?.isReroll === 'true';
 
-        if (IS_NEW_ROLL || IS_REROLL || IS_ORIGINAL_ROLL) {
-            LOG_ENTRY_WRAPPER_ELEMENT.querySelector('.modifier')?.remove();
-            const OUTPUT_ELEMENT = LOG_ENTRY_WRAPPER_ELEMENT.querySelector('.output') as HTMLElement;
-            const TOTAL_ELEMENT = LOG_ENTRY_WRAPPER_ELEMENT.querySelector('.total') as HTMLElement;
-            const DESCRIPTION_ELEMENT = LOG_ENTRY_WRAPPER_ELEMENT.querySelector('.description') as HTMLElement;
-            const NEW_TOTAL = Number(TOTAL_ELEMENT!.innerText) - RECENT_ROLLS[INDEX].modifier + NEW_MODIFIER;
+            if (IS_NEW_ROLL || IS_REROLL || IS_ORIGINAL_ROLL) {
+                LOG_ENTRY_WRAPPER_ELEMENT.querySelector('.modifier')?.remove();
+                const OUTPUT_ELEMENT = LOG_ENTRY_WRAPPER_ELEMENT.querySelector('.output') as HTMLElement;
+                const TOTAL_ELEMENT = LOG_ENTRY_WRAPPER_ELEMENT.querySelector('.total') as HTMLElement;
+                const DESCRIPTION_ELEMENT = LOG_ENTRY_WRAPPER_ELEMENT.querySelector('.description') as HTMLElement;
+                const NEW_TOTAL = Number(TOTAL_ELEMENT!.innerText) - RECENT_ROLLS[INDEX].modifier + NEW_MODIFIER;
 
-            OUTPUT_ELEMENT.innerHTML = '';
+                OUTPUT_ELEMENT.innerHTML = '';
 
-            if (NEW_MODIFIER !== 0) {
-                OUTPUT_ELEMENT.insertAdjacentHTML('afterbegin', signModOutput(NEW_MODIFIER, getState(jokerDrawnToggle)));
+                if (NEW_MODIFIER !== 0) {
+                    OUTPUT_ELEMENT.insertAdjacentHTML('afterbegin', signModOutput(NEW_MODIFIER, IS_JOKER));
+                }
+
+                const TRAIT_ROLLS = LAST_ROLL.rollResult.filter(d => d.dieLabel === CONST.DIELABELS.TRAIT);
+
+                if (TRAIT_ROLLS.length === 1 || DBrollType !== CONST.ROLL_TYPES.TRAIT) {
+                    TOTAL_ELEMENT.innerText = NEW_TOTAL.toString();
+                    DESCRIPTION_ELEMENT.innerText = DBrollType === CONST.ROLL_TYPES.STANDARD ? '' : calculateRaises(NEW_TOTAL)
+                }
+                DESCRIPTION_ELEMENT.innerText = CONST.EMOJIS.ADJUST.concat(DESCRIPTION_ELEMENT.innerText)
+
+                RECENT_ROLLS[INDEX].modifier = NEW_MODIFIER;
+                RECENT_ROLLS[INDEX].total = NEW_TOTAL;
+                RECENT_ROLLS[INDEX].description = DESCRIPTION_ELEMENT.innerText;
+                RECENT_ROLLS[INDEX].isAdjustment = true;
+                let rollDetails = '';
+
+                for (const DIE_ROLL of RECENT_ROLLS[INDEX].rollResult) {
+                    DIE_ROLL.value = DBrollType === CONST.ROLL_TYPES.TRAIT ? DIE_ROLL.value - DIE_ROLL.modifier + NEW_MODIFIER : DIE_ROLL.value;
+                    DIE_ROLL.modifier = NEW_MODIFIER;
+                    rollDetails += markupDieRollDetails(DIE_ROLL, DBrollType, RECENT_ROLLS[INDEX].isJoker);
+                }
+
+                OUTPUT_ELEMENT.insertAdjacentHTML('beforeend', rollDetails);
+                updateStorage(ROLL_HISTORY)
+                // Send to Discord
+                // Send to OBR die rolls for all to see
+                //TODO
+                // if (DISCORD_SETTINGS.webhookURL && RECENT_ROLLS[INDEX].rollResult?.length) {
+                //     // Pass in the discord response to use the ID to update that specific message.
+                //     RECENT_ROLLS[INDEX].discordResponse = await sendToDiscord(RECENT_ROLLS[INDEX]);
+                // }
             }
 
-            const TRAIT_ROLLS = LAST_ROLL.rollResult.filter(d => d.dieLabel === CONST.DIELABELS.TRAIT);
-
-            if (TRAIT_ROLLS.length === 1 || DB.rollType !== CONST.ROLL_TYPES.TRAIT) {
-                TOTAL_ELEMENT.innerText = NEW_TOTAL.toString();
-                DESCRIPTION_ELEMENT.innerText = DB.rollType === CONST.ROLL_TYPES.STANDARD ? '' : calculateRaises(NEW_TOTAL);
+            if (IS_NEW_ROLL || IS_ORIGINAL_ROLL) {
+                break;
             }
-
-            RECENT_ROLLS[INDEX].modifier = NEW_MODIFIER;
-            RECENT_ROLLS[INDEX].total = NEW_TOTAL;
-            RECENT_ROLLS[INDEX].description = DESCRIPTION_ELEMENT.innerText;
-            let rollDetails = '';
-
-            for (const DIE_ROLL of RECENT_ROLLS[INDEX].rollResult) {
-                DIE_ROLL.value = DB.rollType === CONST.ROLL_TYPES.TRAIT ? DIE_ROLL.value - DIE_ROLL.modifier + NEW_MODIFIER : DIE_ROLL.value;
-                DIE_ROLL.modifier = NEW_MODIFIER;
-                rollDetails += markupDieRollDetails(DIE_ROLL, RECENT_ROLLS[INDEX].isJoker);
-            }
-
-            OUTPUT_ELEMENT.insertAdjacentHTML('beforeend', rollDetails);
-
-            // Send to Discord
-            // Send to OBR die rolls for all to see
-            //TODO
-            // if (DISCORD_SETTINGS.webhookURL && RECENT_ROLLS[INDEX].rollResult?.length) {
-            //     // Pass in the discord response to use the ID to update that specific message.
-            //     RECENT_ROLLS[INDEX].discordResponse = await sendToDiscord(RECENT_ROLLS[INDEX]);
-            // }
-        }
-
-        if (IS_NEW_ROLL || IS_ORIGINAL_ROLL) {
-            break;
         }
     }
 }
@@ -1010,6 +1076,7 @@ async function renderLog(ROLL_HISTORY: SWDR[]) {
         LOG_ENTRY_WRAPPER_ELEMENT.classList.add('log-entry-wrapper');
         LOG_ENTRY_WRAPPER_ELEMENT.setAttribute('data-roll-type', roll.rollType);
         if (roll.isReroll) LOG_ENTRY_WRAPPER_ELEMENT.setAttribute('data-is-reroll', roll.isReroll.toString());
+        LOG_ENTRY_WRAPPER_ELEMENT.dataset.pid = roll.playerId
 
         buildOutputHTML(roll, roll.rollType, roll.rollResult, LOG_ENTRY_WRAPPER_ELEMENT)
 

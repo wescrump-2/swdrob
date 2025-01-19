@@ -22,8 +22,8 @@
   --border: 2px solid var(--theme-color);
   --border-radius: 6px;
 
-  --button-size: 1.1rem;
-  --die-size: 2rem;
+  --button-size: 24px;
+  --die-size: 40px;
 }
 
 
@@ -34,9 +34,9 @@ body {
   display: flex;
   /* place-items:;
   align-items: center;
+  min-width: 300px;
   justify-items: center; */
   vertical-align: top;
-  min-width: 300px;
 }
 
 h1 {
@@ -95,8 +95,8 @@ button:focus-visible {
 }
 
 .sidebar {
-  min-width: 5rem;
-  min-height: 36rem;
+  min-width: 100px;
+  min-height: 35rem;
   overflow: hidden;
   padding: 1px;
   background-color: #3d3838;
@@ -105,7 +105,7 @@ button:focus-visible {
 }
 
 .options {
-  height: 8rem;
+  height: auto;
 }
 
 .rowxx div {
@@ -151,8 +151,8 @@ fieldset#dice-tray {
 .custom-radio,
 .toggle-image {
   cursor: pointer;
-  margin: 2px;
-  padding: 0px;
+  margin: 0px;
+  padding: 3px;
   vertical-align: middle;
 }
 
@@ -177,6 +177,32 @@ fieldset#dice-tray {
 .custom-radio:hover path,
 .toggle-image:hover path {
   fill: #0056b3;
+  /* A darker shade for hover */
+}
+
+.toggle-image2 {
+  cursor: pointer;
+  margin: 0px;
+  padding: 3px;
+  vertical-align: middle;
+}
+
+.toggle-image2 {
+  transition: fill 0.3s ease;
+}
+.toggle-image2.active path {
+  fill: #ff0000;
+  /* Active color */
+}
+
+.toggle-image2 path {
+  fill: #A9A9A9;
+  /* Default color */
+}
+
+/* Hover effect for SVGs */
+.toggle-image2:hover path {
+  fill: #b30000;
   /* A darker shade for hover */
 }
 
