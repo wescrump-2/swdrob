@@ -430,6 +430,7 @@ class SWDR {
     onesCount: number = 0
     isJoker: boolean = false
     isAdjustment: boolean = false
+    isWound: boolean = false
 };
 
 class DieResult {
@@ -539,6 +540,7 @@ const DB = new DiceBox({
             RollCollection.isReroll = DB.isReroll;
             RollCollection.modifier = rollResult[0].modifier;
             RollCollection.isJoker = getState(jokerDrawnToggle);
+            RollCollection.isWound = getWoundsModifier()!=0;
             RollCollection.rollResult = rollResult;
 
             await buildOutputHTML(RollCollection, DB.rollType, rollResult, LOG_ENTRY_WRAPPER_ELEMENT)
@@ -609,11 +611,11 @@ async function buildOutputHTML(rCollection: SWDR, rType: string, rResult: RollRe
         let rollDetails = '';
 
         for (const DIE_ROLL of rResult) {
-            rollDetails += markupDieRollDetails(DIE_ROLL, rCollection.rollType,rCollection.isJoker);
+            rollDetails += markupDieRollDetails(DIE_ROLL, rCollection.rollType,rCollection.isJoker, rCollection.isWound);
         }
 
         // Format the roll details (i.e., break down of each die, if it aced, and whatever modifier might be applied).
-        const ROLL_DETAILS_ELEMENT = createRollDetailsElement(`${rCollection.modifier !== 0 || rCollection.isJoker ? signModOutput(rCollection.modifier, rCollection.isJoker) : ''}${rollDetails}`);
+        const ROLL_DETAILS_ELEMENT = createRollDetailsElement(`${rCollection.modifier !== 0 || rCollection.isJoker || rCollection.isWound ? signModOutput(rCollection.modifier, rCollection.isJoker, rCollection.isWound) : ''}${rollDetails}`);
 
         if (rCollection.criticalFailure) {
             descriptionString = `Critical Failure! ${CONST.EMOJIS.CRITICAL_FAILURE}`;
@@ -645,11 +647,11 @@ async function buildOutputHTML(rCollection: SWDR, rType: string, rResult: RollRe
         let rollDetails = '';
 
         for (const DIE_ROLL of rResult) {
-            rollDetails += markupDieRollDetails(DIE_ROLL, rCollection.rollType, rCollection.isJoker);
+            rollDetails += markupDieRollDetails(DIE_ROLL, rCollection.rollType, rCollection.isJoker, rCollection.isWound);
         }
 
         // Format the roll details (i.e., break down of each die, if it aced, and whatever modifier might be applied).
-        rollDetailsElement = createRollDetailsElement(`${rCollection.modifier !== 0 ? signModOutput(rCollection.modifier, rCollection.isJoker) : ''}${rollDetails}`);
+        rollDetailsElement = createRollDetailsElement(`${rCollection.modifier !== 0 || rCollection.isJoker || rCollection.isWound ? signModOutput(rCollection.modifier, rCollection.isJoker, rCollection.isWound) : ''}${rollDetails}`);
         wrapper.append(rollDetailsElement);
         // Generate the HTML markup for the description and result value.
         const RESULTS = markupResult(rCollection, rCollection.total, { description: DESCRIPTION_STRING! });
@@ -836,12 +838,12 @@ function sidesNumber(s: string) {
     return numberResult;
 }
 
-function signModOutput(modifier: number, joker: boolean) {
-    return `<p class="modifier" data-modifier="${modifier}">Modifier: ${modifier < 0 ? '−' : '+'}${Math.abs(modifier)}${joker ? CONST.EMOJIS.JOKER : ''}</p>`;
+function signModOutput(modifier: number, joker: boolean, isWound: boolean) {
+    return `<p class="modifier" data-modifier="${modifier}">Modifier: ${modifier < 0 ? '−' : '+'}${Math.abs(modifier)}${joker ? CONST.EMOJIS.JOKER : ''}${isWound ? CONST.EMOJIS.WOUND : ''}</p>`;
 }
 
-function markupDieRollDetails(dieRoll: RollResult, rType:string, joker: boolean) {
-    const SHOW_MODIFIER = rType === CONST.ROLL_TYPES.TRAIT && (dieRoll.modifier !== 0 || joker);
+function markupDieRollDetails(dieRoll: RollResult, rType: string, joker: boolean, isWound: boolean) {
+    const SHOW_MODIFIER = rType === CONST.ROLL_TYPES.TRAIT && (dieRoll.modifier !== 0 || joker || isWound);
     const SHOW_BREAKDOWN = dieRoll.rollDetails.includes(CONST.EMOJIS.ACE);
     const SHOW_MATH = SHOW_BREAKDOWN || SHOW_MODIFIER;
     const LABEL = `${dieRoll.dieLabel} (d${sidesNumber(dieRoll.sides)}):`;
@@ -1028,6 +1030,7 @@ async function adjustTheRoll() {
     const DBrollType = LAST_ROLL.rollType;
     const NEW_MODIFIER = getTotalModifier();
     const IS_JOKER = LAST_ROLL.isJoker;
+    const IS_WOUND = LAST_ROLL.isWound;
     const LOG_ENTRY_WRAPPER_ELEMENTS: NodeListOf<HTMLElement> = document.querySelectorAll('.log-entry-wrapper');
 
     for (const LOG_ENTRY_WRAPPER_ELEMENT of LOG_ENTRY_WRAPPER_ELEMENTS) {
@@ -1048,7 +1051,7 @@ async function adjustTheRoll() {
                 OUTPUT_ELEMENT.innerHTML = '';
 
                 if (NEW_MODIFIER !== 0) {
-                    OUTPUT_ELEMENT.insertAdjacentHTML('afterbegin', signModOutput(NEW_MODIFIER, IS_JOKER));
+                    OUTPUT_ELEMENT.insertAdjacentHTML('afterbegin', signModOutput(NEW_MODIFIER, IS_JOKER,IS_WOUND));
                 }
 
                 const TRAIT_ROLLS = LAST_ROLL.rollResult.filter(d => d.dieLabel === CONST.DIELABELS.TRAIT);
@@ -1068,7 +1071,7 @@ async function adjustTheRoll() {
                 for (const DIE_ROLL of RECENT_ROLLS[INDEX].rollResult) {
                     DIE_ROLL.value = DBrollType === CONST.ROLL_TYPES.TRAIT ? DIE_ROLL.value - DIE_ROLL.modifier + NEW_MODIFIER : DIE_ROLL.value;
                     DIE_ROLL.modifier = NEW_MODIFIER;
-                    rollDetails += markupDieRollDetails(DIE_ROLL, DBrollType, RECENT_ROLLS[INDEX].isJoker);
+                    rollDetails += markupDieRollDetails(DIE_ROLL, DBrollType, RECENT_ROLLS[INDEX].isJoker, RECENT_ROLLS[INDEX].isWound);
                 }
 
                 OUTPUT_ELEMENT.insertAdjacentHTML('beforeend', rollDetails);

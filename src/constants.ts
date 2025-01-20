@@ -15,7 +15,8 @@ export const CONST = {
 	  CRITICAL_FAILURE_JODI: '🙌',
 	  JOKER: '🃏',
 	  ADJUST: '🎚',
-	  REROLL: '🔄'
+	  REROLL: '🔄',
+	  WOUND: '🩹'
 	},
 	COLOR_THEMES: {
 	  PRIMARY: '#c6c4af',
