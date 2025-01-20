@@ -62,8 +62,10 @@ const damagedice = document.getElementById('damagedice') as unknown as SVGElemen
 const standarddice = document.getElementById('standarddice') as unknown as SVGElement;
 const targetNumberButton = document.getElementById('targetNumberButton') as unknown as SVGElement;
 const targetNumberSpinner = document.getElementById('targetNumber') as HTMLInputElement;
+const targetCurrent = document.getElementById('curtarget') as HTMLDivElement;
 const modifierButton = document.getElementById('modifierButton') as unknown as SVGElement;
 const modifierSpinner = document.getElementById('modifier') as HTMLInputElement;
+const modifierCurrent = document.getElementById('curmodifier') as HTMLDivElement;
 const wildDieToggle = document.getElementById('wildDieToggle') as unknown as SVGElement;
 const wildDieType = document.getElementById('wildDieType') as unknown as HTMLSelectElement;
 const bonusDamageToggle = document.getElementById('bonusDamageToggle') as unknown as SVGElement;
@@ -92,6 +94,7 @@ const d100Button = document.getElementById('d100Button') as unknown as SVGElemen
 
 //setup click handlers
 setupRadio();
+setupSliders();
 
 setupSvgToggle(targetNumberButton);
 setupSvgToggle(modifierButton);
@@ -140,6 +143,16 @@ function setupRadio(): void {
     });
 }
 
+function setupSliders(): void {
+    modifierSpinner.addEventListener('input', function() {
+        const value = parseInt(this.value);
+        document.getElementById('curmodifier')!.textContent = value > 0 ? `+${value}` : value.toString();
+    });
+    targetNumberSpinner.addEventListener('input', function() {
+        document.getElementById('curtarget')!.textContent = this.value;
+    });
+}
+
 function getRollType(): string {
     let ret = 'trait'
     for (let radio of radios) {
@@ -169,16 +182,17 @@ function toggleState(svgElement: SVGElement) {
 }
 
 // Reset functionality for spinners
-function setSpinner(input: HTMLInputElement, val: string) {
+function setSpinner(input: HTMLInputElement, current: HTMLDivElement, val: string) {
     input.value = val;
+    current.innerText=val;
 }
 function setSelect(input: HTMLSelectElement, val: string) {
     input.value = val;
 }
 // Reset functionality for all controls
 function resetToDefaults() {
-    setSpinner(targetNumberSpinner, CONST.DEFAULTS.TARGET_NUMBER);
-    setSpinner(modifierSpinner, CONST.DEFAULTS.MODIFIER);
+    setSpinner(targetNumberSpinner, targetCurrent, CONST.DEFAULTS.TARGET_NUMBER);
+    setSpinner(modifierSpinner, modifierCurrent, CONST.DEFAULTS.MODIFIER);
     setState(wildDieToggle, CONST.DEFAULTS.WILD_DIE_ENABLED);
     setSelect(wildDieType, CONST.DEFAULTS.WILD_DIE);
     setState(bonusDamageToggle, CONST.DEFAULTS.BONUS_DAMAGE);
@@ -208,7 +222,7 @@ async function opposedRollSet() {
     const RECENT_ROLLS = [...ROLL_HISTORY].reverse();
     for (let lr of RECENT_ROLLS) {
         if (lr.rollType === CONST.ROLL_TYPES.TRAIT && lr.playerId != pid) {
-            setSpinner(targetNumberSpinner, `${lr.total}`)
+            setSpinner(targetNumberSpinner, targetCurrent, `${lr.total}`)
             break;
         }
     }
@@ -225,9 +239,9 @@ function setRadio(svg: SVGElement) {
 function setupSvgToggle(svgElement: SVGElement) {
     svgElement.addEventListener('click', function (): void {
         if (svgElement === targetNumberButton) {
-            setSpinner(targetNumberSpinner, CONST.DEFAULTS.TARGET_NUMBER);
+            setSpinner(targetNumberSpinner, targetCurrent, CONST.DEFAULTS.TARGET_NUMBER);
         } else if (svgElement === modifierButton) {
-            setSpinner(modifierSpinner, CONST.DEFAULTS.MODIFIER);
+            setSpinner(modifierSpinner, modifierCurrent, CONST.DEFAULTS.MODIFIER);
         } else if (svgElement === opposedRollToggle) {
             opposedRollSet();
         } else if (svgElement === adjustButton) {
@@ -305,8 +319,10 @@ function showHideControls(selectedRadio: string) {
         case selectedRadio === 'trait': {
             targetNumberButton.style.display = show;
             targetNumberSpinner.style.display = show;
+            targetCurrent.style.display = show;
             modifierButton.style.display = show;
             modifierSpinner.style.display = show;
+            modifierButton.style.display = show;
             wildDieToggle.style.display = show;
             wildDieType.style.display = show;
             opposedRollToggle.style.display = show;
@@ -332,8 +348,10 @@ function showHideControls(selectedRadio: string) {
         case selectedRadio === 'damage': {
             targetNumberButton.style.display = show;
             targetNumberSpinner.style.display = show;
+            targetCurrent.style.display = show;
             modifierButton.style.display = show;
             modifierSpinner.style.display = show;
+            modifierCurrent.style.display = show;
             bonusDamageToggle.style.display = show;
             breakingObjectsToggle.style.display = show;
             jokerDrawnToggle.style.display = show;
@@ -359,9 +377,10 @@ function showHideControls(selectedRadio: string) {
         case selectedRadio === 'standard': {
             modifierButton.style.display = show;
             modifierSpinner.style.display = show;
-
+            modifierCurrent.style.display = show;
             targetNumberButton.style.display = hide;
             targetNumberSpinner.style.display = hide;
+            targetCurrent.style.display = hide;
             bonusDamageToggle.style.display = hide;
             breakingObjectsToggle.style.display = hide;
             wildDieToggle.style.display = hide;

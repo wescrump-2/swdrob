@@ -26,19 +26,23 @@
             </svg></span>
         </div>
         <hr />
-        <div class="row">
-          <label for="modifier" title="Reset Modifier to zero.">
-            <svg id="modifierButton" class="toggle-image inactive">
-            </svg>
-            <input type="number" id="modifier" name="modifier" title="Modifier" value="0" min="-42" max="42">
-          </label>
+        <div class="row" title="Reset Modifier to zero.">
+          <svg id="modifierButton" class="toggle-image inactive"></svg>
+          <div class="slider-container">
+            <div id="curmodifier" class="current-value"></div>
+            <input class="slider" type="range" id="modifier" name="modifier" title="Modifier" value="0" min="-32"
+              max="32">
+          </div>
         </div>
-        <div class="row">
-          <label for="targetNumber" title="Reset Target Number to default.">
-            <svg id="targetNumberButton" class="toggle-image inactive"> </svg>
-            <input type="number" id="targetNumber" name="targetNumber" title="Target Number" value="4" min="1" max="42">
-          </label>
+
+        <div class="row" title="Reset Target Number to default.">
+          <svg id="targetNumberButton" class="toggle-image inactive"></svg>
+          <div class="slider-container">
+            <div id="curtarget" class="current-value"></div>
+            <input class="slider" type="range" id="targetNumber" name="targetNumber" title="Target Number" value="4" min="4" max="32">
+          </div>
         </div>
+
         <div class="div">
           <label for="wildDieType" title="Include/exclude the Wild Die.">
             <svg id="wildDieToggle" class="toggle-image active"> </svg>

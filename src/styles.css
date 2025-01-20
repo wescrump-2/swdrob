@@ -108,9 +108,9 @@ button:focus-visible {
   height: auto;
 }
 
-.rowxx div {
+.row div {
   display: inline;
-  align-items: center;
+  /* align-items: center; */
 }
 
 .dice {
@@ -137,9 +137,9 @@ fieldset {
 
 fieldset#dice-tray {
   & canvas#dice-tray {
-    height: 350px;
+    height: 300px;
     padding: 0px;
-    width: 300px;
+    width: 290px;
   }
 }
 
@@ -190,6 +190,7 @@ fieldset#dice-tray {
 .toggle-image2 {
   transition: fill 0.3s ease;
 }
+
 .toggle-image2.active path {
   fill: #ff0000;
   /* Active color */
@@ -225,6 +226,10 @@ fieldset#dice-tray {
   background-color: inherit;
 }
 
+select {
+  width: 3rem;
+}
+
 .inner-line {
   border-top: 1px solid #ccc;
   height: 1px;
@@ -237,30 +242,51 @@ fieldset#dice-tray {
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-/* Styling for number inputs to look like spinners */
-input[type="number"] {
-  -moz-appearance: textfield;
-  appearance: auto;
-  width: 2.5rem;
-}
-select {
-  width:3rem;
+.slider-container {
+  width: 70px;
+  height: 30px;
+  position:fixed;
 }
 
-input[type=number]::-webkit-inner-spin-button,
-input[type=number]::-webkit-outer-spin-button {
+.slider {
+  width: 100%;
+  position: absolute;
+  bottom: 0px;
+}
+
+.current-value {
+  /* text-align: center; */
+  position: absolute;
+  font-size: 15px;
+  top: -5px;
+}
+
+.current-value span {
+  color: #007BFF;
+}
+
+/* input[type="range"] {
+  -moz-appearance: textfield;
+  appearance: auto;
+  width: 100%;
+  margin: 0;
+} */
+
+
+/* input[type="range"]::-webkit-inner-spin-button,
+input[type="range"]::-webkit-outer-spin-button {
   -webkit-appearance: inner-spin-button !important;
   opacity: 1;
   margin: 0;
-}
+} */
 
 /* Adding pseudo-elements for spinner buttons */
-input[type="number"] {
+/* input[type="range"] {
   position: relative;
-}
+} */
 
-input[type="number"]::after,
-input[type="number"]::before {
+/* input[type="range"]::after,
+input[type="range"]::before {
   content: '';
   position: absolute;
   right: 0px;
@@ -270,136 +296,135 @@ input[type="number"]::before {
   text-align: center;
   cursor: pointer;
   z-index: 1;
-}
+} */
 
-input[type="number"]::after {
+/* input[type="range"]::after {
   top: 0;
   border-bottom: 1px solid #ccc;
-}
+} */
 
-input[type="number"]::before {
+/* input[type="range"]::before {
   bottom: 0;
   border-top: 1px solid #ccc;
-}
+} */
 
-input[type="number"]::after::before {
+/* input[type="range"]::after::before {
   content: '\25B2';
-  /* Up arrow */
   position: absolute;
   top: -2px;
   left: 0;
   width: 100%;
   color: #333;
   font-size: 10px;
-}
+} */
 
-input[type="number"]::before::before {
-  content: '\25BC';
-  /* Down arrow */
+/* input[type="range"]::before::before {
+  content: '\25BC';\
   position: absolute;
   bottom: -2px;
   left: 0;
   width: 100%;
   color: #333;
   font-size: 10px;
-}
+} */
 
 /* Hover effects for spinner buttons */
-input[type="number"]::after:hover,
-input[type="number"]::before:hover {
+/* input[type="range"]::after:hover,
+input[type="range"]::before:hover {
   background: #ddd;
-}
+} */
 
 legend {
   padding: 0px;
 }
+
 .log {
   padding-top: 0;
   grid-column: 1/-1;
-  height: 230px;
+  height: 280px;
   margin: 0;
   overflow: auto;
 
   @media screen and (width >=800px) {
-      grid-row: 1/-1;
-      grid-column: 2;
+    grid-row: 1/-1;
+    grid-column: 2;
   }
 
   & #log-entries {
-      display: flex;
-      flex-direction: column;
-      gap: var(--spacing);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing);
   }
 
   & #log-buttons {
-      position: sticky;
-      top: 0;
-      margin: 0 0 var(--spacing) 0;
-      width: 100%;
-      background-color: var(--background-color);
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      grid-template-rows: 40px;
-      gap: var(--spacing);
+    position: sticky;
+    top: 0;
+    margin: 0 0 var(--spacing) 0;
+    width: 100%;
+    background-color: var(--background-color);
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: 40px;
+    gap: var(--spacing);
   }
 
   & #log-entries {
-      margin-top: var(--spacing);
-      display: flex;
-      flex-direction: column;
-      gap: var(--spacing);
-      font-size: .9em;
-      scroll-snap-type: block mandatory;
+    margin-top: var(--spacing);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing);
+    font-size: .9em;
+    scroll-snap-type: block mandatory;
 
-      &>* {
-          scroll-snap-stop: always;
-          scroll-snap-align: end;
-      }
+    &>* {
+      scroll-snap-stop: always;
+      scroll-snap-align: end;
+    }
   }
 
   & .log-entry-wrapper {
-      display: grid;
-      grid-template-columns: 4fr 1fr;
-      grid-template-rows: auto 1fr;
-      border: var(--border);
-      border-radius: var(--border-radius);
+    display: grid;
+    grid-template-columns: 4fr 1fr;
+    grid-template-rows: auto 1fr;
+    border: var(--border);
+    border-radius: var(--border-radius);
 
-      & .output {
-          grid-column: 1 / -1;
-          grid-row: 2 / -1;
-          padding: var(--spacing);
-          border-top: var(--border);
-      }
+    & .output {
+      grid-column: 1 / -1;
+      grid-row: 2 / -1;
+      padding: var(--spacing);
+      border-top: var(--border);
+    }
 
-      & .output p {
-          margin-top: 0;
-          margin-bottom: .05em;
-      }
+    & .output p {
+      margin-top: 0;
+      margin-bottom: .05em;
+    }
 
-      & .total {
-          margin: 0;
-          grid-row: 1;
-          grid-column: 2;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          flex-grow: 1;
-          border-left: var(--border);
-      }
+    & .total {
+      margin: 0;
+      grid-row: 1;
+      grid-column: 2;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-grow: 1;
+      border-left: var(--border);
+    }
 
-      & .description {
-          margin: 0;
-          margin: -3px; 
-          grid-column: 1;
-          grid-row: 1;
-          display: flex;
-          padding: var(--spacing);
-      }
+    & .description {
+      margin: 0;
+      margin: -3px;
+      grid-column: 1;
+      grid-row: 1;
+      display: flex;
+      padding: var(--spacing);
+    }
   }
 
   & #results {
-      margin: 0;
-      padding-left: 1.5em;
+    margin: 0;
+    padding-left: 1.5em;
   }
 }
 
