@@ -27,33 +27,36 @@
         </div>
         <hr />
         <div class="row" title="Reset Modifier to zero.">
-          <svg id="modifierButton" class="toggle-image inactive"></svg>
-          <div class="slider-container">
-            <div id="curmodifier" class="current-value"></div>
-            <input class="slider" type="range" id="modifier" name="modifier" title="Modifier" value="0" min="-28"
-              max="28">
+          <div class="sliderrow">
+            <svg id="modifierButton" class="toggle-image inactive"></svg>
+            <div class="slider-container">
+              <div id="curmodifier" class="current-value"></div>
+              <input class="slider" type="range" id="modifier" name="modifier" title="Modifier" value="0" min="-28"
+                max="28">
+            </div>
           </div>
         </div>
 
         <div class="row" title="Reset Target Number to default.">
-          <svg id="targetNumberButton" class="toggle-image inactive"></svg>
-          <div class="slider-container">
-            <div id="curtarget" class="current-value"></div>
-            <input class="slider" type="range" id="targetNumber" name="targetNumber" title="Target Number" value="4" min="2" max="32">
+          <div class="sliderrow">
+            <svg id="targetNumberButton" class="toggle-image inactive"></svg>
+            <div class="slider-container">
+              <div id="curtarget" class="current-value"></div>
+              <input class="slider" type="range" id="targetNumber" name="targetNumber" title="Target Number" value="4"
+                min="2" max="32">
+            </div>
           </div>
         </div>
 
-        <div class="div">
-          <label for="wildDieType" title="Include/exclude the Wild Die.">
-            <svg id="wildDieToggle" class="toggle-image active"> </svg>
-            <select id="wildDieType" name="wildDieType" title="Wild Die Type.">
-              <option value="d4">d4</option>
-              <option value="d6" selected>d6</option>
-              <option value="d8">d8</option>
-              <option value="d10">d10</option>
-              <option value="d12">d12</option>
-            </select>
-          </label>
+        <div class="row">
+          <svg id="wildDieToggle" class="toggle-image active"> </svg>
+          <select id="wildDieType" name="wildDieType" title="Wild Die Type.">
+            <option value="d4">d4</option>
+            <option value="d6" selected>d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+          </select>
         </div>
 
         <div class="row">
@@ -184,12 +187,12 @@
       <fieldset id="dice-tray">
       </fieldset>
     </div>
-    <div class="row">
-      <fieldset class="log">
-        <div id="log-entries" class="fieldset-grid">
-        </div>
-      </fieldset>
+
+    <div class="log">
+      <div id="log-entries" class="fieldset-grid">
+      </div>
     </div>
+
   </div>
   <div id="app"></div>
 </body>
