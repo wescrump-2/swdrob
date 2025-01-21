@@ -154,7 +154,7 @@ function setupSliders(): void {
 }
 
 function getRollType(): string {
-    let ret = 'trait'
+    let ret = CONST.ROLL_TYPES.TRAIT
     for (let radio of radios) {
         if (radio.classList.contains('active')) {
             ret = radio.getAttribute('data-value')!
@@ -231,7 +231,7 @@ async function opposedRollSet() {
 function setRadio(svg: SVGElement) {
     radios.forEach(r => setState(r, false));
     setState(svg, true);
-    const selectedRadio = svg.getAttribute('data-value') || 'trait';
+    const selectedRadio = svg.getAttribute('data-value') || CONST.ROLL_TYPES.TRAIT;
     showHideControls(selectedRadio);
 }
 
@@ -316,7 +316,7 @@ function showHideControls(selectedRadio: string) {
     let show = ''
     let hide = 'none'
     switch (true) {
-        case selectedRadio === 'trait': {
+        case selectedRadio === CONST.ROLL_TYPES.TRAIT: {
             targetNumberButton.style.display = show;
             targetNumberSpinner.style.display = show;
             targetCurrent.style.display = show;
@@ -345,7 +345,7 @@ function showHideControls(selectedRadio: string) {
             d100Button.parentElement!.style.display = hide;
             break;
         }
-        case selectedRadio === 'damage': {
+        case selectedRadio === CONST.ROLL_TYPES.DAMAGE: {
             targetNumberButton.style.display = show;
             targetNumberSpinner.style.display = show;
             targetCurrent.style.display = show;
@@ -374,7 +374,7 @@ function showHideControls(selectedRadio: string) {
             d100Button.parentElement!.style.display = hide;
             break;
         }
-        case selectedRadio === 'standard': {
+        case selectedRadio === CONST.ROLL_TYPES.STANDARD: {
             modifierButton.style.display = show;
             modifierSpinner.style.display = show;
             modifierCurrent.style.display = show;
@@ -503,7 +503,7 @@ const DB = new DiceBox({
     //discordResponse: null,
     onDieComplete: async (dieResult: DieResult) => {
         if (DB.acing && dieResult.value === sidesNumber(dieResult.sides)) {
-            await DB.add(dieResult);
+            await DB.add(dieResult,{newStartPoint: true});
         }
     },
     onRollComplete: async (rollResult: RollResult[]) => {
@@ -523,13 +523,13 @@ const DB = new DiceBox({
         if (ROLL_IS_COMPLETE) {
             for (const DIE_ROLL of rollResult) {
                 switch (DB.rollType) {
-                    case 'trait':
+                    case CONST.ROLL_TYPES.TRAIT:
                         DIE_ROLL.dieLabel = DIE_ROLL.isWildDie ? CONST.DIELABELS.WILD : CONST.DIELABELS.TRAIT;
                         break;
-                    case 'damage':
+                    case CONST.ROLL_TYPES.DAMAGE:
                         DIE_ROLL.dieLabel = DIE_ROLL.isBonusDie ? CONST.DIELABELS.BONUS : CONST.DIELABELS.DAMAGE;
                         break;
-                    case 'standard':
+                    case CONST.ROLL_TYPES.STANDARD:
                         DIE_ROLL.dieLabel = CONST.DIELABELS.STANDARD;
                         break;
                 }
@@ -539,8 +539,8 @@ const DB = new DiceBox({
 
             RollCollection.isReroll = DB.isReroll;
             RollCollection.modifier = rollResult[0].modifier;
-            RollCollection.isJoker = getState(jokerDrawnToggle);
-            RollCollection.isWound = getWoundsModifier()!=0;
+            RollCollection.isJoker = getState(jokerDrawnToggle) && DB.rollType!=CONST.ROLL_TYPES.STANDARD;
+            RollCollection.isWound = getWoundsModifier(DB.rollType)!=0;
             RollCollection.rollResult = rollResult;
 
             await buildOutputHTML(RollCollection, DB.rollType, rollResult, LOG_ENTRY_WRAPPER_ELEMENT)
@@ -590,7 +590,7 @@ async function buildOutputHTML(rCollection: SWDR, rType: string, rResult: RollRe
                     sides: getWildDieValue(),
                     modifier: 0,
                     themeColor: CONST.COLOR_THEMES.CRITICAL_FAILURE_DIE,
-                }) as RollResult[];
+                },{newStartPoint: true}) as RollResult[];
                 const CRIT_DIE_ROLL = CRIT_FAIL_CHECK_DIE_RESULT[0];
                 CRIT_DIE_ROLL.dieLabel = 'Critical Failure Check',
                     CRIT_DIE_ROLL.isWildDie = false,
@@ -870,22 +870,22 @@ RESIZE_OBSERVER.observe(document.querySelector('.dice-roller')!, { box: "border-
 function getModifier(): number {
     return modifierSpinner.valueAsNumber
 }
-function getWoundsModifier(): number {
-        const woundsmod: number = getRollType() === 'trait' ? (getState(wound1Toggle)?-1:0)+(getState(wound2Toggle)?-1:0)+(getState(wound3Toggle)?-1:0)+(getState(fatigue1Toggle)?-1:0)+(getState(fatigue2Toggle)?-1:0):0;
+function getWoundsModifier(rollType:string): number {
+        const woundsmod: number = rollType === CONST.ROLL_TYPES.TRAIT ? (getState(wound1Toggle)?-1:0)+(getState(wound2Toggle)?-1:0)+(getState(wound3Toggle)?-1:0)+(getState(fatigue1Toggle)?-1:0)+(getState(fatigue2Toggle)?-1:0):0;
         return woundsmod;
 }
-function getJokerModifier(): number {
-      const jokemod: number = getState(jokerDrawnToggle) && getRollType() != 'standard' ? 2 : 0; 
+function getJokerModifier(rollType:string): number {
+      const jokemod: number = getState(jokerDrawnToggle) && rollType != CONST.ROLL_TYPES.STANDARD ? 2 : 0; 
       return jokemod; 
 }
-function getTotalModifier(): number {
-    return getModifier() + getJokerModifier() + getWoundsModifier()
+function getTotalModifier(rollType:string): number {
+    return getModifier() + getJokerModifier(rollType) + getWoundsModifier(rollType)
 }
 function isWildDieActive(): boolean {
-    return getRollType() === 'trait' && getState(wildDieToggle)
+    return getRollType() === CONST.ROLL_TYPES.TRAIT && getState(wildDieToggle)
 }
 function isBonusDamageActive(): boolean {
-    return getRollType() === 'damage' && getState(bonusDamageToggle)
+    return getRollType() === CONST.ROLL_TYPES.DAMAGE && getState(bonusDamageToggle)
 }
 
 function getWildDieValue(): number {
@@ -927,7 +927,7 @@ async function rollTheDice() {
         const numsides = parseInt(DIE.id.slice(1))
         for (let i = 0; i < num; ++i) {
             DICE_CONFIGS.push({
-                modifier: getTotalModifier(),
+                modifier: getTotalModifier(DB.rollType),
                 sides: numsides,
                 isWildDie: false,
                 isBonusDie: false,
@@ -938,7 +938,7 @@ async function rollTheDice() {
     //add wild die to roll
     if (isWildDieActive()) {
         DICE_CONFIGS.push({
-            modifier: getTotalModifier(),
+            modifier: getTotalModifier(DB.rollType),
             sides: getWildDieValue(),
             isWildDie: true,
             isBonusDie: false,
@@ -947,7 +947,7 @@ async function rollTheDice() {
     }
     if (isBonusDamageActive()) {
         DICE_CONFIGS.push({
-            modifier: getTotalModifier(),
+            modifier: getTotalModifier(DB.rollType),
             sides: 6,
             isWildDie: false,
             isBonusDie: true,
@@ -959,7 +959,7 @@ async function rollTheDice() {
     DB.dieLabel=getDieLabel(DB.rollType)
 
     clearCounters();
-    await DB.roll(DICE_CONFIGS);
+    await DB.roll(DICE_CONFIGS,{newStartPoint: true});
 }
 function canAce(rollType:string,breaking:boolean):boolean{
     let result = false;
@@ -1018,7 +1018,7 @@ async function rerollTheDice() {
         }
 
         if (LAST_ROLL.rollResult.length) {
-            await DB.roll(DICE_CONFIGS);
+            await DB.roll(DICE_CONFIGS,{newStartPoint: true});
         }
     }
 }
@@ -1028,7 +1028,7 @@ async function adjustTheRoll() {
     const RECENT_ROLLS = [...ROLL_HISTORY].reverse()
     const LAST_ROLL = RECENT_ROLLS[0];
     const DBrollType = LAST_ROLL.rollType;
-    const NEW_MODIFIER = getTotalModifier();
+    const NEW_MODIFIER = getTotalModifier(DBrollType);
     const IS_JOKER = LAST_ROLL.isJoker;
     const IS_WOUND = LAST_ROLL.isWound;
     const LOG_ENTRY_WRAPPER_ELEMENTS: NodeListOf<HTMLElement> = document.querySelectorAll('.log-entry-wrapper');

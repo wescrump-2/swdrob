@@ -1,5 +1,5 @@
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Trebuchet MS', 'Arial Black', Arial, Avenir, Inter, system-ui, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -28,14 +28,9 @@
 
 
 body {
-  font-family: Arial, sans-serif;
   margin: 0px;
   padding: 0px;
   display: flex;
-  /* place-items:;
-  align-items: center;
-  min-width: 300px;
-  justify-items: center; */
   vertical-align: top;
 }
 
@@ -100,8 +95,8 @@ button:focus-visible {
   overflow: hidden;
   padding: 1px;
   background-color: #3d3838;
-  /* display: flex;
-  flex-direction: column; */
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .options {
@@ -110,7 +105,7 @@ button:focus-visible {
 
 .row div {
   display: inline;
-  /* align-items: center; */
+
 }
 
 .dice {
@@ -227,7 +222,9 @@ fieldset#dice-tray {
 }
 
 select {
-  width: 3rem;
+  width: 65px;
+  margin:0;
+  padding:0;
 }
 
 .inner-line {
@@ -245,7 +242,7 @@ select {
 .slider-container {
   width: 70px;
   height: 30px;
-  position:fixed;
+  position: fixed;
 }
 
 .slider {
@@ -265,80 +262,13 @@ select {
   color: #007BFF;
 }
 
-/* input[type="range"] {
-  -moz-appearance: textfield;
-  appearance: auto;
-  width: 100%;
-  margin: 0;
-} */
-
-
-/* input[type="range"]::-webkit-inner-spin-button,
-input[type="range"]::-webkit-outer-spin-button {
-  -webkit-appearance: inner-spin-button !important;
-  opacity: 1;
-  margin: 0;
-} */
-
-/* Adding pseudo-elements for spinner buttons */
-/* input[type="range"] {
-  position: relative;
-} */
-
-/* input[type="range"]::after,
-input[type="range"]::before {
-  content: '';
-  position: absolute;
-  right: 0px;
-  width: 10px;
-  height: 50%;
-  background: #eee;
-  text-align: center;
-  cursor: pointer;
-  z-index: 1;
-} */
-
-/* input[type="range"]::after {
-  top: 0;
-  border-bottom: 1px solid #ccc;
-} */
-
-/* input[type="range"]::before {
-  bottom: 0;
-  border-top: 1px solid #ccc;
-} */
-
-/* input[type="range"]::after::before {
-  content: '\25B2';
-  position: absolute;
-  top: -2px;
-  left: 0;
-  width: 100%;
-  color: #333;
-  font-size: 10px;
-} */
-
-/* input[type="range"]::before::before {
-  content: '\25BC';\
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 100%;
-  color: #333;
-  font-size: 10px;
-} */
-
-/* Hover effects for spinner buttons */
-/* input[type="range"]::after:hover,
-input[type="range"]::before:hover {
-  background: #ddd;
-} */
-
 legend {
   padding: 0px;
+  line-height: 1;
+  font-family:'Arial Black', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif
 }
 
-.log {
+.log { 
   padding-top: 0;
   grid-column: 1/-1;
   height: 280px;
