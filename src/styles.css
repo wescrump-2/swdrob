@@ -277,7 +277,7 @@ legend {
 }
 
 .log {
-  padding-top: 0;
+  padding: 1px;
   grid-column: 1/-1;
   height: 285px;
   margin: 0;
