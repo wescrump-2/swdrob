@@ -18,7 +18,7 @@
   --alt-theme-color: #ecd69b;
   --heading-font: 'Anton', sans-serif;
   --body-font: 'Open Sans', sans-serif;
-  --spacing: 1px;
+  --spacing: 4px;
   --border: 2px solid var(--theme-color);
   --border-radius: 6px;
 
@@ -105,7 +105,7 @@ button:focus-visible {
 }
 
 .row div {
-  display:inline-block;
+  display: inline-block;
 }
 
 .dice {
@@ -134,7 +134,7 @@ fieldset#dice-tray {
   & canvas#dice-tray {
     height: 300px;
     padding: 0px;
-    width: 290px;
+    width: 280px;
   }
 }
 
@@ -223,8 +223,8 @@ fieldset#dice-tray {
 
 select {
   width: 65px;
-  margin:0;
-  padding:0;
+  margin: 0;
+  padding: 0;
 }
 
 .inner-line {
@@ -238,14 +238,16 @@ select {
   border-color: #333;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
+
 .sliderrow {
-  position:relative;
+  position: relative;
 }
+
 .slider-container {
   width: 70px;
   height: 30px;
   position: relative;
-  float:right;
+  float: right;
 }
 
 .slider {
@@ -255,7 +257,7 @@ select {
 }
 
 .current-value {
-  text-align:right;
+  text-align: right;
   position: absolute;
   width: 2ch;
   font-size: 15px;
@@ -270,13 +272,14 @@ select {
 legend {
   padding: 0px;
   line-height: 1;
-  font-family:'Arial Black', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif
+  font-family: 'Lucida Grande', 'Lucida Sans', Arial, 'Trebuchet MS', 'Lucida Sans Unicode', sans-serif;
+  font-weight: 900;
 }
 
-.log { 
+.log {
   padding-top: 0;
   grid-column: 1/-1;
-  /* height: 480px; */
+  height: 285px;
   margin: 0;
   overflow: auto;
 
@@ -308,7 +311,7 @@ legend {
     display: flex;
     flex-direction: column;
     gap: var(--spacing);
-    font-size: .9em;
+    font-size: 1em;
     scroll-snap-type: block mandatory;
 
     &>* {
@@ -349,7 +352,6 @@ legend {
 
     & .description {
       margin: 0;
-      margin: -3px;
       grid-column: 1;
       grid-row: 1;
       display: flex;
@@ -365,7 +367,6 @@ legend {
 
 h2 {
   display: block;
-  font-size: 1em;
   margin-block-start: 0.83em;
   margin-block-end: 0.83em;
   margin-inline-start: 0px;

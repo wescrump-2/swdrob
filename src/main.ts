@@ -63,11 +63,13 @@ const standarddice = document.getElementById('standarddice') as unknown as SVGEl
 const targetNumberButton = document.getElementById('targetNumberButton') as unknown as SVGElement;
 const targetNumberSpinner = document.getElementById('targetNumber') as HTMLInputElement;
 const targetCurrent = document.getElementById('curtarget') as HTMLDivElement;
+const targetNumberRow  = document.getElementById('targetNumberRow') as HTMLDivElement;
 const modifierButton = document.getElementById('modifierButton') as unknown as SVGElement;
 const modifierSpinner = document.getElementById('modifier') as HTMLInputElement;
 const modifierCurrent = document.getElementById('curmodifier') as HTMLDivElement;
 const wildDieToggle = document.getElementById('wildDieToggle') as unknown as SVGElement;
 const wildDieType = document.getElementById('wildDieType') as unknown as HTMLSelectElement;
+const wildDieRow  = document.getElementById('wildDieRow') as HTMLDivElement;
 const bonusDamageToggle = document.getElementById('bonusDamageToggle') as unknown as SVGElement;
 const breakingObjectsToggle = document.getElementById('breakingObjectsToggle') as unknown as SVGElement;
 const opposedRollToggle = document.getElementById('opposedRollToggle') as unknown as SVGElement;
@@ -76,8 +78,10 @@ const adjustButton = document.getElementById('adjustButton') as unknown as SVGEl
 const wound1Toggle = document.getElementById('wound1Toggle') as unknown as SVGElement;
 const wound2Toggle = document.getElementById('wound2Toggle') as unknown as SVGElement;
 const wound3Toggle = document.getElementById('wound3Toggle') as unknown as SVGElement;
+const woundRow = document.getElementById('woundRow') as unknown as SVGElement;
 const fatigue1Toggle = document.getElementById('fatigue1Toggle') as unknown as SVGElement;
 const fatigue2Toggle = document.getElementById('fatigue2Toggle') as unknown as SVGElement;
+const fatigueRow = document.getElementById('fatigueRow') as unknown as SVGElement;
 const removeDiceButton = document.getElementById('removeDiceButton') as unknown as SVGElement;
 const rollDiceButton = document.getElementById('rollDiceButton') as unknown as SVGElement;
 const rerollDiceButton = document.getElementById('rerollDiceButton') as unknown as SVGElement;
@@ -317,21 +321,28 @@ function showHideControls(selectedRadio: string) {
     let hide = 'none'
     switch (true) {
         case selectedRadio === CONST.ROLL_TYPES.TRAIT: {
-            targetNumberButton.style.display = show;
-            targetNumberSpinner.style.display = show;
-            targetCurrent.style.display = show;
             modifierButton.style.display = show;
             modifierSpinner.style.display = show;
             modifierButton.style.display = show;
-            wildDieToggle.style.display = show;
-            wildDieType.style.display = show;
+
+            // targetNumberButton.style.display = show;
+            // targetNumberSpinner.style.display = show;
+            // targetCurrent.style.display = show;
+            targetNumberRow.style.display = show;
+
+            // wildDieToggle.style.display = show;
+            // wildDieType.style.display = show;
+            wildDieRow.style.display = show;
+
             opposedRollToggle.style.display = show;
             jokerDrawnToggle.style.display = show;
-            wound1Toggle.style.display=show;
-            wound2Toggle.style.display=show;
-            wound3Toggle.style.display=show;
-            fatigue1Toggle.style.display=show;
-            fatigue2Toggle.style.display=show;
+            // wound1Toggle.style.display=hide;
+            // wound2Toggle.style.display=hide;
+            // wound3Toggle.style.display=hide;
+            woundRow.style.display=show;
+            // fatigue1Toggle.style.display=hide;
+            // fatigue2Toggle.style.display=hide;
+            fatigueRow.style.display=show;
 
             bonusDamageToggle.style.display = hide;
             breakingObjectsToggle.style.display = hide;
@@ -346,24 +357,31 @@ function showHideControls(selectedRadio: string) {
             break;
         }
         case selectedRadio === CONST.ROLL_TYPES.DAMAGE: {
-            targetNumberButton.style.display = show;
-            targetNumberSpinner.style.display = show;
-            targetCurrent.style.display = show;
             modifierButton.style.display = show;
             modifierSpinner.style.display = show;
             modifierCurrent.style.display = show;
+
+            // targetNumberButton.style.display = show;
+            // targetNumberSpinner.style.display = show;
+            // targetCurrent.style.display = show;
+            targetNumberRow.style.display = show;
+
+            // wildDieToggle.style.display = hide;
+            // wildDieType.style.display = hide;
+            wildDieRow.style.display = hide;
+
             bonusDamageToggle.style.display = show;
             breakingObjectsToggle.style.display = show;
             jokerDrawnToggle.style.display = show;
-
-            wildDieToggle.style.display = hide;
-            wildDieType.style.display = hide;
             opposedRollToggle.style.display = hide;
-            wound1Toggle.style.display=hide;
-            wound2Toggle.style.display=hide;
-            wound3Toggle.style.display=hide;
-            fatigue1Toggle.style.display=hide;
-            fatigue2Toggle.style.display=hide;
+
+            // wound1Toggle.style.display=hide;
+            // wound2Toggle.style.display=hide;
+            // wound3Toggle.style.display=hide;
+            woundRow.style.display=hide;
+            // fatigue1Toggle.style.display=hide;
+            // fatigue2Toggle.style.display=hide;
+            fatigueRow.style.display=hide;
 
             d4Button.parentElement!.style.display = show;
             d6Button.parentElement!.style.display = show;
@@ -378,23 +396,29 @@ function showHideControls(selectedRadio: string) {
             modifierButton.style.display = show;
             modifierSpinner.style.display = show;
             modifierCurrent.style.display = show;
-            targetNumberButton.style.display = hide;
-            targetNumberSpinner.style.display = hide;
-            targetCurrent.style.display = hide;
+
+            // targetNumberButton.style.display = hide;
+            // targetNumberSpinner.style.display = hide;
+            // targetCurrent.style.display = hide;
+            targetNumberRow.style.display = hide;
+
+            // wildDieToggle.style.display = hide;
+            // wildDieType.style.display = hide;
+            wildDieRow.style.display = hide;
+
+  
             bonusDamageToggle.style.display = hide;
             breakingObjectsToggle.style.display = hide;
-            wildDieToggle.style.display = hide;
-            wildDieType.style.display = hide;
             opposedRollToggle.style.display = hide;
             jokerDrawnToggle.style.display = hide;
-            wildDieToggle.style.display = hide;
-            wildDieType.style.display = hide;
-            opposedRollToggle.style.display = hide;
-            wound1Toggle.style.display=hide;
-            wound2Toggle.style.display=hide;
-            wound3Toggle.style.display=hide;
-            fatigue1Toggle.style.display=hide;
-            fatigue2Toggle.style.display=hide;
+
+            // wound1Toggle.style.display=hide;
+            // wound2Toggle.style.display=hide;
+            // wound3Toggle.style.display=hide;
+            woundRow.style.display=hide;
+            // fatigue1Toggle.style.display=hide;
+            // fatigue2Toggle.style.display=hide;
+            fatigueRow.style.display=hide;
 
             d4Button.parentElement!.style.display = show;
             d6Button.parentElement!.style.display = show;
@@ -421,7 +445,7 @@ class SWDR {
     playerName: string = ""
     playerId: string = ""
     criticalFailure: boolean = false
-    description: string | null = ''
+    description: string = ''
     rollType: string = ''
     isReroll: boolean = false
     modifier: number = 0
@@ -557,7 +581,6 @@ const DB = new DiceBox({
 
 
 async function buildOutputHTML(rCollection: SWDR, rType: string, rResult: RollResult[], wrapper: any,) {
-
     if (rType === CONST.ROLL_TYPES.TRAIT) {
         rCollection.onesCount = rResult.filter(d => d.rolls[0].value === 1).length;
         const TRAIT_DICE_ROLLED = rResult.find(d => !d.isWildDie);
@@ -641,7 +664,7 @@ async function buildOutputHTML(rCollection: SWDR, rType: string, rResult: RollRe
 
         // Add the modifier to the total.
         rCollection.total += rCollection.modifier;
-        const DESCRIPTION_STRING = rType === CONST.ROLL_TYPES.DAMAGE ? calculateRaises(rCollection.total) : null;
+        const DESCRIPTION_STRING = rType === CONST.ROLL_TYPES.DAMAGE ? calculateRaises(rCollection.total) : '';
 
         rCollection.description = DESCRIPTION_STRING ? DESCRIPTION_STRING : '';
         let rollDetails = '';
@@ -1099,161 +1122,6 @@ async function renderLog(ROLL_HISTORY: SWDR[]) {
         LOG_ENTRY_WRAPPER_ELEMENT.setAttribute('data-roll-type', roll.rollType);
         if (roll.isReroll) LOG_ENTRY_WRAPPER_ELEMENT.setAttribute('data-is-reroll', roll.isReroll.toString());
         LOG_ENTRY_WRAPPER_ELEMENT.dataset.pid = roll.playerId
-
         buildOutputHTML(roll, roll.rollType, roll.rollResult, LOG_ENTRY_WRAPPER_ELEMENT)
-
     });
 }
-// // Event Listeners for Discord configuration  
-// document.querySelector('#save-discord-config').addEventListener('click', function () {
-//     localStorage.setItem(LOCAL_STORAGE_KEYS.webhookUrl, WEBHOOK_URL_ELEMENT.value);
-//     DISCORD_SETTINGS.webhookURL = WEBHOOK_URL_ELEMENT.value;
-//     localStorage.setItem(LOCAL_STORAGE_KEYS.displayName, YOUR_NAME_ELEMENT.value);
-//     DISCORD_SETTINGS.displayName = YOUR_NAME_ELEMENT.value;
-// });
-
-// document.querySelector('#clear-discord-config').addEventListener('click', function () {
-//     WEBHOOK_URL_ELEMENT.value = '';
-//     YOUR_NAME_ELEMENT.value = '';
-//     localStorage.clear();
-// });
-
-// async function sendToDiscord(roll) {
-//     // This is a new message and not an update if the the length of existing embeds is equal to 10, which is Discord's embed max limit.
-//     const IS_DISCORD_UPDATE = roll.discordResponse?.embeds?.length === 10 || !roll.discordResponse?.id ? false : !!roll.discordResponse;
-//     // Set the fetch URL based on whether it's a new webhook message or an updated one.
-//     const FETCH_URL = IS_DISCORD_UPDATE ? `${DISCORD_SETTINGS.webhookURL}/messages/${roll.discordResponse.id}` : DISCORD_SETTINGS.webhookURL;
-//     // Set the method based on whether it's a new webhook message or an updated one.
-//     const METHOD = IS_DISCORD_UPDATE ? 'PATCH' : 'POST';
-//     // Get the current modifier.
-//     const MODIFIER = roll.modifier;
-//     // Set the username.
-//     const USERNAME = DISCORD_SETTINGS.displayName ? DISCORD_SETTINGS.displayName : null;
-//     // Create a string of die rolls for the die rolls field.
-//     let rollDetails = '';
-
-//     // Build each roll's roll details
-//     for (const DIE_ROLL of roll.rollResult) {
-//         // Show the modifier if it's a trait roll and the modifier is not zero.
-//         const SHOW_MODIFIER = roll.rollType === CONST.ROLL_TYPES.TRAIT && DIE_ROLL.modifier !== 0;
-//         // Show the roll breakdown if the die roll aced.
-//         const SHOW_BREAKDOWN = DIE_ROLL.rollDetails.includes(CONST.EMOJIS.ACE);
-//         // Show the math if the die roll aced or if the modifier is to be shown.
-//         const SHOW_MATH = SHOW_BREAKDOWN || SHOW_MODIFIER;
-//         // Write the label for the individual roll.
-//         const LABEL = `${DIE_ROLL.dieLabel} (d${sidesNumber(DIE_ROLL.sides)}):`;
-//         // Set the Breakdown string to the roll details or an empty string if only the roll's unmodified value is needed.
-//         const BREAKDOWN = SHOW_MATH ? DIE_ROLL.rollDetails : '';
-//         // If the modifier is to be shown, write out the string for its math expression (value +/- modifier) or set it as an empty string.
-//         const MODIFIER = SHOW_MODIFIER ? ` ${DIE_ROLL.modifier < 0 ? '-' : '+'} ${Math.abs(DIE_ROLL.modifier)}` : '';
-//         // Write out the roll details using the above defined string variables.
-//         rollDetails += `${LABEL}\`\`\`${BREAKDOWN}${MODIFIER}${SHOW_MATH ? ' = ' : ''}${DIE_ROLL.value}\`\`\`${roll.rollResult.indexOf(DIE_ROLL) === roll.rollResult.length - 1 ? '' : '\n'}`;
-//     }
-
-//     // Create fields for the embed
-//     const FIELDS = [
-//         {
-//             name: 'Total',
-//             value: `\`\`\`${roll.total}\`\`\``,
-//             inline: true,
-//         },
-//         {
-//             name: 'Die Rolls',
-//             value: rollDetails,
-//         },
-//     ];
-
-//     const TRAIT_ROLLS = roll.rollResult.filter(d => d.dieLabel === CONST.DIELABELS.TRAIT);
-
-//     if (TRAIT_ROLLS.length > 1) {
-//         FIELDS.shift();
-//     }
-
-//     if (roll.rollType !== CONST.ROLL_TYPES.STANDARD) {
-//         // Add Result description at the start if it's not a standard roll.
-//         FIELDS.splice(0, 0,
-//             {
-//                 name: 'Result',
-//                 value: `**${roll.description}**`,
-//             },
-//         );
-
-//         // Add the Target Number before the Total if it's not a standard roll.
-//         const TOTAL_FIELD = FIELDS.find(f => f.name === 'Total');
-//         const TARGET_INDEX = TOTAL_FIELD ? FIELDS.indexOf(TOTAL_FIELD) : 0;
-
-//         if (!(TRAIT_ROLLS.length === 1)) {
-//             FIELDS.splice(TARGET_INDEX, 0,
-//                 {
-//                     name: 'Target',
-//                     value: `\`\`\`${getTargetNumber()}\`\`\``,
-//                     inline: true,
-//                 },
-//             );
-//         }
-//     }
-
-//     // Add the modifier field before the die rolls if there's a modififer.
-//     if (MODIFIER !== 0) {
-//         const DIE_ROLLS_FIELD = FIELDS.find(f => f.name === 'Die Rolls');
-//         const MODIFIER_INDEX = FIELDS.indexOf(DIE_ROLLS_FIELD);
-//         FIELDS.splice(MODIFIER_INDEX, 0, {
-//             name: 'Modifier',
-//             value: `\`\`\`${MODIFIER}\`\`\``,
-//         });
-//     }
-
-//     // Create the base data object.
-//     const DATA = {
-//         username: USERNAME,
-//         avatar_url: `../images/android-chrome-512x512.png`,
-//     };
-
-//     // Create the base new embed if needed.
-//     function getColor() {
-//         const hexColor = roll.criticalFailure ? CONST.COLOR_THEMES.CRITICAL_FAILURE_DIE : CONST.COLOR_THEMES.PRIMARY;
-//         return parseInt(hexColor.replace("#", ""), 16);
-//     }
-
-//     const NEW_EMBED = {
-//         type: 'rich',
-//         color: getColor(),
-//         title: APP_NAME,
-//         description: roll.isReroll ? '**Reroll**\n----' : null,
-//         fields: FIELDS,
-//         footer: {
-//             text: 'Made on The Immaterial Plane (2.2.1)',
-//             icon_url: 'https://immaterialplane.com/wp-content/uploads/2020/05/cropped-logo-1-1-32x32.png',
-//         }
-//     };
-
-//     if (IS_DISCORD_UPDATE) {
-//         // Update the last embed
-//         // Get the index of the last of the response embeds array.
-//         const EMBED = roll.discordResponse.embeds[0];
-
-//         if (NEW_EMBED?.description?.includes('Reroll')) {
-//             // Updated reroll.
-//             NEW_EMBED.description = '**Reroll (Updated)**\n----';
-//         } else {
-//             // Updated original roll.
-//             NEW_EMBED.description = '**(Updated)\n**----';
-//         }
-//     }
-
-//     // Default for an original roll: Add the embed.
-//     DATA.embeds = [NEW_EMBED];
-
-//     //if (messageReference) DATA.message_reference = messageReference;
-//     return await fetch(`${FETCH_URL}?wait=true`, {
-//         method: METHOD,
-//         headers: {
-//             'Content-Type': 'application/json',
-//         },
-//         body: JSON.stringify(DATA),
-//     }).then((response) => response.json())
-//         .then((messageData) => {
-//             return messageData;
-//         });
-// }
-
