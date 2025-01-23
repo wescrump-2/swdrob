@@ -160,8 +160,8 @@ function setupSliders(): void {
 function getRollType(): string {
     let ret = CONST.ROLL_TYPES.TRAIT
     for (let radio of radios) {
-        if (radio.classList.contains('active')) {
-            ret = radio.getAttribute('data-value')!
+        if (radio.classList.contains(Util.ACTIVE_CLASS)) {
+            ret = radio.dataset.value ?? ''
         }
     }
     return ret
@@ -169,15 +169,13 @@ function getRollType(): string {
 
 function setState(svgElement: SVGElement, state: boolean) {
     if (state) {
-        svgElement.classList.add('active');
-        svgElement.classList.remove('inactive');
+        svgElement.classList.add(Util.ACTIVE_CLASS);
     } else {
-        svgElement.classList.remove('active');
-        svgElement.classList.add('inactive');
+        svgElement.classList.remove(Util.ACTIVE_CLASS);
     }
 }
 function getState(svgElement: SVGElement) {
-    return svgElement.classList.contains('active')
+    return svgElement.classList.contains(Util.ACTIVE_CLASS)
 }
 
 function toggleState(svgElement: SVGElement) {
@@ -235,7 +233,7 @@ async function opposedRollSet() {
 function setRadio(svg: SVGElement) {
     radios.forEach(r => setState(r, false));
     setState(svg, true);
-    const selectedRadio = svg.getAttribute('data-value') || CONST.ROLL_TYPES.TRAIT;
+    const selectedRadio = svg.dataset.value || CONST.ROLL_TYPES.TRAIT;
     showHideControls(selectedRadio);
 }
 

@@ -3,6 +3,9 @@ export class Util {
     static ID = "com.wescrump.dice-roller";
     static DiceHistoryMkey = `${Util.ID}/rollHistory`;
 
+    static readonly BUTTON_CLASS = 'btn';
+    static readonly ACTIVE_CLASS = 'active';
+    static readonly SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
 
     static   hexToRgb(hex: string): { r: number; g: number; b: number } {
@@ -278,9 +281,6 @@ export class Util {
         return colors;
     }
 
-    static readonly BUTTON_CLASS = 'btn';
-    static readonly SUCCESS_CLASS = 'btn-success';
-    static readonly SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
     /**
      * Creates a button with specified properties.

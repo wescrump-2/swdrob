@@ -1,10 +1,10 @@
 :root {
-  font-family: 'Trebuchet MS', 'Arial Black', Arial, Avenir, Inter, system-ui, sans-serif;
+  font-family: Verdana, 'Trebuchet MS', 'Arial Black', Arial, Avenir, Inter, system-ui, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
+  color: #ffffffde;
   background-color: #242424;
 
   font-synthesis: none;
@@ -76,8 +76,8 @@ button:focus-visible {
 
 @media (prefers-color-scheme: light) {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    color: #01111f;
+    background-color:#e4e4e4;
   }
 
   a:hover {
@@ -87,6 +87,148 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+
+  .custom-radio.active path,
+  .toggle-image.active path {
+    fill: #007BFF;
+  }
+
+  .custom-radio path,
+  .toggle-image path {
+    fill: #888888;
+  }
+
+  .custom-radio:hover path,
+  .toggle-image:hover path {
+    fill: #0056b3;
+  }
+
+  .toggle-image2.active path {
+    fill: #ff0000;
+  }
+
+  .toggle-image2 path {
+    fill: #888888;
+  }
+
+  .toggle-image2:hover path {
+    fill: #b30000;
+  }
+
+  .inner-line {
+    border-top: 1px solid #444444;
+    height: 1px;
+    margin: 2px 0;
+    width: 50%;
+    margin-left: auto;
+    margin-right: auto;
+    border-radius: 5px;
+    border-color: #333333;
+    box-shadow: 0 0 10px #0000001a;
+  }
+
+  .counter {
+    cursor: pointer;
+    display: inline-block;
+    border-radius: 50%;
+    width: 1.3rem;
+    height: 1.3rem;
+    line-height: 1.3rem;
+    text-align: center;
+    cursor: pointer;
+    color: white;
+    background-color: #007BFF;
+    -webkit-user-select: none;
+    user-select: none;
+    padding: 1px;
+  }
+
+  .current-value {
+    color: #585858;
+    text-align: right;
+    position: absolute;
+    width: 2ch;
+    font-size: 15px;
+    top: -5px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    background-color: #424242;
+    color: #ffffff;
+  }
+
+  a:hover {
+    color: #747bff;
+  }
+
+  button {
+    background-color: #f9f9f9;
+  }
+
+  .custom-radio.active path,
+  .toggle-image.active path {
+    fill: #007BFF;
+  }
+
+  .custom-radio path,
+  .toggle-image path {
+    fill: #A9A9A9;
+  }
+
+  .custom-radio:hover path,
+  .toggle-image:hover path {
+    fill: #0056b3;
+  }
+
+  .toggle-image2.active path {
+    fill: #ff0000;
+  }
+
+  .toggle-image2 path {
+    fill: #A9A9A9;
+  }
+
+  .toggle-image2:hover path {
+    fill: #b30000;
+  }
+
+  .inner-line {
+    border-top: 1px solid #ccc;
+    height: 1px;
+    margin: 2px 0;
+    width: 50%;
+    margin-left: auto;
+    margin-right: auto;
+    border-radius: 5px;
+    border-color: #333333;
+    box-shadow: 0 0 10px #0000001a;
+  }
+
+  .counter {
+    cursor: pointer;
+    display: inline-block;
+    border-radius: 50%;
+    width: 1.3rem;
+    height: 1.3rem;
+    line-height: 1.3rem;
+    text-align: center;
+    cursor: pointer;
+    background-color: #007BFF;
+    -webkit-user-select: none;
+    user-select: none;
+    padding: 1px;
+  }
+
+  .current-value {
+    color: #e9e9e9;
+    text-align: right;
+    position: absolute;
+    width: 2ch;
+    font-size: 15px;
+    top: -5px;
+  }
 }
 
 .sidebar {
@@ -95,7 +237,6 @@ button:focus-visible {
   min-height: 35rem;
   overflow: hidden;
   padding: 1px;
-  background-color: #3d3838;
   -webkit-user-select: none;
   user-select: none;
 }
@@ -109,7 +250,6 @@ button:focus-visible {
 }
 
 .dice {
-  display: inline-block;
   line-height: var(--die-size);
   display: flex;
   justify-content: center;
@@ -142,7 +282,6 @@ fieldset#dice-tray {
   padding: 0px;
 }
 
-/* Styling for custom radio buttons and toggle images */
 .custom-radio,
 .toggle-image {
   cursor: pointer;
@@ -156,25 +295,6 @@ fieldset#dice-tray {
   transition: fill 0.3s ease;
 }
 
-.custom-radio.active path,
-.toggle-image.active path {
-  fill: #007BFF;
-  /* Active color */
-}
-
-.custom-radio path,
-.toggle-image path {
-  fill: #A9A9A9;
-  /* Default color */
-}
-
-/* Hover effect for SVGs */
-.custom-radio:hover path,
-.toggle-image:hover path {
-  fill: #0056b3;
-  /* A darker shade for hover */
-}
-
 .toggle-image2 {
   cursor: pointer;
   margin: 0px;
@@ -186,37 +306,6 @@ fieldset#dice-tray {
   transition: fill 0.3s ease;
 }
 
-.toggle-image2.active path {
-  fill: #ff0000;
-  /* Active color */
-}
-
-.toggle-image2 path {
-  fill: #A9A9A9;
-  /* Default color */
-}
-
-/* Hover effect for SVGs */
-.toggle-image2:hover path {
-  fill: #b30000;
-  /* A darker shade for hover */
-}
-
-.counter {
-  cursor: pointer;
-  display: inline-block;
-  border-radius: 50%;
-  width: 1.3rem;
-  height: 1.3rem;
-  line-height: 1.3rem;
-  text-align: center;
-  cursor: pointer;
-  background-color: #007BFF;
-  -webkit-user-select: none;
-  user-select: none;
-  padding: 1px;
-}
-
 .counter:empty {
   background-color: inherit;
 }
@@ -225,18 +314,6 @@ select {
   width: 65px;
   margin: 0;
   padding: 0;
-}
-
-.inner-line {
-  border-top: 1px solid #ccc;
-  height: 1px;
-  margin: 2px 0;
-  width: 50%;
-  margin-left: auto;
-  margin-right: auto;
-  border-radius: 5px;
-  border-color: #333;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 .sliderrow {
@@ -254,19 +331,6 @@ select {
   width: 100%;
   position: absolute;
   bottom: 0px;
-}
-
-.current-value {
-  text-align: right;
-  position: absolute;
-  width: 2ch;
-  font-size: 15px;
-  font-weight: bold;
-  top: -5px;
-}
-
-.current-value span {
-  color: #007BFF;
 }
 
 legend {
