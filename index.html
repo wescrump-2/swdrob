@@ -15,13 +15,13 @@
     <form id="dice-roller" class="dice-roller">
       <div class="options">
         <div class="row">
-          <span title="Trait Dice">
+          <span class="svgbox" title="Trait Dice">
             <svg id="traitdice" class="custom-radio active" data-value="trait">
             </svg></span>
-          <span title="Damage Dice">
+          <span class="svgbox" title="Damage Dice">
             <svg id="damagedice" class="custom-radio" data-value="damage">
             </svg></span>
-          <span title="Standard Dice">
+          <span class="svgbox" title="Standard Dice">
             <svg id="standarddice" class="custom-radio" data-value="standard">
             </svg></span>
         </div>
@@ -31,8 +31,8 @@
             <svg id="modifierButton" class="toggle-image"></svg>
             <div class="slider-container">
               <div id="curmodifier" class="current-value"></div>
-              <input class="slider" type="range" id="modifier" name="modifier" title="Modifier" value="0" min="-28"
-                max="28">
+              <input class="slider" type="range" id="modifier" name="modifier" title="Modifier" value="0" min="-20"
+                max="20">
             </div>
           </div>
         </div>
@@ -43,7 +43,7 @@
             <div class="slider-container">
               <div id="curtarget" class="current-value"></div>
               <input class="slider" type="range" id="targetNumber" name="targetNumber" title="Target Number" value="4"
-                min="2" max="32">
+                min="2" max="30">
             </div>
           </div>
         </div>
@@ -60,53 +60,53 @@
         </div>
 
         <div class="row">
-          <span title="Reapply modifier settings to the previous roll results.">
+          <span class="svgbox" title="Reapply modifier settings to the previous roll results.">
             <svg id="adjustButton" class="toggle-image">
             </svg>
           </span>
-          <span title="Joker! +2 to all Trait and Damage rolls.">
+          <span class="svgbox" title="Joker! +2 to all Trait and Damage rolls.">
             <svg id="jokerDrawnToggle" class="toggle-image">
             </svg>
           </span>
 
-          <span title="Opposed mode, Target Number set to the previous roll results.">
+          <span class="svgbox" title="Opposed mode, Target Number set to the previous roll results.">
             <svg id="opposedRollToggle" class="toggle-image">
             </svg>
           </span>
         </div>
         <div id="woundRow" class="row">
-          <span title="Wound, -1 on Trait rolls.">
+          <span class="svgbox" title="Wound, -1 on Trait rolls.">
             <svg id="wound1Toggle" class="toggle-image2">
             </svg>
           </span>
-          <span title="Wound, -1 on Trait rolls.">
+          <span class="svgbox" title="Wound, -1 on Trait rolls.">
             <svg id="wound2Toggle" class="toggle-image2">
             </svg>
           </span>
 
-          <span title="Wound, -1 on Trait rolls.">
+          <span class="svgbox" title="Wound, -1 on Trait rolls.">
             <svg id="wound3Toggle" class="toggle-image2">
             </svg>
           </span>
         </div>
 
         <div id="fatigueRow" class="row">
-          <span title="Fatigue, -1 on Trait rolls.">
+          <span class="svgbox" title="Fatigue, -1 on Trait rolls.">
             <svg id="fatigue1Toggle" class="toggle-image2">
             </svg>
           </span>
-          <span title="Fatigue, -1 on Trait rolls.">
+          <span class="svgbox" title="Fatigue, -1 on Trait rolls.">
             <svg id="fatigue2Toggle" class="toggle-image2">
             </svg>
           </span>
         </div>
 
-        <div class="row">
-          <span title="Bonus Damage! +1d6.">
+        <div id="bonusRow" class="row">
+          <span class="svgbox" title="Bonus Damage! +1d6.">
             <svg id="bonusDamageToggle" class="toggle-image">
             </svg>
           </span>
-          <span title="Break object mode, no acing, no bonus damage.">
+          <span class="svgbox" title="Break object mode, no acing, no bonus damage.">
             <svg id="breakingObjectsToggle" class="toggle-image">
             </svg>
           </span>
@@ -154,15 +154,15 @@
       <hr class="inner-line" />
       <div>
         <div class="dice">
-          <span title="Roll dice.">
+          <span class="svgbox" title="Roll dice.">
             <svg id="rollDiceButton" class="toggle-image">
             </svg>
           </span>
-          <span title="Reroll dice.">
+          <span class="svgbox" title="Reroll dice.">
             <svg id="rerollDiceButton" class="toggle-image">
             </svg>
           </span>
-          <span title="Remove all dice.">
+          <span class="svgbox" title="Remove all dice.">
             <svg id="removeDiceButton" class="toggle-image">
             </svg>
           </span>
@@ -170,13 +170,13 @@
       </div>
       <hr>
       <div class="row dice">
-        <span title="Reset all to defaults.">
+        <span class="svgbox" title="Reset all to defaults.">
           <svg id="resetButton" class="toggle-image"> </svg>
         </span>
-        <span title="Change colors.">
+        <span class="svgbox" title="Change colors.">
           <svg id="colorButton" class="toggle-image"> </svg>
         </span>
-        <span title="Clear dice log.">
+        <span class="svgbox" title="Clear dice log.">
           <svg id="clearButton" class="toggle-image"> </svg>
         </span>
       </div>

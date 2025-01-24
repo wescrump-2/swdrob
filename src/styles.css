@@ -18,12 +18,13 @@
   --alt-theme-color: #ecd69b;
   --heading-font: 'Anton', sans-serif;
   --body-font: 'Open Sans', sans-serif;
-  --spacing: 4px;
+  --spacing: 1px;
   --border: 2px solid var(--theme-color);
   --border-radius: 6px;
-
-  --button-size: 24px;
-  --die-size: 34px;
+  --svg-light-color: #6a6a6a;
+  --svg-dark-color: #e4e4e4;
+  --button-size: 25px;
+  --die-size: 40px;
 }
 
 
@@ -76,16 +77,12 @@ button:focus-visible {
 
 @media (prefers-color-scheme: light) {
   :root {
-    color: #01111f;
-    background-color:#e4e4e4;
+    color: #111111;
+    background-color: #eeeeee;
   }
 
   a:hover {
     color: #747bff;
-  }
-
-  button {
-    background-color: #f9f9f9;
   }
 
   .custom-radio.active path,
@@ -95,7 +92,11 @@ button:focus-visible {
 
   .custom-radio path,
   .toggle-image path {
-    fill: #888888;
+    fill: var(--svg-light-color);
+  }
+
+  .toggle-image2 path {
+    fill: var(--svg-light-color);
   }
 
   .custom-radio:hover path,
@@ -105,10 +106,6 @@ button:focus-visible {
 
   .toggle-image2.active path {
     fill: #ff0000;
-  }
-
-  .toggle-image2 path {
-    fill: #888888;
   }
 
   .toggle-image2:hover path {
@@ -163,10 +160,6 @@ button:focus-visible {
     color: #747bff;
   }
 
-  button {
-    background-color: #f9f9f9;
-  }
-
   .custom-radio.active path,
   .toggle-image.active path {
     fill: #007BFF;
@@ -174,7 +167,11 @@ button:focus-visible {
 
   .custom-radio path,
   .toggle-image path {
-    fill: #A9A9A9;
+    fill: var(--svg-dark-color);
+  }
+
+  .toggle-image2 path {
+    fill: var(--svg-dark-color);
   }
 
   .custom-radio:hover path,
@@ -184,10 +181,6 @@ button:focus-visible {
 
   .toggle-image2.active path {
     fill: #ff0000;
-  }
-
-  .toggle-image2 path {
-    fill: #A9A9A9;
   }
 
   .toggle-image2:hover path {
@@ -232,8 +225,8 @@ button:focus-visible {
 }
 
 .sidebar {
-  min-width: 105px;
-  width: 105px;
+  min-width: 100px;
+  width: 100px;
   min-height: 35rem;
   overflow: hidden;
   padding: 1px;
@@ -286,7 +279,7 @@ fieldset#dice-tray {
 .toggle-image {
   cursor: pointer;
   margin: 0px;
-  padding: 3px;
+  padding: 2px;
   vertical-align: middle;
 }
 
@@ -298,7 +291,7 @@ fieldset#dice-tray {
 .toggle-image2 {
   cursor: pointer;
   margin: 0px;
-  padding: 3px;
+  padding: 2px;
   vertical-align: middle;
 }
 
@@ -311,9 +304,13 @@ fieldset#dice-tray {
 }
 
 select {
-  width: 65px;
   margin: 0;
   padding: 0;
+}
+
+.svgbox {
+  border: 0px;
+  display: inline-block;
 }
 
 .sliderrow {
