@@ -504,12 +504,14 @@ const DB = new DiceBox({
     },
     onRollComplete: async (rollResult: RollResult[]) => {
         await setPlayer(RollCollection)
-        RollCollection.rollType = DB.rollType;
-        RollCollection.isReroll = DB.isReroll;
-        const LOG_ENTRY_WRAPPER_ELEMENT = document.createElement('fieldset') //('div');
-        LOG_ENTRY_WRAPPER_ELEMENT.classList.add('log-entry-wrapper');
-        LOG_ENTRY_WRAPPER_ELEMENT.setAttribute('data-roll-type', RollCollection.rollType);
-        LOG_ENTRY_WRAPPER_ELEMENT.setAttribute('data-is-reroll', RollCollection.isReroll.toString());
+        RollCollection.rollType = DB.rollType
+        RollCollection.isReroll = DB.isReroll
+        RollCollection.targetNumber = DB.targetNumber
+        const LOG_ENTRY_WRAPPER_ELEMENT = document.createElement('fieldset')
+        LOG_ENTRY_WRAPPER_ELEMENT.classList.add('log-entry-wrapper')
+        LOG_ENTRY_WRAPPER_ELEMENT.dataset.rolltype = RollCollection.rollType
+        LOG_ENTRY_WRAPPER_ELEMENT.dataset.isreroll = RollCollection.isReroll.toString()
+        LOG_ENTRY_WRAPPER_ELEMENT.dataset.targetnumber = RollCollection.targetNumber.toString()
         LOG_ENTRY_WRAPPER_ELEMENT.dataset.pid = RollCollection.playerId
 
 
@@ -630,9 +632,6 @@ async function buildOutputHTML(rCollection: SWDR, rType: string, rResult: RollRe
 
         // Loop through each die roll and output.
         for (const DIE_ROLL of rResult) {
-            // DIE_ROLL.value = DIE_ROLL.value - DIE_ROLL.modifier;
-            // rCollection.total += DIE_ROLL.value;
-            // don't make permanent change to dieroll value.
             rCollection.total += DIE_ROLL.value - DIE_ROLL.modifier;
         }
 
@@ -843,7 +842,7 @@ function markupDieRollDetails(dieRoll: RollResult, rType: string, joker: boolean
     const LABEL = `${dieRoll.dieLabel} (d${sidesNumber(dieRoll.sides)}):`;
     const BREAKDOWN = SHOW_MATH ? dieRoll.rollDetails : '';
     const MODIFIER = SHOW_MODIFIER ? `${dieRoll.modifier < 0 ? '-' : '+'} ${Math.abs(dieRoll.modifier)}` : '';
-    const DIE_VALUE = rType!=CONST.ROLL_TYPES.TRAIT?dieRoll.value-dieRoll.modifier:dieRoll.value;
+    const DIE_VALUE = rType != CONST.ROLL_TYPES.TRAIT ? dieRoll.value - dieRoll.modifier : dieRoll.value;
     return `
         <p data-die-sides="${sidesNumber(dieRoll.sides)}" data-roll-value="${dieRoll.value}">
             ${LABEL} ${BREAKDOWN} ${MODIFIER} ${SHOW_MATH ? '=' : ''} <strong>${DIE_VALUE}</strong>
@@ -995,6 +994,7 @@ async function rerollTheDice() {
     if (player_history.length > 0) {
         const LAST_ROLL = player_history[0];
         DB.isReroll = true;
+        DB.targetNumber = getTargetNumber();
         DB.rollType = LAST_ROLL.rollType;
         DB.acing = canAce(LAST_ROLL.rollType, getState(breakingObjectsToggle))
         DB.dieLabel = getDieLabel(LAST_ROLL.rollType)
@@ -1033,7 +1033,7 @@ async function adjustTheRoll() {
 
     for (const LOG_ENTRY_WRAPPER_ELEMENT of LOG_ENTRY_WRAPPER_ELEMENTS) {
         let QUIT_LOOP = false
-        if (LOG_ENTRY_WRAPPER_ELEMENT.dataset.pid === pid && DBrollType===ROLL_TYPE) {
+        if (LOG_ENTRY_WRAPPER_ELEMENT.dataset.pid === pid && DBrollType === ROLL_TYPE) {
             const INDEX = Array.from(LOG_ENTRY_WRAPPER_ELEMENTS).indexOf(LOG_ENTRY_WRAPPER_ELEMENT);
             const IS_REROLL = LOG_ENTRY_WRAPPER_ELEMENT.dataset.isReroll === 'true';
             const IS_NEW_ROLL = !IS_REROLL && INDEX === 0;
@@ -1077,7 +1077,7 @@ async function adjustTheRoll() {
                 }
 
                 OUTPUT_ELEMENT.insertAdjacentHTML('beforeend', rollDetails);
-                update=true
+                update = true
             }
 
             if (IS_NEW_ROLL || IS_ORIGINAL_ROLL) {
@@ -1096,10 +1096,11 @@ async function adjustTheRoll() {
 
 async function renderLog(ROLL_HISTORY: SWDR[]) {
     ROLL_HISTORY.forEach(roll => {
-        const LOG_ENTRY_WRAPPER_ELEMENT = document.createElement('fieldset');
-        LOG_ENTRY_WRAPPER_ELEMENT.classList.add('log-entry-wrapper');
-        LOG_ENTRY_WRAPPER_ELEMENT.setAttribute('data-roll-type', roll.rollType);
-        LOG_ENTRY_WRAPPER_ELEMENT.setAttribute('data-is-reroll', roll.isReroll.toString());
+        const LOG_ENTRY_WRAPPER_ELEMENT = document.createElement('fieldset')
+        LOG_ENTRY_WRAPPER_ELEMENT.classList.add('log-entry-wrapper')
+        LOG_ENTRY_WRAPPER_ELEMENT.dataset.rolltype = roll.rollType
+        LOG_ENTRY_WRAPPER_ELEMENT.dataset.isreroll = roll.isReroll.toString()
+        LOG_ENTRY_WRAPPER_ELEMENT.dataset.targetnumber = RollCollection.targetNumber.toString()
         LOG_ENTRY_WRAPPER_ELEMENT.dataset.pid = roll.playerId
         buildOutputHTML(roll, roll.rollType, roll.rollResult, LOG_ENTRY_WRAPPER_ELEMENT)
     });
