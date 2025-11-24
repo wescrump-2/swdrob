@@ -1,47 +1,51 @@
 
 export const CONST = {
 	ROLL_TYPES: {
-	  TRAIT: 'trait',
-	  DAMAGE: 'damage',
-	  STANDARD: 'standard',
-	  CRITICAL_FAILURE_CHECK: 'critical failure check'
+		TRAIT: 'trait',
+		DAMAGE: 'damage',
+		STANDARD: 'standard',
+		CRITICAL_FAILURE_CHECK: 'critical failure check'
 	},
 	EMOJIS: {
-	  FAILURE: '❌',
-	  SUCCESS: '⭐',
-	  ACE: '💥',
-	  RAISE: '🌟',
-	  CRITICAL_FAILURE: '💀',
-	  CRITICAL_FAILURE_JODI: '🙌',
-	  JOKER: '🃏',
-	  ADJUST: '🎚',
-	  REROLL: '🔄',
-	  WOUND: '🩹'
+		FAILURE: '❌',
+		SUCCESS: '⭐',
+		ACE: '💥',
+		RAISE: '🌟',
+		CRITICAL_FAILURE: '💀',
+		CRITICAL_FAILURE_JODI: '🙌',
+		JOKER: '🃏',
+		ADJUST: '🎚',
+		REROLL: '🔄',
+		WOUND: '🩹'
 	},
 	COLOR_THEMES: {
-	  PRIMARY: '#c6c4af',
-	  SECONDARY: '#ecd69b',
-	  BONUS: '#808080',
-	  CRITICAL_FAILURE_DIE: '#7d0000',
+		PRIMARY: '#c6c4af',
+		SECONDARY: '#ecd69b',
+		BONUS: '#808080',
+		CRITICAL_FAILURE_DIE: '#7d0000',
 	},
 	DIELABELS: {
-		TRAIT:'Trait',
+		TRAIT: 'Trait',
 		DAMAGE: 'Damage',
 		STANDARD: 'Die',
 		WILD: 'Wild',
 		BONUS: 'Bonus',
 	},
 	DEFAULTS: {
-	  WILD_DIE: "d6",
-	  WILD_DIE_ENABLED: true,
-	  TARGET_NUMBER: "4",
-	  MODIFIER: "0",
-	  BREAK_OBJECTS: false,
-	  BONUS_DAMAGE: false,
-	  OPPOSED_ENABLED: false,
-	  JOKER_DRAWN_ENABLED: false,
-	  WOUND_ENABLED: false,
-	  FATIGUE_ENABLED: false,
-	  DICE_MODE: "trait"
+		WILD_DIE: "d6",
+		WILD_DIE_ENABLED: true,
+		TARGET_NUMBER: "4",
+		MODIFIER: "0",
+		TARGET_NUMBER_MIN: "4",
+		MODIFIER_MIN: "-14",
+		TARGET_NUMBER_MAX: "24",
+		MODIFIER_MAX: "14",
+		BREAK_OBJECTS: false,
+		BONUS_DAMAGE: false,
+		OPPOSED_ENABLED: false,
+		JOKER_DRAWN_ENABLED: false,
+		WOUND_ENABLED: false,
+		FATIGUE_ENABLED: false,
+		DICE_MODE: "trait"
 	}
-  };
+};

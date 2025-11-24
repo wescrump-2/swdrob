@@ -1,14 +1,16 @@
+import OBR from "@owlbear-rodeo/sdk";
 
 export class Util {
     static ID = "com.wescrump.dice-roller";
     static DiceHistoryMkey = `${Util.ID}/rollHistory`;
+    static PlayerHistoryMkey = `${Util.ID}/player/rollHistory`;
 
     static readonly BUTTON_CLASS = 'btn';
     static readonly ACTIVE_CLASS = 'active';
     static readonly SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
 
-    static   hexToRgb(hex: string): { r: number; g: number; b: number } {
+    static hexToRgb(hex: string): { r: number; g: number; b: number } {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         return result ? {
             r: parseInt(result[1], 16),
@@ -16,20 +18,20 @@ export class Util {
             b: parseInt(result[3], 16)
         } : { r: 0, g: 0, b: 0 };
     }
-    
-    static   rgbToHex(r: number, g: number, b: number): string {
+
+    static rgbToHex(r: number, g: number, b: number): string {
         return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
     }
-    
+
     static getMidpointColor(color1: string, color2: string): string {
         const rgb1 = Util.hexToRgb(color1);
         const rgb2 = Util.hexToRgb(color2);
-    
+
         // Calculate midpoint for each component
         const r = Math.round((rgb1.r + rgb2.r) / 2);
         const g = Math.round((rgb1.g + rgb2.g) / 2);
         const b = Math.round((rgb1.b + rgb2.b) / 2);
-    
+
         return Util.rgbToHex(r, g, b);
     }
 
@@ -48,22 +50,22 @@ export class Util {
         let complementaryHex = ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
         return '#' + complementaryHex;
     }
-    
+
     static randomizeHue(hexColor: string): string {
         // Convert hex to RGB
         let r = parseInt(hexColor.slice(1, 3), 16);
         let g = parseInt(hexColor.slice(3, 5), 16);
         let b = parseInt(hexColor.slice(5, 7), 16);
-    
+
         // Convert RGB to HSL
         r /= 255;
         g /= 255;
         b /= 255;
-    
+
         const cmax = Math.max(r, g, b), cmin = Math.min(r, g, b);
         let h = 0, s = 0, l = (cmax + cmin) / 2;
         const delta = cmax - cmin;
-    
+
         if (delta === 0) {
             h = 0;
         } else {
@@ -75,18 +77,18 @@ export class Util {
             h = Math.round(h * 60);
             if (h < 0) h += 360;
         }
-    
+
         s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
-    
+
         // Randomly change hue
         h = (h + Math.random() * 60 - 30 + 360) % 360;  // Random change within -30 to +30 degrees
-    
+
         // Convert HSL back to RGB
         const c = (1 - Math.abs(2 * l - 1)) * s;
         const x = c * (1 - Math.abs((h / 60) % 2 - 1));
         const m = l - c / 2;
         let r1 = 0, g1 = 0, b1 = 0;
-    
+
         if (0 <= h && h < 60) {
             [r1, g1, b1] = [c, x, 0];
         } else if (60 <= h && h < 120) {
@@ -100,17 +102,17 @@ export class Util {
         } else {
             [r1, g1, b1] = [c, 0, x];
         }
-    
+
         r = Math.round((r1 + m) * 255);
         g = Math.round((g1 + m) * 255);
         b = Math.round((b1 + m) * 255);
-    
+
         // Convert back to hex
         const toHex = (x: number) => {
             const hex = x.toString(16);
             return hex.length === 1 ? '0' + hex : hex;
         };
-    
+
         return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
     }
 
@@ -120,16 +122,16 @@ export class Util {
         let r = parseInt(hexColor.slice(1, 3), 16);
         let g = parseInt(hexColor.slice(3, 5), 16);
         let b = parseInt(hexColor.slice(5, 7), 16);
-    
+
         // Convert RGB to HSL
         r /= 255;
         g /= 255;
         b /= 255;
-    
+
         const cmax = Math.max(r, g, b), cmin = Math.min(r, g, b);
         let h = 0, s = 0, l = (cmax + cmin) / 2;
         const delta = cmax - cmin;
-    
+
         if (delta === 0) {
             h = 0;
         } else {
@@ -141,19 +143,19 @@ export class Util {
             h = Math.round(h * 60);
             if (h < 0) h += 360;
         }
-    
+
         s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
-    
+
         // Randomly change saturation
         // Here we're adjusting saturation by up to 50% in either direction
         s = Math.max(0, Math.min(1, s + (Math.random() - 0.5) * 0.5));
-    
+
         // Convert HSL back to RGB
         const c = (1 - Math.abs(2 * l - 1)) * s;
         const x = c * (1 - Math.abs((h / 60) % 2 - 1));
         const m = l - c / 2;
         let r1 = 0, g1 = 0, b1 = 0;
-    
+
         if (0 <= h && h < 60) {
             [r1, g1, b1] = [c, x, 0];
         } else if (60 <= h && h < 120) {
@@ -167,17 +169,17 @@ export class Util {
         } else {
             [r1, g1, b1] = [c, 0, x];
         }
-    
+
         r = Math.round((r1 + m) * 255);
         g = Math.round((g1 + m) * 255);
         b = Math.round((b1 + m) * 255);
-    
+
         // Convert back to hex
         const toHex = (x: number) => {
             const hex = x.toString(16);
             return hex.length === 1 ? '0' + hex : hex;
         };
-    
+
         return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
     }
 
@@ -188,14 +190,14 @@ export class Util {
             'Blue': '#0000FF',
             'Yellow': '#FFFF00'
         };
-    
+
         // Secondary colors (mix of two primary colors)
         const secondaryColors: { [key: string]: string } = {
             'Green': '#00FF00', // Blue + Yellow
             'Purple': '#800080', // Red + Blue
             'Orange': '#FFA500'  // Red + Yellow
         };
-    
+
         // Tertiary colors (mix of one primary and one secondary color)
         const tertiaryColors: { [key: string]: string } = {
             'Red-Orange': '#FF4500',  // Red + Orange
@@ -205,7 +207,7 @@ export class Util {
             'Blue-Purple': '#4B0082',   // Blue + Purple
             'Red-Purple': '#8B008B'     // Red + Purple
         };
-    
+
         // Quadiary colors (mix of various colors, examples)
         const quadiaryColors: { [key: string]: string } = {
             'Teal': '#008080',       // Often considered a mix of blue and green
@@ -214,7 +216,7 @@ export class Util {
             'Maroon': '#800000',     // A dark red, could be seen as red mixed with black/brown
             'Turquoise': '#40E0D0'   // Blue + Green with a slight shift towards green
         };
-    
+
         // Additional colors
         const additionalColors: { [key: string]: string } = {
             'Black': '#000000',
@@ -222,7 +224,7 @@ export class Util {
             'White': '#FFFFFF',
             'Brown': '#A52A2A'   // This is 'SaddleBrown', one of many shades of brown
         };
-    
+
         // Combine all color categories into one object
         const allColors = {
             ...primaryColors,
@@ -231,7 +233,7 @@ export class Util {
             ...quadiaryColors,
             ...additionalColors
         };
-    
+
         // Convert the object to an array of just the hex values
         return Object.values(allColors);
     }
@@ -306,21 +308,21 @@ export class Util {
      * @param imageKey - The class name to match the SVG path within the SVG document.
      * @param button - The button element to set the image on.
      */
-    static setImage(imageKey: string, svg: SVGElement, css:string) {
+    static setImage(imageKey: string, svg: SVGElement, css: string) {
         const svgButtons = document.getElementById('buttons-svg') as HTMLObjectElement;
         if (svgButtons.contentDocument) {
             const svgDocument = svgButtons.contentDocument.documentElement as unknown as SVGSVGElement;
             const path = svgDocument.querySelector(`#${imageKey}`) as SVGElement;
-           
-            if (path) { 
+
+            if (path) {
                 let vbpath = path.getAttribute("viewbox")
-                if (!vbpath) 
-                    vbpath='0 0 512 512'
+                if (!vbpath)
+                    vbpath = '0 0 512 512'
                 svg.setAttribute('viewBox', vbpath)
                 svg.innerHTML = path.outerHTML
                 svg.setAttribute('width', Util.sizePixels(css))
                 svg.setAttribute('height', Util.sizePixels(css))
-            } 
+            }
         }
     }
 
@@ -328,18 +330,117 @@ export class Util {
      * Gets the button size from CSS custom properties.
      * @returns The size of the button as a string.
      */
-    private static sizePixels(css:string): string {
+    private static sizePixels(css: string): string {
         return Util.convertToPixels(getComputedStyle(document.documentElement).getPropertyValue(css).trim())
     }
 
     static convertToPixels(size: string): string {
         const div = document.createElement('div');
-        div.style.width = size; 
-        div.style.visibility = "hidden" 
-        div.style.position = "absolute" 
-        document.body.appendChild(div) 
-        const computedWidth = window.getComputedStyle(div).width 
-        document.body.removeChild(div) 
-        return  computedWidth 
+        div.style.width = size;
+        div.style.visibility = "hidden"
+        div.style.position = "absolute"
+        document.body.appendChild(div)
+        const computedWidth = window.getComputedStyle(div).width
+        document.body.removeChild(div)
+        return computedWidth
+    }
+}
+
+// --- List ALL room metadata keys and their sizes ---
+export async function dumpRoomMetadata() {
+    const meta = await OBR.room.getMetadata();
+    console.log("=== ROOM METADATA ===");
+    for (const [key, value] of Object.entries(meta)) {
+        const size = JSON.stringify(value).length;
+        console.log(`${key}  →  ${size} bytes`, value);
+    }
+}
+
+// --- List ALL extensions that have stored something on scene items ---
+export async function findItemMetadataKeys() {
+    const items = await OBR.scene.items.getItems();
+    const keys = new Set();
+    items.forEach(item => {
+        if (item.metadata) {
+            Object.keys(item.metadata).forEach(k => keys.add(k));
+        }
+    });
+    console.log("=== METADATA KEYS FOUND ON SCENE ITEMS ===");
+    console.log(Array.from(keys).sort());
+}
+
+/**
+ * Improved cleanup: Deletes keys by setting them to null individually (reliable removal).
+ * Retries on failure and checks total size to avoid 16 kB errors.
+ */
+export async function cleanupDeadExtensionMetadata() {
+    try {
+        const roomMetadata = await OBR.room.getMetadata();
+        
+        // Log current size for debugging
+        const currentSize = new TextEncoder().encode(JSON.stringify(roomMetadata)).length;
+        console.log(`Current room metadata size: ${currentSize} bytes`);
+
+        if (currentSize > 16000) {  // Close to limit — abort to avoid write failure
+            console.warn("Room metadata too large (>15 kB). Manual room reset needed.");
+            return;
+        }
+
+        const keysToDelete: string[] = [];
+        const activeIds: string[] = [
+            "com.battle-system.ticker",
+            "com.battle-system.mark/metadata_marks",
+            "com.battle-system.chronicle/gameChoice",
+            "com.wescrump.dice-roller/player/rollHistory",
+            "com.battle-system.chronicle-BONES",
+            "com.battle-system.chronicle-RUMBLE"
+            // Add more prefixes here as needed
+        ];
+
+        // Find keys matching active (conflicting) prefixes
+        for (const prefix of activeIds) {
+            const matchingKey = Object.keys(roomMetadata).find(k => k.startsWith(prefix));
+            if (matchingKey) {
+                keysToDelete.push(matchingKey);
+            }
+        }
+
+        if (keysToDelete.length === 0) {
+            console.log("No conflicting keys found.");
+            return;
+        }
+
+        console.log(`Found ${keysToDelete.length} conflicting keys:`, keysToDelete);
+
+        // Delete each key individually by setting to null (reliable method)
+        let successCount = 0;
+        for (const key of keysToDelete) {
+            try {
+                await OBR.room.setMetadata({ [key]: null });  // Explicit null = delete
+                successCount++;
+                console.log(`Deleted key: ${key}`);
+            } catch (deleteErr: unknown) {
+                console.error(`Failed to delete ${key}:`, deleteErr);
+                // Optional: Retry once after delay
+                setTimeout(async () => {
+                    try {
+                        await OBR.room.setMetadata({ [key]: null });
+                        console.log(`Retried and deleted: ${key}`);
+                    } catch (retryErr) {
+                        console.error(`Retry failed for ${key}:`, retryErr);
+                    }
+                }, 500);
+            }
+        }
+
+        console.log(`Cleanup complete: ${successCount}/${keysToDelete.length} keys deleted.`);
+
+        // Final size check
+        const newMetadata = await OBR.room.getMetadata();
+        const newSize = new TextEncoder().encode(JSON.stringify(newMetadata)).length;
+        console.log(`New room metadata size: ${newSize} bytes (reduced by ${currentSize - newSize} bytes)`);
+
+    } catch (err: unknown) {
+        console.error("Overall cleanup failed (safe to ignore):", err);
     }
 }

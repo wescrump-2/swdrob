@@ -70,3 +70,5 @@ jest.config.js
 
 # Vite's cache
 .vite-inspect/
+localhost+2-key.pem
+localhost+2.pem

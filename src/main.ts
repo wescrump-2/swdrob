@@ -5,7 +5,7 @@ import DiceBox from "https://unpkg.com/@3d-dice/dice-box@1.1.4/dist/dice-box.es.
 import OBR from "@owlbear-rodeo/sdk";
 import * as pako from 'pako';
 
-import { Util } from './util';
+import { cleanupDeadExtensionMetadata, dumpRoomMetadata, findItemMetadataKeys, Util } from './util';
 import { CONST } from "./constants";
 import './styles.css';
 import buttonsImage from './buttons.svg';
@@ -53,6 +53,7 @@ window.addEventListener("load", () => {
         console.error("Failed to load SVG buttons")
     }
 })
+
 
 // setting variables
 // get inputs
@@ -148,14 +149,61 @@ function setupRadio(): void {
     });
 }
 
+// function setSliderIncrement(slider: HTMLInputElement) {
+//     slider.addEventListener('click', function (e) {
+//         var rect = this.getBoundingClientRect();
+//         var x = e.clientX - rect.left;
+//         var width = rect.width;
+//         var currentValue = parseInt(slider.value);
+//         var min = parseInt(slider.min);
+//         var max = parseInt(slider.max);
+//         if (x > width / 2) {
+//             if (currentValue < max) {
+//                 slider.value = (currentValue + 1).toString();
+//             }
+//         } else {
+//             if (currentValue > min) {
+//                 slider.value = (currentValue - 1).toString();
+//             }
+//         }
+//     });
+// }
+
+// function setupSliders(): void {
+//     modifierSpinner.addEventListener('input', function () {
+//         const value = parseInt(this.value)
+//         document.getElementById('curmodifier')!.textContent = value > 0 ? `+${value}` : value.toString()
+//     })
+//     setSliderIncrement(modifierSpinner)
+//     targetNumberSpinner.addEventListener('input', function () {
+//         document.getElementById('curtarget')!.textContent = this.value
+//     })
+//     setSliderIncrement(targetNumberSpinner)
+// }
 function setupSliders(): void {
-    modifierSpinner.addEventListener('input', function () {
-        const value = parseInt(this.value);
-        document.getElementById('curmodifier')!.textContent = value > 0 ? `+${value}` : value.toString();
-    });
-    targetNumberSpinner.addEventListener('input', function () {
-        document.getElementById('curtarget')!.textContent = this.value;
-    });
+    // TARGET NUMBER – perfect sync
+    const updateTargetDisplay = () => {
+        const val = targetNumberSpinner.valueAsNumber || CONST.DEFAULTS.TARGET_NUMBER;
+        targetCurrent.textContent = val.toString();
+    };
+    targetNumberSpinner.max = CONST.DEFAULTS.TARGET_NUMBER_MAX;
+    targetNumberSpinner.min = CONST.DEFAULTS.TARGET_NUMBER_MIN;
+    targetNumberSpinner.addEventListener('input', updateTargetDisplay);
+    targetNumberSpinner.addEventListener('change', updateTargetDisplay);
+
+    // MODIFIER – perfect sync
+    const updateModifierDisplay = () => {
+        const val = parseInt(modifierSpinner.value) || CONST.DEFAULTS.MODIFIER;
+        modifierCurrent.textContent = val > CONST.DEFAULTS.MODIFIER ? `+${val}` : val.toString();
+    };
+    modifierSpinner.max = CONST.DEFAULTS.MODIFIER_MAX;
+    modifierSpinner.min = CONST.DEFAULTS.MODIFIER_MIN;
+    modifierSpinner.addEventListener('input', updateModifierDisplay);
+    modifierSpinner.addEventListener('change', updateModifierDisplay);
+
+    // Optional: initial sync
+    updateTargetDisplay();
+    updateModifierDisplay();
 }
 
 function getRollType(): string {
@@ -221,7 +269,7 @@ function clearCounters() {
 }
 
 async function opposedRollSet() {
-    let pid = await OBR.player.getId()
+    const pid = playerCache.ready ? playerCache.id : await OBR.player.getId();
     const RECENT_ROLLS = [...ROLL_HISTORY].reverse();
     for (let lr of RECENT_ROLLS) {
         if (lr.rollType === CONST.ROLL_TYPES.TRAIT && lr.playerId != pid) {
@@ -452,24 +500,80 @@ class RollResult {
     themeColor: string = '#ecd69b'
     value: number = 0
 }
+ 
+let playerCache = {
+    name: "Unknown Player",
+    id: "unknown",
+    ready: false
+};
 
+ 
 async function setPlayer(r: SWDR) {
-    r.playerName = await OBR.player.getName()
-    r.playerId = await OBR.player.getId()
-}
-OBR.onReady(async () => {
-    try {
-        await initializeExtension()
-    } catch (error) {
-        console.error("Failed to get player name:", error);
+    // If already cached, use instantly
+    if (playerCache.ready) {
+        r.playerName = playerCache.name;
+        r.playerId = playerCache.id;
+        return;
     }
 
+    // Wait until OBR signals it's ready
+    if (!OBR.isReady) {
+        await new Promise<void>((resolve) => {
+            const handler = () => {
+                OBR.onReady(handler); // remove listener
+                resolve();
+            };
+            OBR.onReady(handler);
+        });
+    }
+
+    // Now safe to get player info
+    try {
+        const [name, id] = await Promise.all([
+            OBR.player.getName(),
+            OBR.player.getId()
+        ]);
+
+        playerCache.name = name;
+        playerCache.id = id;
+        playerCache.ready = true;
+
+        r.playerName = name;
+        r.playerId = id;
+    } catch (err) {
+        console.error("Failed to get player:", err);
+        r.playerName = "GM";
+        r.playerId = "error";
+    }
+}
+
+
+OBR.onReady(async () => {
+    try {
+        const [name, id] = await Promise.all([
+            OBR.player.getName(),
+            OBR.player.getId()
+        ]);
+        playerCache.name = name;
+        playerCache.id = id;
+        playerCache.ready = true;
+        console.log("Savage Dice: Player ready →", name);
+    } catch (err) {
+        console.error("Failed to cache player on ready:", err);
+    }
+
+    await initializeExtension();
+    if (false) {
+        await dumpRoomMetadata();
+        await findItemMetadataKeys();
+        await cleanupDeadExtensionMetadata();
+    }
     const unsubscribe = OBR.room.onMetadataChange(onRoomMetadataChange)
     window.addEventListener('beforeunload', () => unsubscribe());
 });
 
 let RollCollection: SWDR = new SWDR();
-const MAX_HISTORY: number = 13;
+const MAX_HISTORY: number = 12;
 let ROLL_HISTORY: SWDR[] = [];
 const DICECOLORS = Util.generateColorCodes();
 let dice_color = 0;
@@ -487,15 +591,15 @@ const DB = new DiceBox({
     themeColor: CONST.COLOR_THEMES.PRIMARY,
     offscreen: true,
     scale: 8,
-    //friction: .75,
-    //restitution: 0,
+    friction: .75,
+    restitution: 0,
     gravity: 1,
     throwForce: 5,
     spinForce: 6,
-    //settleTimeout: 3000,
+    settleTimeout: 3000,
     mass: 1,
-    //delay: 100,
-    //lightIntensity: 1,
+    delay: 100,
+    lightIntensity: 1,
     //discordResponse: null,
     onDieComplete: async (dieResult: DieResult) => {
         if (DB.acing && dieResult.value === sidesNumber(dieResult.sides)) {
@@ -553,10 +657,11 @@ const DB = new DiceBox({
     }
 });
 
-
 async function buildOutputHTML(rCollection: SWDR, rType: string, rResult: RollResult[], wrapper: any,) {
     if (rType === CONST.ROLL_TYPES.TRAIT) {
-        rCollection.onesCount = rResult.filter(d => d.rolls[0].value === 1).length;
+        //rCollection.onesCount = rResult.filter(d => d.rolls[0].value === 1).length;
+        rCollection.onesCount = rResult.filter(d => d.rolls && d.rolls.length > 0 && d.rolls[0].value === 1
+        ).length;
         const TRAIT_DICE_ROLLED = rResult.find(d => !d.isWildDie);
         const IS_SINGLE_TRAIT_DIE = rType === CONST.ROLL_TYPES.TRAIT && rResult.filter(d => !d.isWildDie).length === 1;
         if (TRAIT_DICE_ROLLED != undefined) {
@@ -680,12 +785,12 @@ async function onRoomMetadataChange(metadata: any) {
 
 async function initializeExtension() {
     try {
-        ROLL_HISTORY = await fetchStorage()
-        renderLog(ROLL_HISTORY)
+        ROLL_HISTORY = await fetchStorage();
+        renderLog(ROLL_HISTORY);
+        console.log(`Loaded ${ROLL_HISTORY.length} saved rolls`);
     } catch (error) {
-        console.error("Failed to load roll history:", error);
+        console.error("Failed during initialization:", error);
         ROLL_HISTORY = [];
-        updateStorage(ROLL_HISTORY)
     }
 }
 
@@ -693,35 +798,98 @@ async function updateRollHistory(roll: SWDR) {
     ROLL_HISTORY.push(roll);
     updateStorage(ROLL_HISTORY)
 }
+
 async function fetchStorage(): Promise<SWDR[]> {
-    const metadata = await OBR.room.getMetadata();
-    const storedHistory = metadata[Util.DiceHistoryMkey] as Uint8Array
-    return decompress(storedHistory)
+    // Wait until OBR is actually ready — no shortcuts
+    while (!OBR.isReady) {
+        await new Promise(requestAnimationFrame);
+    }
+
+    try {
+        const metadata = await OBR.room.getMetadata();
+        const storedHistory = metadata[Util.DiceHistoryMkey] as Uint8Array | undefined;
+
+        if (!storedHistory) {
+            console.log("No saved roll history found");
+            return [];
+        }
+
+        return decompress(storedHistory);
+    } catch (error) {
+        console.error("Failed to fetch room metadata:", error);
+        return [];
+    }
 }
 
 async function updateStorage(rh: SWDR[]) {
-    while (rh.length > MAX_HISTORY) {
-        rh.shift()
-    }
-    try {
-        let buff: Uint8Array = compress(rh)
-        await OBR.room.getMetadata().then(metadata => {
-            // Update or add new metadata here
-            delete metadata["com.wescrump.dice-roller/player/rollHistory"]
-            metadata[Util.DiceHistoryMkey] = buff;
-            OBR.room.setMetadata(metadata);
-        });
-    } catch (error) {
-        console.error('Failed to update OBR:', error);
-        rh = []
-        let buff: Uint8Array = compress(rh)
-        await OBR.room.getMetadata().then(metadata => {
-            // Update or add new metadata here
-            delete metadata["com.wescrump.dice-roller/player/rollHistory"]
-            metadata[Util.DiceHistoryMkey] = buff;
-            OBR.room.setMetadata(metadata);
-        });
-    }
+    while (rh.length > MAX_HISTORY) rh.shift();
+    let history = [...rh];
+    const slimHistory: SWDR[] = history.map(roll => ({
+        // Keep everything needed for display + reroll/adjust
+        playerName: roll.playerName,
+        playerId: roll.playerId,
+        rollType: roll.rollType,
+        total: roll.total,
+        description: roll.description || "",
+        isReroll: roll.isReroll,
+        isAdjustment: roll.isAdjustment,
+        criticalFailure: roll.criticalFailure,
+        targetNumber: roll.targetNumber,
+        modifier: roll.modifier,
+        isJoker: roll.isJoker,
+        isWound: roll.isWound,
+        onesCount: roll.onesCount,
+        rollResult: roll.rollResult.map(r => ({
+            dieLabel: r.dieLabel,
+            sides: r.sides,
+            value: r.value,
+            modifier: r.modifier,
+            isWildDie: r.isWildDie,
+            isBonusDie: r.isBonusDie,
+            themeColor: r.themeColor,
+            rolls: [{ value: r.value, sides: r.sides } as DieResult],
+
+            // Keep rollDetails as simple string (optional, but nice)
+            rollDetails: r.value.toString(),
+            id: r.id,
+            qty: r.qty,
+            targetNumber: r.targetNumber,
+        } as RollResult))
+    } as SWDR));
+
+    let buff = compress(slimHistory);
+    console.log("Slimmed history size:", buff.byteLength, "bytes");
+
+    const save = async () => {
+        if (!OBR.isReady) {
+            requestAnimationFrame(save);
+            return;
+        }
+
+        try {
+            await OBR.room.setMetadata({
+                [Util.DiceHistoryMkey]: buff
+            });
+            console.log("Roll history saved");
+        } catch (err: unknown) {
+            // TypeScript now knows err is unknown → we have to check it safely
+            if (err && typeof err === "object" && "message" in err) {
+                const message = (err as { message: string }).message;
+
+                if (message.includes("not ready")) {
+                    // Still not ready → retry soon
+                    setTimeout(save, 100);
+                } else {
+                    // Real error (network, permission, etc.) – log once
+                    console.error("Failed to save roll history:", message);
+                }
+            } else {
+                console.error("Failed to save roll history (unknown error):", err);
+            }
+        }
+    };
+
+    save();
 }
 // Compress
 function compress(data: SWDR[]): Uint8Array {
@@ -731,12 +899,19 @@ function compress(data: SWDR[]): Uint8Array {
 
 // Decompress
 function decompress(compressedData: Uint8Array): SWDR[] {
-    const decompressed = pako.inflate(compressedData);
-    return JSON.parse(new TextDecoder().decode(decompressed));
+    try {
+        const decompressed = pako.inflate(compressedData);
+        const parsed = JSON.parse(new TextDecoder().decode(decompressed));
+        // Ensure we always return SWDR[] even if old/invalid data
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (err) {
+        console.error("Failed to decompress history:", err);
+        return [];
+    }
 }
 
 function getTargetNumber(): number {
-    return targetNumberSpinner.valueAsNumber
+    return targetNumberSpinner.valueAsNumber;
 }
 // Determine the amount of successes and raises and build description text.
 function calculateRaises(rollResult: number, targetnumber: number) {
@@ -1019,7 +1194,7 @@ async function rerollTheDice() {
 }
 
 async function adjustTheRoll() {
-    let pid = await OBR.player.getId()
+    const pid = playerCache.ready ? playerCache.id : await OBR.player.getId();
     let update = false;
     const RECENT_ROLLS = [...ROLL_HISTORY].reverse()
     const LAST_ROLL = RECENT_ROLLS[0];
@@ -1056,7 +1231,8 @@ async function adjustTheRoll() {
 
                 const TRAIT_ROLLS = LAST_ROLL.rollResult.filter(d => d.dieLabel === CONST.DIELABELS.TRAIT);
 
-                if (TRAIT_ROLLS.length === 1 || DBrollType !== CONST.ROLL_TYPES.TRAIT) {
+                ///if (TRAIT_ROLLS.length === 1 || DBrollType !== CONST.ROLL_TYPES.TRAIT) {
+                if ((DBrollType === CONST.ROLL_TYPES.TRAIT && TRAIT_ROLLS.length <= 1) || DBrollType !== CONST.ROLL_TYPES.TRAIT) {
                     TOTAL_ELEMENT.innerText = NEW_TOTAL.toString();
                     DESCRIPTION_ELEMENT.innerText = DBrollType === CONST.ROLL_TYPES.STANDARD ? '' : calculateRaises(NEW_TOTAL, NEW_TARGET_NUMBER)
                 }
