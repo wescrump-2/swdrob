@@ -573,7 +573,7 @@ OBR.onReady(async () => {
 });
 
 let RollCollection: SWDR = new SWDR();
-const MAX_HISTORY: number = 12;
+const MAX_HISTORY: number = 16;
 let ROLL_HISTORY: SWDR[] = [];
 const DICECOLORS = Util.generateColorCodes();
 let dice_color = 0;
@@ -824,42 +824,9 @@ async function fetchStorage(): Promise<SWDR[]> {
 async function updateStorage(rh: SWDR[]) {
     while (rh.length > MAX_HISTORY) rh.shift();
     let history = [...rh];
-    const slimHistory: SWDR[] = history.map(roll => ({
-        // Keep everything needed for display + reroll/adjust
-        playerName: roll.playerName,
-        playerId: roll.playerId,
-        rollType: roll.rollType,
-        total: roll.total,
-        description: roll.description || "",
-        isReroll: roll.isReroll,
-        isAdjustment: roll.isAdjustment,
-        criticalFailure: roll.criticalFailure,
-        targetNumber: roll.targetNumber,
-        modifier: roll.modifier,
-        isJoker: roll.isJoker,
-        isWound: roll.isWound,
-        onesCount: roll.onesCount,
-        rollResult: roll.rollResult.map(r => ({
-            dieLabel: r.dieLabel,
-            sides: r.sides,
-            value: r.value,
-            modifier: r.modifier,
-            isWildDie: r.isWildDie,
-            isBonusDie: r.isBonusDie,
-            themeColor: r.themeColor,
-            rolls: [{ value: r.value, sides: r.sides } as DieResult],
 
-            // Keep rollDetails as simple string (optional, but nice)
-            rollDetails: r.value.toString(),
-            id: r.id,
-            qty: r.qty,
-            targetNumber: r.targetNumber,
-        } as RollResult))
-    } as SWDR));
-
-    let buff = compress(slimHistory);
-    console.log("Slimmed history size:", buff.byteLength, "bytes");
-
+    let buff = compress(history);
+    console.log("History size:", buff.byteLength, "bytes");
     const save = async () => {
         if (!OBR.isReady) {
             requestAnimationFrame(save);
@@ -902,7 +869,6 @@ function decompress(compressedData: Uint8Array): SWDR[] {
     try {
         const decompressed = pako.inflate(compressedData);
         const parsed = JSON.parse(new TextDecoder().decode(decompressed));
-        // Ensure we always return SWDR[] even if old/invalid data
         return Array.isArray(parsed) ? parsed : [];
     } catch (err) {
         console.error("Failed to decompress history:", err);
