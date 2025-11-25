@@ -861,12 +861,13 @@ async function updateStorage(rh: SWDR[]) {
 // Compress
 function compress(data: SWDR[]): Uint8Array {
     const serialized = JSON.stringify(data);
-    return pako.deflate(serialized);
+    return pako.deflate(serialized,{level:9});
 }
 
 // Decompress
 function decompress(compressedData: Uint8Array): SWDR[] {
     try {
+        console.log(`decompressing ${compressedData.length} bytes.`)
         const decompressed = pako.inflate(compressedData);
         const parsed = JSON.parse(new TextDecoder().decode(decompressed));
         return Array.isArray(parsed) ? parsed : [];
