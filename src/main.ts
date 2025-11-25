@@ -149,37 +149,6 @@ function setupRadio(): void {
     });
 }
 
-// function setSliderIncrement(slider: HTMLInputElement) {
-//     slider.addEventListener('click', function (e) {
-//         var rect = this.getBoundingClientRect();
-//         var x = e.clientX - rect.left;
-//         var width = rect.width;
-//         var currentValue = parseInt(slider.value);
-//         var min = parseInt(slider.min);
-//         var max = parseInt(slider.max);
-//         if (x > width / 2) {
-//             if (currentValue < max) {
-//                 slider.value = (currentValue + 1).toString();
-//             }
-//         } else {
-//             if (currentValue > min) {
-//                 slider.value = (currentValue - 1).toString();
-//             }
-//         }
-//     });
-// }
-
-// function setupSliders(): void {
-//     modifierSpinner.addEventListener('input', function () {
-//         const value = parseInt(this.value)
-//         document.getElementById('curmodifier')!.textContent = value > 0 ? `+${value}` : value.toString()
-//     })
-//     setSliderIncrement(modifierSpinner)
-//     targetNumberSpinner.addEventListener('input', function () {
-//         document.getElementById('curtarget')!.textContent = this.value
-//     })
-//     setSliderIncrement(targetNumberSpinner)
-// }
 function setupSliders(): void {
     // TARGET NUMBER – perfect sync
     const updateTargetDisplay = () => {
@@ -580,7 +549,7 @@ let dice_color = 0;
 setDiceColor(dice_color);
 const DB = new DiceBox({
     assetPath: "assets/",
-    origin: "https://unpkg.com/@3d-dice/dice-box@1.1.3/dist/",
+    origin: "https://unpkg.com/@3d-dice/dice-box@1.1.4/dist/",
     id: 'dice-tray',
     container: "#dice-tray",
     theme: "default",
@@ -590,15 +559,15 @@ const DB = new DiceBox({
     //   },
     themeColor: CONST.COLOR_THEMES.PRIMARY,
     offscreen: true,
-    scale: 8,
+    scale: 6, //8,
     friction: .75,
     restitution: 0,
     gravity: 1,
-    throwForce: 5,
-    spinForce: 6,
+    throwForce: 8, //5,
+    spinForce: 8, //6,
     settleTimeout: 3000,
     mass: 1,
-    delay: 100,
+    delay: 50, //100,
     lightIntensity: 1,
     //discordResponse: null,
     onDieComplete: async (dieResult: DieResult) => {
@@ -1187,7 +1156,8 @@ async function adjustTheRoll() {
                 const OUTPUT_ELEMENT = LOG_ENTRY_WRAPPER_ELEMENT.querySelector('.output') as HTMLElement;
                 const TOTAL_ELEMENT = LOG_ENTRY_WRAPPER_ELEMENT.querySelector('.total') as HTMLElement;
                 const DESCRIPTION_ELEMENT = LOG_ENTRY_WRAPPER_ELEMENT.querySelector('.description') as HTMLElement;
-                const NEW_TOTAL = Number(TOTAL_ELEMENT!.innerText) - RECENT_ROLLS[INDEX].modifier + NEW_MODIFIER;
+                let total =Number(TOTAL_ELEMENT!.innerText);
+                const NEW_TOTAL = isNaN(total)?0:total - RECENT_ROLLS[INDEX].modifier + NEW_MODIFIER;
 
                 OUTPUT_ELEMENT.innerHTML = '';
 
@@ -1243,7 +1213,7 @@ async function renderLog(ROLL_HISTORY: SWDR[]) {
         LOG_ENTRY_WRAPPER_ELEMENT.classList.add('log-entry-wrapper')
         LOG_ENTRY_WRAPPER_ELEMENT.dataset.rolltype = roll.rollType
         LOG_ENTRY_WRAPPER_ELEMENT.dataset.isreroll = roll.isReroll.toString()
-        LOG_ENTRY_WRAPPER_ELEMENT.dataset.targetnumber = RollCollection.targetNumber.toString()
+        LOG_ENTRY_WRAPPER_ELEMENT.dataset.targetnumber = roll.targetNumber.toString()
         LOG_ENTRY_WRAPPER_ELEMENT.dataset.pid = roll.playerId
         buildOutputHTML(roll, roll.rollType, roll.rollResult, LOG_ENTRY_WRAPPER_ELEMENT)
     });

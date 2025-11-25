@@ -388,12 +388,8 @@ export async function cleanupDeadExtensionMetadata() {
 
         const keysToDelete: string[] = [];
         const activeIds: string[] = [
-            "com.battle-system.ticker",
             "com.battle-system.mark/metadata_marks",
-            "com.battle-system.chronicle/gameChoice",
             "com.wescrump.dice-roller/player/rollHistory",
-            "com.battle-system.chronicle-BONES",
-            "com.battle-system.chronicle-RUMBLE"
             // Add more prefixes here as needed
         ];
 
