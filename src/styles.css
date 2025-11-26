@@ -273,9 +273,7 @@ fieldset#dice-tray {
     background-size: cover;
   }
 }
-fieldset#dice-tray {
-  overflow: hidden;
-}
+
 .main-content {
   padding: 0px;
 }
