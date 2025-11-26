@@ -346,13 +346,60 @@ export class Util {
     }
 }
 
+
+export class Debug {
+    private static _enabled = false;
+    private static wasEnabled = false;
+
+    static get enabled() {
+        return this._enabled;
+    }
+
+    static updateFromPlayers(names: string[]) {
+        const hasDebugPlayer = names.some(p =>
+            p.toLowerCase().includes("debug")
+        );
+
+        if (hasDebugPlayer !== this._enabled) {
+            this._enabled = hasDebugPlayer;
+
+            if (hasDebugPlayer && !this.wasEnabled) {
+                console.log(
+                    "%cINITIATIVE DEBUG MODE ACTIVATED — 'debug' player in room.'",
+                    "color: lime; background: #000; font-weight: bold; font-size: 16px; padding: 8px 12px; border-radius: 4px;"
+                );
+            }
+            if (!hasDebugPlayer && this.wasEnabled) {
+                console.log(
+                    "%cINITIATIVE DEBUG MODE DEACTIVATED — no 'debug' player in room.",
+                    "color: red; background: #000; font-weight: bold; font-size: 16px; padding: 8px 12px; border-radius: 4px;"
+                );
+            }
+            this.wasEnabled = hasDebugPlayer;
+        }
+    }
+
+    static log(...args: any[]) {
+        if (this._enabled) console.log(...args);
+    }
+
+    static warn(...args: any[]) {
+        if (this._enabled) console.warn(...args);
+    }
+
+    static error(...args: any[]) {
+        if (this._enabled) console.error(...args);
+    }
+}// end Debug
+
+
 // --- List ALL room metadata keys and their sizes ---
 export async function dumpRoomMetadata() {
     const meta = await OBR.room.getMetadata();
-    console.log("=== ROOM METADATA ===");
+    Debug.log("=== ROOM METADATA ===");
     for (const [key, value] of Object.entries(meta)) {
         const size = JSON.stringify(value).length;
-        console.log(`${key}  →  ${size} bytes`, value);
+        Debug.log(`${key}  →  ${size} bytes`, value);
     }
 }
 
@@ -365,8 +412,8 @@ export async function findItemMetadataKeys() {
             Object.keys(item.metadata).forEach(k => keys.add(k));
         }
     });
-    console.log("=== METADATA KEYS FOUND ON SCENE ITEMS ===");
-    console.log(Array.from(keys).sort());
+    Debug.log("=== METADATA KEYS FOUND ON SCENE ITEMS ===");
+    Debug.log(Array.from(keys).sort());
 }
 
 /**
@@ -379,7 +426,7 @@ export async function cleanupDeadExtensionMetadata() {
         
         // Log current size for debugging
         const currentSize = new TextEncoder().encode(JSON.stringify(roomMetadata)).length;
-        console.log(`Current room metadata size: ${currentSize} bytes`);
+        Debug.log(`Current room metadata size: ${currentSize} bytes`);
 
         if (currentSize > 16000) {  // Close to limit — abort to avoid write failure
             console.warn("Room metadata too large (>15 kB). Manual room reset needed.");
@@ -402,11 +449,11 @@ export async function cleanupDeadExtensionMetadata() {
         }
 
         if (keysToDelete.length === 0) {
-            console.log("No conflicting keys found.");
+            Debug.log("No conflicting keys found.");
             return;
         }
 
-        console.log(`Found ${keysToDelete.length} conflicting keys:`, keysToDelete);
+        Debug.log(`Found ${keysToDelete.length} conflicting keys:`, keysToDelete);
 
         // Delete each key individually by setting to null (reliable method)
         let successCount = 0;
@@ -414,14 +461,14 @@ export async function cleanupDeadExtensionMetadata() {
             try {
                 await OBR.room.setMetadata({ [key]: null });  // Explicit null = delete
                 successCount++;
-                console.log(`Deleted key: ${key}`);
+                Debug.log(`Deleted key: ${key}`);
             } catch (deleteErr: unknown) {
                 console.error(`Failed to delete ${key}:`, deleteErr);
                 // Optional: Retry once after delay
                 setTimeout(async () => {
                     try {
                         await OBR.room.setMetadata({ [key]: null });
-                        console.log(`Retried and deleted: ${key}`);
+                        Debug.log(`Retried and deleted: ${key}`);
                     } catch (retryErr) {
                         console.error(`Retry failed for ${key}:`, retryErr);
                     }
@@ -429,12 +476,12 @@ export async function cleanupDeadExtensionMetadata() {
             }
         }
 
-        console.log(`Cleanup complete: ${successCount}/${keysToDelete.length} keys deleted.`);
+        Debug.log(`Cleanup complete: ${successCount}/${keysToDelete.length} keys deleted.`);
 
         // Final size check
         const newMetadata = await OBR.room.getMetadata();
         const newSize = new TextEncoder().encode(JSON.stringify(newMetadata)).length;
-        console.log(`New room metadata size: ${newSize} bytes (reduced by ${currentSize - newSize} bytes)`);
+        Debug.log(`New room metadata size: ${newSize} bytes (reduced by ${currentSize - newSize} bytes)`);
 
     } catch (err: unknown) {
         console.error("Overall cleanup failed (safe to ignore):", err);

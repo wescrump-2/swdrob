@@ -1,11 +1,10 @@
-//import DiceBox from "@3d-dice/dice-box";
 // Using @ts-ignore to bypass TypeScript's type checking for this line
 // @ts-ignore
 import DiceBox from "https://unpkg.com/@3d-dice/dice-box@1.1.4/dist/dice-box.es.min.js";
-import OBR from "@owlbear-rodeo/sdk";
+import OBR, { isImage, Image } from "@owlbear-rodeo/sdk";
 import * as pako from 'pako';
 
-import { cleanupDeadExtensionMetadata, dumpRoomMetadata, findItemMetadataKeys, Util } from './util';
+import { cleanupDeadExtensionMetadata, Debug, dumpRoomMetadata, findItemMetadataKeys, Util } from './util';
 import { CONST } from "./constants";
 import './styles.css';
 import buttonsImage from './buttons.svg';
@@ -16,7 +15,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 window.addEventListener("load", () => {
     const svgButtons = document.getElementById('buttons-svg') as HTMLObjectElement
     if (svgButtons.contentDocument) {
-        //console.log("Button images loaded");
+        //Debug.log("Button images loaded");
         //set button images
         Util.setImage('skills', traitdice, '--button-size')
         Util.setImage('punch', damagedice, '--button-size')
@@ -138,7 +137,7 @@ setupCounters();
 resetToDefaults();
 
 // Initial log
-console.log('Savage Dice for Owlbear is online and fully operational.')
+Debug.log('Savage Dice for Owlbear is online and fully operational.')
 
 // Radio button 
 function setupRadio(): void {
@@ -469,14 +468,14 @@ class RollResult {
     themeColor: string = '#ecd69b'
     value: number = 0
 }
- 
+
 let playerCache = {
     name: "Unknown Player",
     id: "unknown",
     ready: false
 };
 
- 
+
 async function setPlayer(r: SWDR) {
     // If already cached, use instantly
     if (playerCache.ready) {
@@ -498,6 +497,7 @@ async function setPlayer(r: SWDR) {
 
     // Now safe to get player info
     try {
+
         const [name, id] = await Promise.all([
             OBR.player.getName(),
             OBR.player.getId()
@@ -509,6 +509,7 @@ async function setPlayer(r: SWDR) {
 
         r.playerName = name;
         r.playerId = id;
+
     } catch (err) {
         console.error("Failed to get player:", err);
         r.playerName = "GM";
@@ -518,21 +519,16 @@ async function setPlayer(r: SWDR) {
 
 
 OBR.onReady(async () => {
-    try {
-        const [name, id] = await Promise.all([
-            OBR.player.getName(),
-            OBR.player.getId()
-        ]);
-        playerCache.name = name;
-        playerCache.id = id;
-        playerCache.ready = true;
-        console.log("Savage Dice: Player ready →", name);
-    } catch (err) {
-        console.error("Failed to cache player on ready:", err);
+
+    const isReady = await OBR.scene.isReady();
+    if (isReady) {
+        const initialItems = (await OBR.scene.items.getItems())
+            .filter((item): item is Image => item.layer === "CHARACTER" && isImage(item));
+        Debug.updateFromPlayers(initialItems.map(i=>i.name))
     }
 
     await initializeExtension();
-    if (false) {
+    if (Debug.enabled) {
         await dumpRoomMetadata();
         await findItemMetadataKeys();
         await cleanupDeadExtensionMetadata();
@@ -754,9 +750,22 @@ async function onRoomMetadataChange(metadata: any) {
 
 async function initializeExtension() {
     try {
+        const [name, id] = await Promise.all([
+            OBR.player.getName(),
+            OBR.player.getId()
+        ]);
+        playerCache.name = name;
+        playerCache.id = id;
+        playerCache.ready = true;
+        Debug.log("Savage Dice: Player ready →", name);
+    } catch (err) {
+        console.error("Failed to cache player on ready:", err);
+    }
+
+    try {
         ROLL_HISTORY = await fetchStorage();
         renderLog(ROLL_HISTORY);
-        console.log(`Loaded ${ROLL_HISTORY.length} saved rolls`);
+        Debug.log(`Loaded ${ROLL_HISTORY.length} saved rolls`);
     } catch (error) {
         console.error("Failed during initialization:", error);
         ROLL_HISTORY = [];
@@ -779,7 +788,7 @@ async function fetchStorage(): Promise<SWDR[]> {
         const storedHistory = metadata[Util.DiceHistoryMkey] as Uint8Array | undefined;
 
         if (!storedHistory) {
-            console.log("No saved roll history found");
+            Debug.log("No saved roll history found");
             return [];
         }
 
@@ -795,7 +804,7 @@ async function updateStorage(rh: SWDR[]) {
     let history = [...rh];
 
     let buff = compress(history);
-    console.log("History size:", buff.byteLength, "bytes");
+    Debug.log("History size:", buff.byteLength, "bytes");
     const save = async () => {
         if (!OBR.isReady) {
             requestAnimationFrame(save);
@@ -806,7 +815,7 @@ async function updateStorage(rh: SWDR[]) {
             await OBR.room.setMetadata({
                 [Util.DiceHistoryMkey]: buff
             });
-            console.log("Roll history saved");
+            Debug.log("Roll history saved");
         } catch (err: unknown) {
             // TypeScript now knows err is unknown → we have to check it safely
             if (err && typeof err === "object" && "message" in err) {
@@ -830,13 +839,13 @@ async function updateStorage(rh: SWDR[]) {
 // Compress
 function compress(data: SWDR[]): Uint8Array {
     const serialized = JSON.stringify(data);
-    return pako.deflate(serialized,{level:9});
+    return pako.deflate(serialized, { level: 9 });
 }
 
 // Decompress
 function decompress(compressedData: Uint8Array): SWDR[] {
     try {
-        console.log(`decompressing ${compressedData.length} bytes.`)
+        Debug.log(`decompressing ${compressedData.length} bytes.`)
         const decompressed = pako.inflate(compressedData);
         const parsed = JSON.parse(new TextDecoder().decode(decompressed));
         return Array.isArray(parsed) ? parsed : [];
@@ -1156,8 +1165,8 @@ async function adjustTheRoll() {
                 const OUTPUT_ELEMENT = LOG_ENTRY_WRAPPER_ELEMENT.querySelector('.output') as HTMLElement;
                 const TOTAL_ELEMENT = LOG_ENTRY_WRAPPER_ELEMENT.querySelector('.total') as HTMLElement;
                 const DESCRIPTION_ELEMENT = LOG_ENTRY_WRAPPER_ELEMENT.querySelector('.description') as HTMLElement;
-                let total =Number(TOTAL_ELEMENT!.innerText);
-                const NEW_TOTAL = isNaN(total)?0:total - RECENT_ROLLS[INDEX].modifier + NEW_MODIFIER;
+                let total = Number(TOTAL_ELEMENT!.innerText);
+                const NEW_TOTAL = isNaN(total) ? 0 : total - RECENT_ROLLS[INDEX].modifier + NEW_MODIFIER;
 
                 OUTPUT_ELEMENT.innerHTML = '';
 
