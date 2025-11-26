@@ -258,6 +258,7 @@ fieldset {
   display: block;
   min-inline-size: min-content;
   margin: 0px;
+  padding: 0px;
   margin-inline: 0px;
   padding-block: 0px;
   padding-inline: 0px;
@@ -265,9 +266,9 @@ fieldset {
 
 fieldset#dice-tray {
   & canvas#dice-tray {
-    height: 300px;
+    height: 302px;
     padding: 0px;
-    width: 280px;
+    width: 294px;
     background-image: url('/assets/woodgrain.jpg');
     background-size: cover;
   }
