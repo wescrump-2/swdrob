@@ -30,7 +30,7 @@ window.addEventListener("load", () => {
         Util.setImage('settings-knobs', adjustButton, '--button-size')
         Util.setImage('rolling-dice', rollDiceButton, '--button-size')
         Util.setImage('clockwise', rerollDiceButton, '--button-size')
-        Util.setImage('trash-can', removeDiceButton, '--button-size')
+        Util.setImage('broom', removeDiceButton, '--button-size')
 
         Util.setImage('bleeding-wound', wound1Toggle, '--button-size')
         Util.setImage('bleeding-wound', wound2Toggle, '--button-size')
@@ -40,7 +40,7 @@ window.addEventListener("load", () => {
 
         Util.setImage('anticlockwise', resetButton, '--button-size')
         Util.setImage('shatter', colorButton, '--button-size')
-        Util.setImage('broom', clearButton, '--button-size')
+        Util.setImage('trash-can', clearButton, '--button-size')
         Util.setImage('d4_fill', d4Button, '--die-size')
         Util.setImage('d6_fill', d6Button, '--die-size')
         Util.setImage('d8_fill', d8Button, '--die-size')

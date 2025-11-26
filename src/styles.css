@@ -26,13 +26,19 @@
   --button-size: 25px;
   --die-size: 40px;
 }
-
+html {
+  overflow: hidden;
+}
 
 body {
-  margin: 0px;
-  padding: 0px;
+  margin: 0;
+  padding: 0;
+  height: 600px;
+  width: 400px;
   display: flex;
   vertical-align: top;
+  overflow: hidden;
+
 }
 
 h1 {
@@ -41,16 +47,15 @@ h1 {
 }
 
 hr {
-  margin-block-start: 0.15em;
-  margin-block-end: 0.15em;
+  margin-block-start: 0px;
+  margin-block-end: 0px;
   margin-inline-start: auto;
   margin-inline-end: auto;
 }
 
 #app {
-  max-width: 2px;
-  margin: 0 auto;
-  padding: 0px;
+  margin: 0;
+  padding: 0;
   overflow: hidden;
 }
 
@@ -227,15 +232,22 @@ button:focus-visible {
 .sidebar {
   min-width: 100px;
   width: 100px;
-  min-height: 35rem;
+  height: 600px;
   overflow: hidden;
-  padding: 1px;
+  padding: 0;
   -webkit-user-select: none;
   user-select: none;
 }
 
 .options {
   height: auto;
+  padding: 0;
+  margin: 0;
+}
+
+.row {
+  margin: 0;
+  padding: 0;
 }
 
 .row div {
@@ -249,7 +261,8 @@ button:focus-visible {
   align-items: center;
   text-align: center;
   overflow: hidden;
-  padding: 0px;
+  padding: 0;
+  margin: 0;
   -webkit-user-select: none;
   user-select: none;
 }
@@ -257,31 +270,48 @@ button:focus-visible {
 fieldset {
   display: block;
   min-inline-size: min-content;
-  margin: 0px;
-  padding: 0px;
+  margin: 0;
+  padding: 0;
   margin-inline: 0px;
   padding-block: 0px;
   padding-inline: 0px;
 }
 
 fieldset#dice-tray {
+  overflow: hidden;
+  flex: 0 0 auto;
+
   & canvas#dice-tray {
-    height: 302px;
-    padding: 0px;
-    width: 294px;
+    border-width: 0px;
+    height: 300px;
+    width: 300px;
+    padding: 0;
     background-image: url('/assets/woodgrain.jpg');
     background-size: cover;
+    margin: 0 auto;
+    display: block;
   }
 }
 
 .main-content {
-  padding: 0px;
+  padding: 0;
+  margin: 0;
+  width: 300px;
+  height: 600px;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content .row {
+  width: 300px;
+  height: 300px;
+  overflow: hidden;
 }
 
 .custom-radio,
 .toggle-image {
   cursor: pointer;
-  margin: 0px;
+  margin: 0;
   padding: 2px;
   vertical-align: middle;
 }
@@ -293,7 +323,7 @@ fieldset#dice-tray {
 
 .toggle-image2 {
   cursor: pointer;
-  margin: 0px;
+  margin: 0;
   padding: 2px;
   vertical-align: middle;
 }
@@ -334,18 +364,19 @@ select {
 }
 
 legend {
-  padding: 0px;
+  padding: 0;
   line-height: 1;
   font-family: 'Lucida Grande', 'Lucida Sans', Arial, 'Trebuchet MS', 'Lucida Sans Unicode', sans-serif;
   font-weight: 900;
+  text-align: center;
 }
 
 .log {
-  padding: 1px;
-  grid-column: 1/-1;
-  height: 285px;
+  padding: 0;
+  height: 300px;
   margin: 0;
-  overflow: auto;
+  overflow: hidden;
+  flex: 1;
 
   @media screen and (width >=800px) {
     grid-row: 1/-1;
@@ -377,6 +408,8 @@ legend {
     gap: var(--spacing);
     font-size: 1em;
     scroll-snap-type: block mandatory;
+    overflow-y: auto;
+    height: 100%;
 
     &>* {
       scroll-snap-stop: always;
@@ -394,13 +427,13 @@ legend {
     & .output {
       grid-column: 1 / -1;
       grid-row: 2 / -1;
-      padding: var(--spacing);
+      padding: 0;
       border-top: var(--border);
     }
 
     & .output p {
       margin-top: 0;
-      margin-bottom: .05em;
+      margin-bottom: 0;
     }
 
     & .total {
@@ -409,9 +442,11 @@ legend {
       grid-column: 2;
       display: flex;
       justify-content: center;
-      align-items: center;
+      align-items: flex-start;
       flex-grow: 1;
       border-left: var(--border);
+      padding: 0;
+      line-height: 1;
     }
 
     & .description {
@@ -419,7 +454,9 @@ legend {
       grid-column: 1;
       grid-row: 1;
       display: flex;
-      padding: var(--spacing);
+      align-items: flex-start;
+      padding: 0;
+      line-height: 1;
     }
   }
 
