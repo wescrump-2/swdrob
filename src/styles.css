@@ -273,7 +273,7 @@ fieldset#dice-tray {
     background-size: cover;
   }
 }
-#dice-tray {
+fieldset#dice-tray {
   overflow: hidden;
 }
 .main-content {
