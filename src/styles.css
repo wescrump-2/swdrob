@@ -413,7 +413,7 @@ legend {
 
     &>* {
       scroll-snap-stop: always;
-      scroll-snap-align: end;
+      scroll-snap-align: start;
     }
   }
 

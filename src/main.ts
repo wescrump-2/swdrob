@@ -524,7 +524,7 @@ OBR.onReady(async () => {
     if (isReady) {
         const initialItems = (await OBR.scene.items.getItems())
             .filter((item): item is Image => item.layer === "CHARACTER" && isImage(item));
-        Debug.updateFromPlayers(initialItems.map(i=>i.name))
+        Debug.updateFromPlayers(initialItems.map(i => i.name))
     }
 
     await initializeExtension();
@@ -732,6 +732,7 @@ async function buildOutputHTML(rCollection: SWDR, rType: string, rResult: RollRe
         leg.textContent = rCollection.playerName
         wrapper.insertBefore(leg, wrapper.firstChild);
     }
+    LOG_ENTRIES_ELEMENT.scrollTop = 0;
 }
 
 DB.init();
