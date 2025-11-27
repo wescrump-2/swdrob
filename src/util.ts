@@ -51,6 +51,71 @@ export class Util {
         return '#' + complementaryHex;
     }
 
+    static getComplementary(hexColor: string): string {
+        // Convert hex to RGB
+        let r = parseInt(hexColor.slice(1, 3), 16);
+        let g = parseInt(hexColor.slice(3, 5), 16);
+        let b = parseInt(hexColor.slice(5, 7), 16);
+
+        // Convert RGB to HSL
+        r /= 255;
+        g /= 255;
+        b /= 255;
+
+        const cmax = Math.max(r, g, b), cmin = Math.min(r, g, b);
+        let h = 0, s = 0, l = (cmax + cmin) / 2;
+        const delta = cmax - cmin;
+
+        if (delta === 0) {
+            h = 0;
+        } else {
+            switch (cmax) {
+                case r: h = ((g - b) / delta) % 6; break;
+                case g: h = ((b - r) / delta) + 2; break;
+                case b: h = ((r - g) / delta) + 4; break;
+            }
+            h = Math.round(h * 60);
+            if (h < 0) h += 360;
+        }
+
+        s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
+
+        // Complementary hue: add 180 degrees
+        h = (h + 180) % 360;
+
+        // Convert HSL back to RGB
+        const c = (1 - Math.abs(2 * l - 1)) * s;
+        const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+        const m = l - c / 2;
+        let r1 = 0, g1 = 0, b1 = 0;
+
+        if (0 <= h && h < 60) {
+            [r1, g1, b1] = [c, x, 0];
+        } else if (60 <= h && h < 120) {
+            [r1, g1, b1] = [x, c, 0];
+        } else if (120 <= h && h < 180) {
+            [r1, g1, b1] = [0, c, x];
+        } else if (180 <= h && h < 240) {
+            [r1, g1, b1] = [0, x, c];
+        } else if (240 <= h && h < 300) {
+            [r1, g1, b1] = [x, 0, c];
+        } else {
+            [r1, g1, b1] = [c, 0, x];
+        }
+
+        r = Math.round((r1 + m) * 255);
+        g = Math.round((g1 + m) * 255);
+        b = Math.round((b1 + m) * 255);
+
+        // Convert back to hex
+        const toHex = (x: number) => {
+            const hex = x.toString(16);
+            return hex.length === 1 ? '0' + hex : hex;
+        };
+
+        return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    }
+
     static getOptimalTextColor(hexColor: string): string {
         const rgb = Util.hexToRgb(hexColor);
         const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
