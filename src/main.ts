@@ -53,9 +53,6 @@ window.addEventListener("load", () => {
     }
 })
 
-
-// setting variables
-// get inputs
 const radios = document.querySelectorAll('.custom-radio') as NodeListOf<SVGElement>;
 const traitdice = document.getElementById('traitdice') as unknown as SVGElement;
 const damagedice = document.getElementById('damagedice') as unknown as SVGElement;
@@ -624,61 +621,58 @@ const DB = new DiceBox({
 
 async function buildOutputHTML(rCollection: SWDR, rType: string, rResult: RollResult[], wrapper: any,) {
     if (rType === CONST.ROLL_TYPES.TRAIT) {
-        //rCollection.onesCount = rResult.filter(d => d.rolls[0].value === 1).length;
-        rCollection.onesCount = rResult.filter(d => d.rolls && d.rolls.length > 0 && d.rolls[0].value === 1
-        ).length;
-        const TRAIT_DICE_ROLLED = rResult.find(d => !d.isWildDie);
-        const IS_SINGLE_TRAIT_DIE = rType === CONST.ROLL_TYPES.TRAIT && rResult.filter(d => !d.isWildDie).length === 1;
-        if (TRAIT_DICE_ROLLED != undefined) {
-            rCollection.total = IS_SINGLE_TRAIT_DIE ? TRAIT_DICE_ROLLED.value : 0;
-        } else {
-            rCollection.total = 0
-        }
+        const TRAIT_DICE = rResult.filter(d => !d.isWildDie);
         const WILD_DIE_RESULT = rResult.find(d => d.isWildDie);
+        const IS_MULTIPLE_TRAIT_DICE = TRAIT_DICE.length > 1;
 
-        if (WILD_DIE_RESULT && IS_SINGLE_TRAIT_DIE) {
-            // If it's not a crit fail and is a single die, compare the values.
+        // Check for critical failure
+        if (WILD_DIE_RESULT && WILD_DIE_RESULT.rolls[0].value === 1 && TRAIT_DICE.some(d => d.rolls[0].value === 1)) {
+            rCollection.criticalFailure = true;
+            rCollection.total = 0;
+        } else {
+            rCollection.criticalFailure = false;
+        }
+
+        let descriptionString: string;
+        if (IS_MULTIPLE_TRAIT_DICE) {
+            const successfulDice = TRAIT_DICE.filter(d => d.value >= rCollection.targetNumber);
+            let successes = successfulDice.length;
+            let highest = successfulDice.length > 0 ? Math.max(...successfulDice.map(d => d.value)) : 0;
+            if (WILD_DIE_RESULT && WILD_DIE_RESULT.value >= rCollection.targetNumber) {
+                successes += 1;
+                highest = Math.max(highest, WILD_DIE_RESULT.value);
+            }
+            const raises = highest >= rCollection.targetNumber ? Math.floor((highest - rCollection.targetNumber) / 4) : 0;
+            rCollection.total = successes;
+            descriptionString = rCollection.criticalFailure ? `Critical Failure! ${CONST.EMOJIS.CRITICAL_FAILURE}` : `${successes} Successes with ${raises} Raises`;
+        } else {
+            const TRAIT_DICE_ROLLED = TRAIT_DICE[0];
             if (TRAIT_DICE_ROLLED != undefined) {
+                rCollection.total = TRAIT_DICE_ROLLED.value;
+            } else {
+                rCollection.total = 0;
+            }
+            if (WILD_DIE_RESULT) {
                 const HIGHER = WILD_DIE_RESULT.value > TRAIT_DICE_ROLLED.value ? WILD_DIE_RESULT.value : TRAIT_DICE_ROLLED.value;
                 rCollection.total = HIGHER;
             }
+            descriptionString = calculateRaises(rCollection.total, rCollection.targetNumber);
         }
-
-        const POTENTIAL_CRIT_FAIL = WILD_DIE_RESULT ? rCollection.onesCount > Math.floor(rResult.length / 2) : rCollection.onesCount >= rResult.length / 2;
-
-        if (POTENTIAL_CRIT_FAIL) {
-            if (WILD_DIE_RESULT && WILD_DIE_RESULT?.rolls[0].value === 1) {
-                rCollection.criticalFailure = true;
-                rCollection.total = 0;
-            } else if (!WILD_DIE_RESULT) {
-                DB.acing = false;
-                rType = CONST.ROLL_TYPES.CRITICAL_FAILURE_CHECK;
-                const CRIT_FAIL_CHECK_DIE_RESULT = await DB.add({
-                    sides: getWildDieValue(),
-                    modifier: 0,
-                    themeColor: CONST.COLOR_THEMES.CRITICAL_FAILURE_DIE,
-                }, { newStartPoint: true }) as RollResult[];
-                const CRIT_DIE_ROLL = CRIT_FAIL_CHECK_DIE_RESULT[0];
-                CRIT_DIE_ROLL.dieLabel = 'Critical Failure Check',
-                    CRIT_DIE_ROLL.isWildDie = false,
-                    CRIT_DIE_ROLL.rollDetails = breakdownResult(CRIT_DIE_ROLL),
-                    rCollection.criticalFailure = CRIT_DIE_ROLL.value === 1;
-                const tdrvalue = TRAIT_DICE_ROLLED ? TRAIT_DICE_ROLLED.value : 0;
-                rCollection.total = rCollection.criticalFailure ? 0 : tdrvalue;
-                rResult.push(CRIT_DIE_ROLL);
-                // Update the roll collection
-                rCollection.rollResult = rResult;
-            }
-        }
-
-        const TOTAL_VALUE = IS_SINGLE_TRAIT_DIE ? rCollection.total : 0;
-        let descriptionString: string | null = IS_SINGLE_TRAIT_DIE ? calculateRaises(rCollection.total, rCollection.targetNumber) : 'See results';
 
         // Build output HTML
         let rollDetails = '';
 
-        for (const DIE_ROLL of rResult) {
-            rollDetails += markupDieRollDetails(DIE_ROLL, rCollection.rollType, rCollection.isJoker, rCollection.isWound);
+        if (IS_MULTIPLE_TRAIT_DICE) {
+            TRAIT_DICE.forEach(die => {
+                rollDetails += markupDieRollDetails(die, rCollection.rollType, rCollection.isJoker, rCollection.isWound, rCollection.targetNumber);
+            });
+            if (WILD_DIE_RESULT) {
+                rollDetails += markupDieRollDetails(WILD_DIE_RESULT, rCollection.rollType, rCollection.isJoker, rCollection.isWound, rCollection.targetNumber);
+            }
+        } else {
+            for (const DIE_ROLL of rResult) {
+                rollDetails += markupDieRollDetails(DIE_ROLL, rCollection.rollType, rCollection.isJoker, rCollection.isWound, rCollection.targetNumber);
+            }
         }
 
         // Format the roll details (i.e., break down of each die, if it aced, and whatever modifier might be applied).
@@ -689,7 +683,10 @@ async function buildOutputHTML(rCollection: SWDR, rType: string, rResult: RollRe
         }
 
         rCollection.description = descriptionString;
-        const RESULTS = markupResult(rCollection, TOTAL_VALUE, { description: descriptionString });
+        const RESULTS = markupResult(rCollection, rCollection.total, { description: descriptionString });
+        if (rType === CONST.ROLL_TYPES.TRAIT && IS_MULTIPLE_TRAIT_DICE) {
+            RESULTS[0].style.color = 'gold';
+        }
         wrapper.append(ROLL_DETAILS_ELEMENT);
 
         for (const ELEMENT of RESULTS) {
@@ -955,7 +952,7 @@ function signModOutput(modifier: number, joker: boolean, isWound: boolean) {
     return `<p class="modifier" data-modifier="${modifier}">Modifier: ${modifier < 0 ? '−' : '+'}${Math.abs(modifier)}${joker ? CONST.EMOJIS.JOKER : ''}${isWound ? CONST.EMOJIS.WOUND : ''}</p>`;
 }
 
-function markupDieRollDetails(dieRoll: RollResult, rType: string, joker: boolean, isWound: boolean) {
+function markupDieRollDetails(dieRoll: RollResult, rType: string, joker: boolean, isWound: boolean, targetNumber?: number) {
     const SHOW_MODIFIER = rType === CONST.ROLL_TYPES.TRAIT && (dieRoll.modifier !== 0 || joker || isWound);
     //const SHOW_BREAKDOWN = dieRoll.rollDetails.includes(CONST.EMOJIS.ACE);
     const SHOW_BREAKDOWN = dieRoll.rolls.length > 1;
@@ -964,9 +961,21 @@ function markupDieRollDetails(dieRoll: RollResult, rType: string, joker: boolean
     const BREAKDOWN = SHOW_MATH ? dieRoll.rollDetails : '';
     const MODIFIER = SHOW_MODIFIER ? `${dieRoll.modifier < 0 ? '-' : '+'} ${Math.abs(dieRoll.modifier)}` : '';
     const DIE_VALUE = rType != CONST.ROLL_TYPES.TRAIT ? dieRoll.value - dieRoll.modifier : dieRoll.value;
+    let emojis = '';
+    if (rType === CONST.ROLL_TYPES.TRAIT && targetNumber !== undefined) {
+        if (dieRoll.value >= targetNumber) {
+            emojis += CONST.EMOJIS.SUCCESS;
+            let raises = Math.floor((dieRoll.value - targetNumber) / 4);
+            for (let i = 0; i < raises; i++) {
+                emojis += CONST.EMOJIS.RAISE;
+            }
+        } else {
+            emojis = CONST.EMOJIS.FAILURE;
+        }
+    }
     return `
         <p data-die-sides="${sidesNumber(dieRoll.sides)}" data-roll-value="${dieRoll.value}">
-            ${LABEL} ${BREAKDOWN} ${MODIFIER} ${SHOW_MATH ? '=' : ''} <strong>${DIE_VALUE}</strong>
+            ${LABEL} ${BREAKDOWN} ${MODIFIER} ${SHOW_MATH ? '=' : ''} <strong>${DIE_VALUE}</strong>${emojis}
         </p>
     `;
 }
@@ -1182,6 +1191,20 @@ async function adjustTheRoll() {
                 if ((DBrollType === CONST.ROLL_TYPES.TRAIT && TRAIT_ROLLS.length <= 1) || DBrollType !== CONST.ROLL_TYPES.TRAIT) {
                     TOTAL_ELEMENT.innerText = NEW_TOTAL.toString();
                     DESCRIPTION_ELEMENT.innerText = DBrollType === CONST.ROLL_TYPES.STANDARD ? '' : calculateRaises(NEW_TOTAL, NEW_TARGET_NUMBER)
+                } else if (DBrollType === CONST.ROLL_TYPES.TRAIT && TRAIT_ROLLS.length > 1) {
+                    const successfulDice = TRAIT_ROLLS.filter(d => d.value >= NEW_TARGET_NUMBER);
+                    let successes = successfulDice.length;
+                    let highest = successfulDice.length > 0 ? Math.max(...successfulDice.map(d => d.value)) : 0;
+                    const WILD_DIE_RESULT = RECENT_ROLLS[INDEX].rollResult.find(d => d.isWildDie);
+                    if (WILD_DIE_RESULT && WILD_DIE_RESULT.value >= NEW_TARGET_NUMBER) {
+                        successes += 1;
+                        highest = Math.max(highest, WILD_DIE_RESULT.value);
+                    }
+                    const raises = highest >= NEW_TARGET_NUMBER ? Math.floor((highest - NEW_TARGET_NUMBER) / 4) : 0;
+                    const NEW_TOTAL = successes;
+                    TOTAL_ELEMENT.innerText = NEW_TOTAL.toString();
+                    TOTAL_ELEMENT.style.color = 'gold';
+                    DESCRIPTION_ELEMENT.innerText = `${successes} Successes with ${raises} Raises`;
                 }
                 DESCRIPTION_ELEMENT.innerText = `${CONST.EMOJIS.ADJUST}${IS_REROLL ? CONST.EMOJIS.REROLL : ''}${DESCRIPTION_ELEMENT.innerText}`
 
@@ -1196,7 +1219,17 @@ async function adjustTheRoll() {
                     DIE_ROLL.value = DIE_ROLL.value - DIE_ROLL.modifier + NEW_MODIFIER //remove old mod, add new mod
                     //DBrollType === CONST.ROLL_TYPES.TRAIT ? DIE_ROLL.value - DIE_ROLL.modifier + NEW_MODIFIER : DIE_ROLL.value;
                     DIE_ROLL.modifier = NEW_MODIFIER;
-                    rollDetails += markupDieRollDetails(DIE_ROLL, DBrollType, RECENT_ROLLS[INDEX].isJoker, RECENT_ROLLS[INDEX].isWound);
+                    rollDetails += markupDieRollDetails(DIE_ROLL, DBrollType, RECENT_ROLLS[INDEX].isJoker, RECENT_ROLLS[INDEX].isWound, NEW_TARGET_NUMBER);
+                }
+
+                if (DBrollType === CONST.ROLL_TYPES.TRAIT && TRAIT_ROLLS.length > 1) {
+                    TRAIT_ROLLS.forEach(die => {
+                        rollDetails += markupDieRollDetails(die, DBrollType, RECENT_ROLLS[INDEX].isJoker, RECENT_ROLLS[INDEX].isWound, NEW_TARGET_NUMBER);
+                    });
+                    const WILD_DIE_RESULT = RECENT_ROLLS[INDEX].rollResult.find(d => d.isWildDie);
+                    if (WILD_DIE_RESULT) {
+                        rollDetails += markupDieRollDetails(WILD_DIE_RESULT, DBrollType, RECENT_ROLLS[INDEX].isJoker, RECENT_ROLLS[INDEX].isWound, NEW_TARGET_NUMBER);
+                    }
                 }
 
                 OUTPUT_ELEMENT.insertAdjacentHTML('beforeend', rollDetails);
