@@ -420,6 +420,9 @@ function setDiceColor(n: number) {
     CONST.COLOR_THEMES.PRIMARY = DICECOLORS[n];
     CONST.COLOR_THEMES.SECONDARY = Util.getContrast(CONST.COLOR_THEMES.PRIMARY);
     CONST.COLOR_THEMES.BONUS = Util.getMidpointColor(CONST.COLOR_THEMES.PRIMARY, CONST.COLOR_THEMES.SECONDARY)
+    CONST.COLOR_THEMES.NUMBER = Util.getOptimalTextColor(CONST.COLOR_THEMES.PRIMARY);
+    CONST.COLOR_THEMES.NUMBER_SECONDARY = Util.getOptimalTextColor(CONST.COLOR_THEMES.SECONDARY);
+    CONST.COLOR_THEMES.NUMBER_BONUS = Util.getOptimalTextColor(CONST.COLOR_THEMES.BONUS);
 }
 
 const LOG_ENTRIES_ELEMENT = document.querySelector('#log-entries')!;
@@ -551,6 +554,7 @@ const DB = new DiceBox({
     //     diceOfRolling: "https://www.unpkg.com/@3d-dice/theme-dice-of-rolling@0.2.1",
     //   },
     themeColor: CONST.COLOR_THEMES.PRIMARY,
+    textColor: '#FFFFFF',
     offscreen: true,
     scale: 6, //8,
     friction: .75,
@@ -561,7 +565,7 @@ const DB = new DiceBox({
     settleTimeout: 3000,
     mass: 1,
     delay: 50, //100,
-    lightIntensity: 1,
+    lightIntensity: 0.75,
     //discordResponse: null,
     onDieComplete: async (dieResult: DieResult) => {
         if (DB.acing && dieResult.value === sidesNumber(dieResult.sides)) {
@@ -1035,6 +1039,7 @@ class DiceConfig {
     isWildDie: boolean = false
     isBonusDie: boolean = false
     themeColor: string = ''
+    textColor: string = ''
 }
 
 function isDiceToRoll() {
@@ -1071,6 +1076,7 @@ async function rollTheDice() {
                 isWildDie: false,
                 isBonusDie: false,
                 themeColor: numsides < 100 ? CONST.COLOR_THEMES.PRIMARY : Util.randomizeHue(CONST.COLOR_THEMES.PRIMARY),
+                textColor: CONST.COLOR_THEMES.NUMBER,
             });
         }
     }
@@ -1082,6 +1088,7 @@ async function rollTheDice() {
             isWildDie: true,
             isBonusDie: false,
             themeColor: CONST.COLOR_THEMES.SECONDARY,
+            textColor: CONST.COLOR_THEMES.NUMBER_SECONDARY,
         });
     }
     if (isBonusDamageActive()) {
@@ -1091,6 +1098,7 @@ async function rollTheDice() {
             isWildDie: false,
             isBonusDie: true,
             themeColor: CONST.COLOR_THEMES.BONUS,
+            textColor: CONST.COLOR_THEMES.NUMBER_BONUS,
         });
 
     }
@@ -1154,6 +1162,7 @@ async function rerollTheDice() {
                 isWildDie: DIE_ROLL.isWildDie,
                 isBonusDie: DIE_ROLL.isBonusDie,
                 themeColor: DIE_ROLL.themeColor,
+                textColor: DIE_ROLL.isWildDie ? CONST.COLOR_THEMES.NUMBER_SECONDARY : DIE_ROLL.isBonusDie ? CONST.COLOR_THEMES.NUMBER_BONUS : CONST.COLOR_THEMES.NUMBER,
             });
         }
 

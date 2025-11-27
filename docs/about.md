@@ -141,6 +141,15 @@ The log persists across sessions and syncs across players in the Owlbear Rodeo r
 - Modifier: +5
 - Result: 17 +5 = 22.
 
+## Acknowledgements
+
+This extension is inspired by and built upon the mechanics of the Savage Worlds RPG system. Special thanks to:
+
+- **Savage Worlds Adventure Edition** by [Pinnacle Entertainment Group](https://www.peginc.com/) for the core RPG system and dice mechanics.
+- **@3d-dice/dice-box** library from [Fantastic Dice](https://fantasticdice.games/) for providing the 3D dice simulation engine.
+- **Savage Dice Roller** by immaterialplane (https://immaterialplane.com/apps/swdr/) for the original concept and implementation that inspired this Owlbear Rodeo extension.
+- **Game Icons** from https://game-icons.net/ for the icon assets used in the interface.
+
 ## Support
 
 For issues or questions, please contact the developer or check the Owlbear Rodeo community forums.

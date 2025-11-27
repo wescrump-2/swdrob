@@ -23,6 +23,9 @@ export const CONST = {
 		SECONDARY: '#ecd69b',
 		BONUS: '#808080',
 		CRITICAL_FAILURE_DIE: '#7d0000',
+		NUMBER: '#000000',
+		NUMBER_SECONDARY: '#000000',
+		NUMBER_BONUS: '#000000',
 	},
 	DIELABELS: {
 		TRAIT: 'Trait',
