@@ -626,25 +626,40 @@ async function buildOutputHTML(rCollection: SWDR, rType: string, rResult: RollRe
         const IS_MULTIPLE_TRAIT_DICE = TRAIT_DICE.length > 1;
 
         // Check for critical failure
-        if (WILD_DIE_RESULT && WILD_DIE_RESULT.rolls[0].value === 1 && TRAIT_DICE.some(d => d.rolls[0].value === 1)) {
-            rCollection.criticalFailure = true;
-            rCollection.total = 0;
+        if (IS_MULTIPLE_TRAIT_DICE) {
+            const allDice = rResult;
+            const onesCount = allDice.filter(d => d.rolls[0].value === 1).length;
+            if (onesCount > allDice.length / 2 && WILD_DIE_RESULT && WILD_DIE_RESULT.rolls[0].value === 1) {
+                rCollection.criticalFailure = true;
+                rCollection.total = 0;
+            } else {
+                rCollection.criticalFailure = false;
+            }
         } else {
-            rCollection.criticalFailure = false;
+            if (TRAIT_DICE[0] && TRAIT_DICE[0].rolls[0].value === 1 && WILD_DIE_RESULT && WILD_DIE_RESULT.rolls[0].value === 1) {
+                rCollection.criticalFailure = true;
+                rCollection.total = 0;
+            } else {
+                rCollection.criticalFailure = false;
+            }
         }
 
         let descriptionString: string;
         if (IS_MULTIPLE_TRAIT_DICE) {
-            const successfulDice = TRAIT_DICE.filter(d => d.value >= rCollection.targetNumber);
-            let successes = successfulDice.length;
-            let highest = successfulDice.length > 0 ? Math.max(...successfulDice.map(d => d.value)) : 0;
-            if (WILD_DIE_RESULT && WILD_DIE_RESULT.value >= rCollection.targetNumber) {
-                successes += 1;
-                highest = Math.max(highest, WILD_DIE_RESULT.value);
+            if (!rCollection.criticalFailure) {
+                const successfulDice = TRAIT_DICE.filter(d => d.value >= rCollection.targetNumber);
+                let successes = successfulDice.length;
+                let highest = successfulDice.length > 0 ? Math.max(...successfulDice.map(d => d.value)) : 0;
+                if (WILD_DIE_RESULT && WILD_DIE_RESULT.value >= rCollection.targetNumber) {
+                    successes += 1;
+                    highest = Math.max(highest, WILD_DIE_RESULT.value);
+                }
+                const raises = highest >= rCollection.targetNumber ? Math.floor((highest - rCollection.targetNumber) / 4) : 0;
+                rCollection.total = successes;
+                descriptionString = `${successes} Successes with ${raises} Raises`;
+            } else {
+                descriptionString = `Critical Failure! ${CONST.EMOJIS.CRITICAL_FAILURE}`;
             }
-            const raises = highest >= rCollection.targetNumber ? Math.floor((highest - rCollection.targetNumber) / 4) : 0;
-            rCollection.total = successes;
-            descriptionString = rCollection.criticalFailure ? `Critical Failure! ${CONST.EMOJIS.CRITICAL_FAILURE}` : `${successes} Successes with ${raises} Raises`;
         } else {
             const TRAIT_DICE_ROLLED = TRAIT_DICE[0];
             if (TRAIT_DICE_ROLLED != undefined) {
