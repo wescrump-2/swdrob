@@ -528,6 +528,8 @@ OBR.onReady(async () => {
             .filter((item): item is Image => item.layer === "CHARACTER" && isImage(item));
         Debug.updateFromPlayers(initialItems.map(i => i.name))
 
+        await initializeExtension();
+
         await Savaged.checkProxyStatus();
 
         // Debug.log("Testing API connection...");
@@ -556,8 +558,8 @@ OBR.onReady(async () => {
         // console.log(swBeasts);
     }
 
-    await initializeExtension();
-    
+
+
     await Debug.dumpRoomMetadata();
     await Debug.findItemMetadataKeys();
     await Debug.cleanupDeadExtensionMetadata();
