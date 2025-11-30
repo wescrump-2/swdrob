@@ -34,6 +34,27 @@ function toCamelCase(str: string): string {
         .join('');
 }
 
+export interface Trait {
+    name: string;
+    die: string;
+}
+export interface Weapon {
+    name: string;
+    attack?: string;
+    damage?: string;
+    range?: string;
+    reach?: string;
+    parry?: string;
+    rof?: string;
+    ap?: string;
+    thrownAttack?: string;
+}
+
+export interface Armor { 
+    name: string; 
+    value: number; 
+}
+
 export interface Character {
     name: string;
     description?: string;
@@ -44,14 +65,15 @@ export interface Character {
     background?: string;
     experience?: number;
     bennies?: number;
-    rolls: Record<string, string>;
+    attributes: Trait[];
+    skills: Trait[];
     pace?: number;
     parry?: number;
     toughness?: number;
-    armor?: string;
+    armor?: Armor[];
     edges?: string[];
     hindrances?: string[];
-    weapons?: { name: string; attack?: string; damage?: string }[];
+    weapons?: Weapon[];
     gear?: string[];
     languages?: string[];
     wealth?: string;
@@ -247,7 +269,7 @@ export class Savaged {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
         const content = doc.querySelector('.content span');
-        const character: Character = { name: 'name', description: '', rolls: {} };
+        const character: Character = { name: 'name', description: '', attributes: [], skills: [] };
         if (!content) {
             Debug.error('Character content not found');
         } else {
@@ -278,15 +300,16 @@ export class Savaged {
             if (descH2 && descH2.nextElementSibling) {
                 character.description = descH2.nextElementSibling.textContent?.trim();
             }
-            const rolls: Record<string, string> = {};
-            character.rolls = rolls;
+
+            const getAttributeDie = (name: string) => character.attributes.find(t => t.name === name)?.die || 'd4';
+            const getSkillDie = (name: string) => character.skills.find(t => t.name === name)?.die || 'd4-2';
 
             // Attributes
             const attributesMatch = text.match(/<strong>Attributes<\/strong>: ([^<]*)/);
             if (attributesMatch) {
                 attributesMatch[1].split(', ').forEach(attr => {
                     const [n, d] = attr.split(' ');
-                    rolls[n.toLowerCase()] = d;
+                    character.attributes.push({ name: n.toLowerCase(), die: d });
                 });
                 //Debug.log(`Parsed ${attributesMatch[1].split(', ').length} attributes`);
             }
@@ -300,7 +323,7 @@ export class Savaged {
                     if (parts.length >= 2) {
                         const d = parts.pop()!;
                         const n = parts.join(' ');
-                        rolls[toCamelCase(n)] = d;
+                        character.skills.push({ name: toCamelCase(n), die: d });
                         //Debug.log(`Parsed skill: "${n}" -> "${d}"`);
                     } else {
                         Debug.log(`Skipping invalid skill: "${skill}"`);
@@ -317,31 +340,77 @@ export class Savaged {
                 character.weapons = [];
                 weaponParts.forEach(part => {
                     part = part.replace(/\)$/g, '');
-                    const [name, details] = part.split(' (Range ');
-                    //Debug.log(`Processing weapon: "${name}", details: "${details}"`);
-                    if (details) {
-                        const [_range, damagePart] = details.split(', Damage ');
-                        let damage = damagePart.replace('<sup>us<\/sup>', '');
-                        // Substitute attribute abbreviations with actual dice
-                        damage = damage.replace(/Str/gi, rolls.strength || 'd4');
-                        damage = damage.replace(/Agi/gi, rolls.agility || 'd4');
-                        damage = damage.replace(/Sma/gi, rolls.smarts || 'd4');
-                        damage = damage.replace(/Spi/gi, rolls.spirit || 'd4');
-                        damage = damage.replace(/Vig/gi, rolls.vigor || 'd4');
-                        const attackKey = `${name.toLowerCase().replace(/[^a-z]/g, '')}_attack`;
-                        const damageKey = `${name.toLowerCase().replace(/[^a-z]/g, '')}_damage`;
-                        rolls[attackKey] = rolls.fighting || 'd4';
-                        rolls[damageKey] = damage;
-                        character.weapons!.push({ name: name.trim(), attack: rolls[attackKey], damage });
-                        //Debug.log(`Parsed ranged weapon: "${name}" -> attack: "${rolls[attackKey]}", damage: "${damage}"`);
-                    } else {
-                        // Melee weapon, damage is 'Str' or similar
-                        let damage = 'Str'; // assuming it's 'Str' as per user
-                        damage = damage.replace(/Str/gi, rolls.strength || 'd4');
-                        const damageKey = `${name.toLowerCase()}_damage`;
-                        rolls[damageKey] = damage;
-                        character.weapons!.push({ name: name.trim(), damage });
-                        //Debug.log(`Parsed melee weapon: "${name}" -> damage: "${damage}"`);
+                    const [name, detailsStr] = part.split(' (');
+                    if (detailsStr) {
+                        const detailParts = detailsStr.split(', ');
+                        const detailMap: Record<string, string> = {};
+                        detailParts.forEach(p => {
+                            p = p.trim();
+                            if (p.match(/^[-+]\d+ Parry$/)) {
+                                const value = p.replace(' Parry', '');
+                                detailMap['parry'] = value;
+                            } else {
+                                let key: string, value: string;
+                                if (p.includes(': ')) {
+                                    [key, value] = p.split(': ');
+                                } else {
+                                    const spaceIndex = p.indexOf(' ');
+                                    if (spaceIndex !== -1) {
+                                        key = p.substring(0, spaceIndex);
+                                        value = p.substring(spaceIndex + 1);
+                                    } else {
+                                        return; // invalid part
+                                    }
+                                }
+                                detailMap[key.toLowerCase().replace(':', '')] = value.trim();
+                            }
+                        });
+                        let damage = detailMap['damage'];
+                        if (damage) {
+                            damage = damage.replace('<sup>us<\/sup>', '');
+                            // Substitute attribute abbreviations with actual dice
+                            const getAttributeDie = (name: string) => character.attributes.find(t => t.name === name)?.die || 'd4';
+                            damage = damage.replace(/Str/gi, getAttributeDie('strength'));
+                            damage = damage.replace(/Agi/gi, getAttributeDie('agility'));
+                            damage = damage.replace(/Sma/gi, getAttributeDie('smarts'));
+                            damage = damage.replace(/Spi/gi, getAttributeDie('spirit'));
+                            damage = damage.replace(/Vig/gi, getAttributeDie('vigor'));
+                        }
+                        const thrownWeapons = ['axe, hand', 'axe, throwing', 'dagger', 'knife', 'net', 'sling', 'spear', 'javelin', 'trident', 'starknife', 'shuriken', 'bolas', 'hammer', 'warhammer'];
+                        const onlyThrownWeapons = ['net', 'sling', 'shuriken', 'bolas'];
+                        const weaponNameLower = name.toLowerCase();
+                        const isThrown = thrownWeapons.some(tw => weaponNameLower.includes(tw));
+                        const isOnlyThrown = onlyThrownWeapons.some(tw => weaponNameLower.includes(tw));
+                        const isMelee = !detailMap['range'] || detailMap['range'].toLowerCase() === 'melee';
+                        const isShooting = !isMelee && !isThrown;
+                        let attack: string | undefined;
+                        let thrownAttack: string | undefined;
+                        const getSkillDie = (name: string) => character.skills.find(t => t.name === name)?.die || 'd4-2';
+                        if (isMelee && !isThrown) {
+                            attack = getSkillDie('fighting');
+                        } else if (isThrown) {
+                            if (isOnlyThrown) {
+                                attack = getSkillDie('athletics');
+                            } else {
+                                attack = getSkillDie('fighting');
+                                thrownAttack = getSkillDie('athletics');
+                            }
+                        } else if (isShooting) {
+                            attack = getSkillDie('shooting');
+                        }
+                        const weapon = {
+                            name: name.trim(),
+                            attack,
+                            damage,
+                            range: (detailMap['range'] || 'melee').toLowerCase(),
+                            reach: detailMap['reach'] || (isMelee ? '1' : undefined),
+                            parry: detailMap['parry'] || (isMelee ? '0' : undefined),
+                            rof: detailMap['rof'] || (!isMelee ? '1' : undefined),
+                            ap: detailMap['ap'],
+                            thrownAttack
+                        };
+                        character.weapons!.push(weapon);
+                        //Debug.log(`Parsed weapon: "${name}" -> attack: "${weapon.attack}", damage: "${damage}", reach: "${weapon.reach}", parry: "${weapon.parry}", rof: "${weapon.rof}"`);
                     }
                 });
                 //Debug.log(`Parsed ${weaponParts.length} weapons`);
@@ -349,7 +418,8 @@ export class Savaged {
             // Arcane Background
             const arcaneMatch = text.match(/<strong>Arcane Background<\/strong>: ([^<]*)/);
             if (arcaneMatch) {
-                rolls.arcane = rolls.smarts || 'd4';
+                const smartsDie = getAttributeDie('smarts');
+                character.skills.push({ name: 'arcane', die: smartsDie });
                 character.arcaneBackground = arcaneMatch[1].trim();
                 //Debug.log(`Parsed arcane background: "${character.arcaneBackground}"`);
             }
@@ -357,18 +427,19 @@ export class Savaged {
             const powersMatch = text.match(/<strong>Powers<\/strong>: ([^<]*)/);
             if (powersMatch) {
                 character.powers = [];
+                const arcaneDie = getSkillDie('arcane');
                 powersMatch[1].split(', ').forEach(power => {
                     const p = power.split(' (')[0];
-                    rolls[p.toLowerCase()] = rolls.arcane;
+                    character.skills.push({ name: p.toLowerCase(), die: arcaneDie });
                     character.powers!.push(p.trim());
                 });
                 //Debug.log(`Parsed ${character.powers.length} powers`);
             }
             // Modifiers
             if (text.includes('Subtract 2 from all Persuasion rolls')) {
-                //Debug.log(`Persuasion before modifier: "${rolls.persuasion}"`);
-                if (!rolls.persuasion || !rolls.persuasion.includes('-')) {
-                    rolls.persuasion = (rolls.persuasion || 'd4') + '-2';
+                const persuasionTrait = character.skills.find(t => t.name === 'persuasion');
+                if (persuasionTrait && !persuasionTrait.die.includes('-')) {
+                    persuasionTrait.die = (persuasionTrait.die || 'd4') + '-2';
                     //Debug.log('Applied persuasion modifier');
                 } else {
                     //Debug.log('Persuasion already has modifier, skipping additional -2');
@@ -397,8 +468,14 @@ export class Savaged {
             // Armor
             const armorMatch = text.match(/<strong>Armor<\/strong>: ([^<]*)/);
             if (armorMatch) {
-                character.armor = armorMatch[1].trim();
-                //Debug.log(`Parsed armor: "${character.armor}"`);
+                character.armor = [];
+                armorMatch[1].split(', ').forEach(a => {
+                    const match = a.trim().match(/^(.+?)\s*\(Armor\s*(\d+)\)$/);
+                    if (match) {
+                        character.armor!.push({ name: match[1].trim(), value: parseInt(match[2]) });
+                    }
+                });
+                //Debug.log(`Parsed ${character.armor.length} armor items`);
             }
             // Edges
             const edgesMatch = text.match(/<strong>Edges<\/strong>: ([^<]*)/);
@@ -480,7 +557,7 @@ export class Savaged {
             }
 
             // Add default unskilled roll
-            rolls.unskilled = 'd4-2';
+            character.skills.push({ name: 'unskilled', die: 'd4-2' });
             //Debug.log('Added default unskilled roll: d4-2');
 
             //Debug.log(`Total rolls parsed: ${Object.keys(rolls).length}`);

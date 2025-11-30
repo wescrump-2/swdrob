@@ -10,6 +10,7 @@ import { Debug } from './debug';
 import { CONST } from "./constants";
 import './styles.css';
 import buttonsImage from './buttons.svg';
+import { createContextMenu } from "./contextmenu";
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <object id="buttons-svg" width="0" height="0" data="${buttonsImage}" type="image/svg+xml"></object>   
@@ -471,7 +472,7 @@ class RollResult {
     value: number = 0
 }
 
-let playerCache = {
+export let playerCache = {
     name: "Unknown Player",
     id: "unknown",
     ready: false
@@ -519,46 +520,25 @@ async function setPlayer(r: SWDR) {
     }
 }
 
-
 OBR.onReady(async () => {
+    console.log("OBR.onReady fired");
+    await Savaged.checkProxyStatus();
+    await testUrlExtraction();
+    createContextMenu();
+    await initializeExtension();
 
-    const isReady = await OBR.scene.isReady();
-    if (isReady) {
-        const initialItems = (await OBR.scene.items.getItems())
-            .filter((item): item is Image => item.layer === "CHARACTER" && isImage(item));
-        Debug.updateFromPlayers(initialItems.map(i => i.name))
-
-        await initializeExtension();
-
-        await Savaged.checkProxyStatus();
-
-        // Debug.log("Testing API connection...");
-        // const connectionValid = await Savaged.testApiConnection(Savaged.API_KEY);
-        // if (!connectionValid) {
-        //     Debug.error("API connection test failed. Skipping character and bestiary fetches.");
-        //     return;
-        // }
-
-        // const char1 = await Savaged.parseCharacterFromURL("https://savaged.us/s/greedeegrimstone");
-        // console.log(JSON.stringify(char1));
-
-        // const char2 = await Savaged.parseCharacterFromURL("https://svgd.us/ingrid");
-        // console.log(JSON.stringify(char2));
-        // const swuser = await Util.fetchUserData(Util.API_KEY);
-        // console.log(swuser);
-        // const swsaved = await Util.fetchSaved(Util.API_KEY);
-        // console.log(swsaved);
-        // const swchar = await Util.fetchThisCharacter(Util.API_KEY,"ed567f3b-5ad7-486e-a969-15c7c2bba99f");
-        // console.log(swchar);
-
-        // const swchars = await Util.fetchCharacters(Util.API_KEY);
-        // console.log(swchars);
-
-        // const swBeasts = await Util.searchBestiary(Util.API_KEY,"spider");
-        // console.log(swBeasts);
-    }
-
-
+    OBR.scene.onReadyChange(async () => {
+        const isReady = await OBR.scene.isReady();
+        console.log("OBR.scene.isReady() returned:", isReady);
+        if (isReady) {
+            console.log("Scene is ready, executing scene-dependent code");
+            const initialItems = (await OBR.scene.items.getItems())
+                .filter((item): item is Image => item.layer === "CHARACTER" && isImage(item));
+            Debug.updateFromPlayers(initialItems.map(i => i.name))
+        } else {
+            console.log("Scene is not ready, skipping scene-dependent code");
+        }
+    })
 
     await Debug.dumpRoomMetadata();
     await Debug.findItemMetadataKeys();
@@ -567,6 +547,36 @@ OBR.onReady(async () => {
     const unsubscribe = OBR.room.onMetadataChange(onRoomMetadataChange)
     window.addEventListener('beforeunload', () => unsubscribe());
 });
+
+async function testUrlExtraction() {
+    // Debug.log("Testing API connection...");
+    // const connectionValid = await Savaged.testApiConnection(Savaged.API_KEY);
+    // if (!connectionValid) {
+    //     Debug.error("API connection test failed. Skipping character and bestiary fetches.");
+    //     return;
+    // }
+    const char1 = await Savaged.parseCharacterFromURL("https://svgd.us/o9o99vpm");
+    console.log(JSON.stringify(char1));
+
+    const char2 = await Savaged.parseCharacterFromURL("https://savaged.us/s/greedeegrimstone");
+    console.log(JSON.stringify(char2));
+
+    const char3 = await Savaged.parseCharacterFromURL("https://svgd.us/ingrid");
+    console.log(JSON.stringify(char3));
+
+    // const swuser = await Util.fetchUserData(Util.API_KEY);
+    // console.log(swuser);
+    // const swsaved = await Util.fetchSaved(Util.API_KEY);
+    // console.log(swsaved);
+    // const swchar = await Util.fetchThisCharacter(Util.API_KEY,"ed567f3b-5ad7-486e-a969-15c7c2bba99f");
+    // console.log(swchar);
+
+    // const swchars = await Util.fetchCharacters(Util.API_KEY);
+    // console.log(swchars);
+
+    // const swBeasts = await Util.searchBestiary(Util.API_KEY,"spider");
+    // console.log(swBeasts);
+}
 
 let RollCollection: SWDR = new SWDR();
 const MAX_HISTORY: number = 16;
@@ -787,6 +797,19 @@ async function buildOutputHTML(rCollection: SWDR, rType: string, rResult: RollRe
 
 DB.init();
 
+function parseDiceString(diceStr: string): { [key: number]: number } {
+    const parts = diceStr.split('+');
+    const counts: { [key: number]: number } = {};
+    for (const part of parts) {
+        const match = part.match(/^d(\d+)$/);
+        if (match) {
+            const sides = parseInt(match[1]);
+            counts[sides] = (counts[sides] || 0) + 1;
+        }
+    }
+    return counts;
+}
+
 async function onRoomMetadataChange(metadata: any) {
     if (metadata[Util.DiceHistoryMkey]) {
         const storedHistory = metadata[Util.DiceHistoryMkey] as Uint8Array
@@ -796,6 +819,45 @@ async function onRoomMetadataChange(metadata: any) {
             logContainer.innerHTML = '';
         }
         renderLog(ROLL_HISTORY)
+    }
+    if (metadata.rollRequest) {
+        const { die, rollType, modifier, playerId } = metadata.rollRequest;
+        const currentPlayerId = await OBR.player.getId();
+        if (playerId === currentPlayerId) {
+            // Set roll type
+            const radioMap: { [key: string]: SVGElement } = {
+                'trait': traitdice,
+                'damage': damagedice,
+                'standard': standarddice
+            };
+            if (radioMap[rollType]) {
+                setRadio(radioMap[rollType]);
+            }
+            // Set modifier
+            setSpinner(modifierSpinner, modifierCurrent, modifier);
+            // Clear counters
+            clearCounters();
+            // Set counters for the dice
+            const counts = parseDiceString(die);
+            const counterMap: { [key: string]: SVGElement } = {
+                '4': d4Button,
+                '6': d6Button,
+                '8': d8Button,
+                '10': d10Button,
+                '12': d12Button,
+                '20': d20Button,
+                '100': d100Button
+            };
+            for (const [sides, count] of Object.entries(counts)) {
+                if (counterMap[sides]) {
+                    updateCounter(counterMap[sides].nextElementSibling as HTMLElement, count);
+                }
+            }
+            // Roll the dice
+            rollTheDice();
+        }
+        // Clear the request (done by all players to clean up)
+        OBR.room.setMetadata({ rollRequest: undefined });
     }
 }
 
@@ -1140,7 +1202,7 @@ async function rollTheDice() {
     DB.dieLabel = getDieLabel(DB.rollType)
 
     clearCounters();
-    DICE_CONFIGS.forEach(_dc=>audio.play());
+    DICE_CONFIGS.forEach(_dc => audio.play());
     await DB.roll(DICE_CONFIGS, { newStartPoint: true });
 }
 function canAce(rollType: string, breaking: boolean): boolean {
@@ -1202,7 +1264,7 @@ async function rerollTheDice() {
         }
 
         if (LAST_ROLL.rollResult.length) {
-            DICE_CONFIGS.forEach(_dc=>audio.play());
+            DICE_CONFIGS.forEach(_dc => audio.play());
             await DB.roll(DICE_CONFIGS, { newStartPoint: true });
         }
     }

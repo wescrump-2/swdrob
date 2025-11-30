@@ -24,7 +24,10 @@ export default defineConfig(({ command, mode }) => {
       manifest: true,
       outDir: 'dist',
       rollupOptions: {
-        input: resolve(__dirname, 'index.html'),
+        input: [
+          resolve(__dirname, 'index.html'),
+          resolve(__dirname, 'popup.html'),
+        ],
       },
       minify: 'esbuild',
       sourcemap: true,
