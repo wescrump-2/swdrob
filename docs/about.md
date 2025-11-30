@@ -2,8 +2,8 @@
 title: Savage Owlbear Dice
 description: Savage Worlds Dice roller extension for Owlbear Rodeo.
 author: Wes Crump
-image: https://swdrob.vercel.app/docs/savagedice.png
-icon: https://swdrob.vercel.app/logo.png
+image: https://swdrob.vercel.app/docs/logo.png
+icon: https://swdrob.vercel.app/docs/icon.svg
 tags:
   - savage-worlds
   - dice
@@ -12,7 +12,20 @@ manifest: https://swdrob.vercel.app/manifest.json
 
 # Savage Owlbear Dice
 
-A custom 3D dice roller extension for Savage Worlds Adventure Edition (SWADE) fans using Owlbear Rodeo. This extension simulates the unique dice mechanics of SWADE, including exploding dice (acing), wild dice, success/raise calculations, and more.
+A custom 3D dice roller extension for Savage Worlds Adventure Edition (SWADE) fans using [Owlbear Rodeo](https://owlbear-rodeo.com/). This extension simulates the unique dice mechanics of SWADE, including exploding dice (acing), wild dice, success/raise calculations, and more.
+
+## Overview
+
+This extension implements the Savage Worlds Dice Rolling system. This extension supports many of the unique dice mechanics and rules of Savage Worlds with Wild Dice, Aceing(exploding dice), success/raise calculation, critical failures, and more, making it simple to set modifiers for wounds, fatigue, bonus damage, having a joker, breaking things. 
+
+## Getting Started
+
+### Installation
+
+1. Install the extension from the manifest at https://swdrob.vercel.app/manifest.json
+2. Open your Owlbear Rodeo scene
+3. Click the Savage Owlbear Dice icon ![Savage Worlds Dice](icon.svg) in the toolbar to open the dice tray
+
 
 ## How It Works
 
@@ -29,12 +42,12 @@ The extension supports three roll modes: Trait Rolls, Damage Rolls, and Standard
 Used for skill checks, attacks, spellcasting, and other trait-based rolls. Trait rolls determine success based on meeting or exceeding a Target Number (TN), with possible raises.
 
 **Controls:**
-- **Target Number**: ![Target Number](targetnumber.png) Spinner (4-24, default 4) - The number to beat for success.
+- **Target Number**: ![Target Number](targetnumber.png) Spinner (4-24, default 4) - The number to meet or beat for success.
 - **Modifier**: ![Modifier](modifier.png) Spinner (-14 to +14, default 0) - Bonus/penalty applied to the roll.
 - **Wild Die**: ![Wild Die](wilddie.png) Toggle to enable/disable the wild die (d6 by default, selectable type).
 - **Wild Die Type**: ![Wild Die](wilddietype.png) Dropdown to select wild die size (d6, d8, d10, d12).
 - **Opposed Roll**: ![Opposed Roll](opposedroll.png) Toggle to set Target Number to the result of the most recent trait roll by another player.
-- **Joker Drawn**: ![Joker Drawn](jokerdrawn.png) Toggle (+2 modifier) when a Joker is drawn from the Action Deck.
+- **Joker Drawn**: ![Joker Drawn](jokerdrawn.png) Toggle (+2 modifier) when your character gets Joker from the Action Deck.
 - **Wounds**: ![Wounds](wound.png) Three toggles (-1 each) for wound penalties.
 - **Fatigue**: ![Fatigue](fatigue.png) Two toggles (-1 each) for fatigue penalties.
 - **Dice Selection**: ![Dice Selection](diceselection.png) d4, d6, d8, d10, d12 - Click to add trait dice to the tray.

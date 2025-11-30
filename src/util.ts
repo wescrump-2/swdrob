@@ -1,5 +1,3 @@
-import OBR from "@owlbear-rodeo/sdk";
-
 export class Util {
     static ID = "com.wescrump.dice-roller";
     static DiceHistoryMkey = `${Util.ID}/rollHistory`;
@@ -8,8 +6,7 @@ export class Util {
     static readonly BUTTON_CLASS = 'btn';
     static readonly ACTIVE_CLASS = 'active';
     static readonly SVG_NAMESPACE = "http://www.w3.org/2000/svg";
-
-
+    
     static hexToRgb(hex: string): { r: number; g: number; b: number } {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         return result ? {
@@ -354,15 +351,6 @@ export class Util {
         return colors;
     }
 
-
-    /**
-     * Creates a button with specified properties.
-     * @param id - The id for the button.
-     * @param title - The title/tooltip for the button.
-     * @param imageKey - The key to find the appropriate SVG icon.
-     * @param uuid - A unique identifier for the button.
-     * @returns A newly created HTMLButtonElement.
-     */
     static getButton(id: string, title: string, imageKey: string, uuid: string): HTMLButtonElement {
         const button = document.createElement('button') as HTMLButtonElement;
         button.id = id;
@@ -386,13 +374,13 @@ export class Util {
             const path = svgDocument.querySelector(`#${imageKey}`) as SVGElement;
 
             if (path) {
-                let vbpath = path.getAttribute("viewbox")
+                let vbpath = path.getAttribute('viewBox');
                 if (!vbpath)
-                    vbpath = '0 0 512 512'
-                svg.setAttribute('viewBox', vbpath)
-                svg.innerHTML = path.outerHTML
-                svg.setAttribute('width', Util.sizePixels(css))
-                svg.setAttribute('height', Util.sizePixels(css))
+                    vbpath = '0 0 512 512';
+                svg.setAttribute('viewBox', vbpath);
+                svg.innerHTML = path.outerHTML;
+                svg.setAttribute('width', Util.sizePixels(css));
+                svg.setAttribute('height', Util.sizePixels(css));
             }
         }
     }
@@ -417,144 +405,3 @@ export class Util {
     }
 }
 
-
-export class Debug {
-    private static _enabled = false;
-    private static wasEnabled = false;
-
-    static get enabled() {
-        return this._enabled;
-    }
-
-    static updateFromPlayers(names: string[]) {
-        const hasDebugPlayer = names.some(p =>
-            p.toLowerCase().includes("debug")
-        );
-
-        if (hasDebugPlayer !== this._enabled) {
-            this._enabled = hasDebugPlayer;
-
-            if (hasDebugPlayer && !this.wasEnabled) {
-                console.log(
-                    "%cINITIATIVE DEBUG MODE ACTIVATED — 'debug' player in room.'",
-                    "color: lime; background: #000; font-weight: bold; font-size: 16px; padding: 8px 12px; border-radius: 4px;"
-                );
-            }
-            if (!hasDebugPlayer && this.wasEnabled) {
-                console.log(
-                    "%cINITIATIVE DEBUG MODE DEACTIVATED — no 'debug' player in room.",
-                    "color: red; background: #000; font-weight: bold; font-size: 16px; padding: 8px 12px; border-radius: 4px;"
-                );
-            }
-            this.wasEnabled = hasDebugPlayer;
-        }
-    }
-
-    static log(...args: any[]) {
-        if (this._enabled) console.log(...args);
-    }
-
-    static warn(...args: any[]) {
-        if (this._enabled) console.warn(...args);
-    }
-
-    static error(...args: any[]) {
-        if (this._enabled) console.error(...args);
-    }
-}// end Debug
-
-
-// --- List ALL room metadata keys and their sizes ---
-export async function dumpRoomMetadata() {
-    const meta = await OBR.room.getMetadata();
-    Debug.log("=== ROOM METADATA ===");
-    for (const [key, value] of Object.entries(meta)) {
-        const size = JSON.stringify(value).length;
-        Debug.log(`${key}  →  ${size} bytes`, value);
-    }
-}
-
-// --- List ALL extensions that have stored something on scene items ---
-export async function findItemMetadataKeys() {
-    const items = await OBR.scene.items.getItems();
-    const keys = new Set();
-    items.forEach(item => {
-        if (item.metadata) {
-            Object.keys(item.metadata).forEach(k => keys.add(k));
-        }
-    });
-    Debug.log("=== METADATA KEYS FOUND ON SCENE ITEMS ===");
-    Debug.log(Array.from(keys).sort());
-}
-
-/**
- * Improved cleanup: Deletes keys by setting them to null individually (reliable removal).
- * Retries on failure and checks total size to avoid 16 kB errors.
- */
-export async function cleanupDeadExtensionMetadata() {
-    try {
-        const roomMetadata = await OBR.room.getMetadata();
-        
-        // Log current size for debugging
-        const currentSize = new TextEncoder().encode(JSON.stringify(roomMetadata)).length;
-        Debug.log(`Current room metadata size: ${currentSize} bytes`);
-
-        if (currentSize > 16000) {  // Close to limit — abort to avoid write failure
-            console.warn("Room metadata too large (>15 kB). Manual room reset needed.");
-            return;
-        }
-
-        const keysToDelete: string[] = [];
-        const activeIds: string[] = [
-            "com.battle-system.mark/metadata_marks",
-            "com.wescrump.dice-roller/player/rollHistory",
-            // Add more prefixes here as needed
-        ];
-
-        // Find keys matching active (conflicting) prefixes
-        for (const prefix of activeIds) {
-            const matchingKey = Object.keys(roomMetadata).find(k => k.startsWith(prefix));
-            if (matchingKey) {
-                keysToDelete.push(matchingKey);
-            }
-        }
-
-        if (keysToDelete.length === 0) {
-            Debug.log("No conflicting keys found.");
-            return;
-        }
-
-        Debug.log(`Found ${keysToDelete.length} conflicting keys:`, keysToDelete);
-
-        // Delete each key individually by setting to null (reliable method)
-        let successCount = 0;
-        for (const key of keysToDelete) {
-            try {
-                await OBR.room.setMetadata({ [key]: null });  // Explicit null = delete
-                successCount++;
-                Debug.log(`Deleted key: ${key}`);
-            } catch (deleteErr: unknown) {
-                console.error(`Failed to delete ${key}:`, deleteErr);
-                // Optional: Retry once after delay
-                setTimeout(async () => {
-                    try {
-                        await OBR.room.setMetadata({ [key]: null });
-                        Debug.log(`Retried and deleted: ${key}`);
-                    } catch (retryErr) {
-                        console.error(`Retry failed for ${key}:`, retryErr);
-                    }
-                }, 500);
-            }
-        }
-
-        Debug.log(`Cleanup complete: ${successCount}/${keysToDelete.length} keys deleted.`);
-
-        // Final size check
-        const newMetadata = await OBR.room.getMetadata();
-        const newSize = new TextEncoder().encode(JSON.stringify(newMetadata)).length;
-        Debug.log(`New room metadata size: ${newSize} bytes (reduced by ${currentSize - newSize} bytes)`);
-
-    } catch (err: unknown) {
-        console.error("Overall cleanup failed (safe to ignore):", err);
-    }
-}

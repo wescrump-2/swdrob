@@ -4,7 +4,9 @@ import DiceBox from "https://unpkg.com/@3d-dice/dice-box@1.1.4/dist/dice-box.es.
 import OBR, { isImage, Image } from "@owlbear-rodeo/sdk";
 import * as pako from 'pako';
 
-import { cleanupDeadExtensionMetadata, Debug, dumpRoomMetadata, findItemMetadataKeys, Util } from './util';
+import { Util } from './util';
+import { Savaged } from './savaged';
+import { Debug } from './debug';
 import { CONST } from "./constants";
 import './styles.css';
 import buttonsImage from './buttons.svg';
@@ -525,14 +527,41 @@ OBR.onReady(async () => {
         const initialItems = (await OBR.scene.items.getItems())
             .filter((item): item is Image => item.layer === "CHARACTER" && isImage(item));
         Debug.updateFromPlayers(initialItems.map(i => i.name))
+
+        await Savaged.checkProxyStatus();
+
+        // Debug.log("Testing API connection...");
+        // const connectionValid = await Savaged.testApiConnection(Savaged.API_KEY);
+        // if (!connectionValid) {
+        //     Debug.error("API connection test failed. Skipping character and bestiary fetches.");
+        //     return;
+        // }
+
+        // const char1 = await Savaged.parseCharacterFromURL("https://savaged.us/s/greedeegrimstone");
+        // console.log(JSON.stringify(char1));
+
+        // const char2 = await Savaged.parseCharacterFromURL("https://svgd.us/ingrid");
+        // console.log(JSON.stringify(char2));
+        // const swuser = await Util.fetchUserData(Util.API_KEY);
+        // console.log(swuser);
+        // const swsaved = await Util.fetchSaved(Util.API_KEY);
+        // console.log(swsaved);
+        // const swchar = await Util.fetchThisCharacter(Util.API_KEY,"ed567f3b-5ad7-486e-a969-15c7c2bba99f");
+        // console.log(swchar);
+
+        // const swchars = await Util.fetchCharacters(Util.API_KEY);
+        // console.log(swchars);
+
+        // const swBeasts = await Util.searchBestiary(Util.API_KEY,"spider");
+        // console.log(swBeasts);
     }
 
     await initializeExtension();
-    if (Debug.enabled) {
-        await dumpRoomMetadata();
-        await findItemMetadataKeys();
-        await cleanupDeadExtensionMetadata();
-    }
+    
+    await Debug.dumpRoomMetadata();
+    await Debug.findItemMetadataKeys();
+    await Debug.cleanupDeadExtensionMetadata();
+
     const unsubscribe = OBR.room.onMetadataChange(onRoomMetadataChange)
     window.addEventListener('beforeunload', () => unsubscribe());
 });
