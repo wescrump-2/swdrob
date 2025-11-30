@@ -574,6 +574,8 @@ let ROLL_HISTORY: SWDR[] = [];
 const DICECOLORS = Util.generateColorCodes();
 let dice_color = 0;
 setDiceColor(dice_color);
+const audio = new Audio("/assets/dice-roll.mp3");
+audio.loop = false;
 const DB = new DiceBox({
     assetPath: "assets/",
     origin: "https://unpkg.com/@3d-dice/dice-box@1.1.4/dist/",
@@ -586,7 +588,7 @@ const DB = new DiceBox({
     //   },
     themeColor: CONST.COLOR_THEMES.PRIMARY,
     textColor: '#FFFFFF',
-    offscreen: true,
+    offscreen: false,
     scale: 6, //8,
     friction: .75,
     restitution: 0,
@@ -594,12 +596,13 @@ const DB = new DiceBox({
     throwForce: 8, //5,
     spinForce: 8, //6,
     settleTimeout: 3000,
-    mass: 1,
+    mass: 5,
     delay: 50, //100,
     lightIntensity: 0.75,
     //discordResponse: null,
     onDieComplete: async (dieResult: DieResult) => {
         if (DB.acing && dieResult.value === sidesNumber(dieResult.sides)) {
+            audio.play();
             await DB.add(dieResult, { newStartPoint: true });
         }
     },
@@ -1137,6 +1140,7 @@ async function rollTheDice() {
     DB.dieLabel = getDieLabel(DB.rollType)
 
     clearCounters();
+    DICE_CONFIGS.forEach(_dc=>audio.play());
     await DB.roll(DICE_CONFIGS, { newStartPoint: true });
 }
 function canAce(rollType: string, breaking: boolean): boolean {
@@ -1198,6 +1202,7 @@ async function rerollTheDice() {
         }
 
         if (LAST_ROLL.rollResult.length) {
+            DICE_CONFIGS.forEach(_dc=>audio.play());
             await DB.roll(DICE_CONFIGS, { newStartPoint: true });
         }
     }
