@@ -1,6 +1,7 @@
 import OBR from "@owlbear-rodeo/sdk";
 import { Util } from "./util";
 import { Character, Savaged, Trait } from "./savaged";
+import { Debug } from "./debug";
 
 const DEFAULT_STATBLOCK: Character = {
   name: "default",
@@ -29,12 +30,12 @@ const DEFAULT_STATBLOCK: Character = {
 };
 
 OBR.onReady(async () => {
-  console.log("Popup onReady called");
+  Debug.log("Popup onReady called");
   const urlParams = new URLSearchParams(window.location.search);
   const itemId = urlParams.get('itemId');
-  console.log("Item ID from URL:", itemId);
+  Debug.log("Item ID from URL:", itemId);
   if (!itemId) {
-    console.error("No itemId in URL params");
+    Debug.error("No itemId in URL params");
     return; // Can't proceed without itemId
   }
 
@@ -55,7 +56,7 @@ OBR.onReady(async () => {
       // Check if we have a URL to refresh from
       if (metadata.url) {
         try {
-          console.log('Stored data is stale, refreshing from URL...');
+          Debug.log('Stored data is stale, refreshing from URL...');
           const freshCharacter = await Savaged.parseCharacterFromURL(metadata.url);
           // Update metadata with fresh data
           await OBR.scene.items.updateItems([itemId], (items) => {
@@ -93,10 +94,10 @@ OBR.onReady(async () => {
     if (input.id) {
       const label = document.querySelector(`label[for="${input.id}"]`);
       if (!label) {
-        console.log('Input without explicit label association:', input);
+        Debug.log('Input without explicit label association:', input);
       }
     } else {
-      console.log('Input without id:', input);
+      Debug.log('Input without id:', input);
     }
   });
 
@@ -207,7 +208,7 @@ function populateForm(character: Character) {
   // Arcane Info
   const arcaneInfoDiv = document.getElementById("arcane-info")!;
   arcaneInfoDiv.innerHTML = "";
-  if (character.powers && character.powers.length > 0 && character.arcaneBackground) {
+  if (character.arcaneBackground) {
     const p = document.createElement("p");
     p.className = "popup-arcane-info";
     p.textContent = `${character.arcaneBackground} (Skill: ${character.arcaneSkill || 'unknown'})`;

@@ -95,7 +95,12 @@ export class Savaged {
     static PROXY_BASE = "https://owlbearproxy.vercel.app/api/proxy";
     static proxy_url_base = "https://owlbearproxy.vercel.app/url/proxy";
     static API_KEY: string = '12271xNGRlMzAyYTctMzJkMy00NzhhLThiYmUtZTQ1NDU2YWIyNWY0';
-
+/*
+"/auth/get-saves"
+"/campaigns/get-setting-from-session-id"
+"/wc/bestiary-export-json-generic/"
+"/wc/bestiary-fantasy-grounds/"
+*/
     static async checkProxyStatus(): Promise<number> {
         Debug.log("Checking proxy server status...");
         try {
@@ -439,9 +444,25 @@ export class Savaged {
                 //Debug.log(`Parsed ${weaponParts.length} weapons`);
             }
             // Arcane Background
-            const arcaneMatch = text.match(/Arcane Background: ([^<]*)/i);
-            if (arcaneMatch) {
-                const bgName = arcaneMatch[1].trim().split(' (')[0]; // e.g., "Cleric" or "Arcane"
+            const arcaneStrong = Array.from(doc.querySelectorAll('strong')).find(strong => strong.textContent?.trim() === 'Arcane Background');
+            if (arcaneStrong) {
+                let arcaneStr = '';
+                let current = arcaneStrong.nextSibling;
+                while (current) {
+                    if (current.nodeType === Node.TEXT_NODE) {
+                        arcaneStr += current.textContent;
+                    } else if (current.nodeType === Node.ELEMENT_NODE) {
+                        const el = current as Element;
+                        if (el.tagName === 'BR' || el.tagName === 'UL' || el.tagName === 'STRONG') {
+                            break;
+                        }
+                    }
+                    current = current.nextSibling;
+                }
+                if (arcaneStr.startsWith(': ')) {
+                    arcaneStr = arcaneStr.substring(2);
+                }
+                const bgName = arcaneStr.trim().split(' (')[0]; // e.g., "Cleric" or "Arcane"
                 const skillMap: { [key: string]: string } = {
                     'Bard': 'performance',
                     'Cleric': 'faith',
@@ -456,7 +477,7 @@ export class Savaged {
                 const skillName = skillMap[bgName] || 'spellcasting';
                 const arcaneDie = getSkillDie(skillName) || getSkillDie('unskilled');
                 character.skills.push({ name: 'arcane', die: arcaneDie });
-                character.arcaneBackground = arcaneMatch[1].trim();
+                character.arcaneBackground = arcaneStr.trim();
                 character.arcaneSkill = skillName;
                 //Debug.log(`Parsed arcane background: "${character.arcaneBackground}", skill: "${skillName}", die: "${arcaneDie}"`);
             }

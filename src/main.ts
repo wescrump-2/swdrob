@@ -475,6 +475,7 @@ class RollResult {
 export let playerCache = {
     name: "Unknown Player",
     id: "unknown",
+    isGm: false,
     ready: false
 };
 
@@ -501,13 +502,15 @@ async function setPlayer(r: SWDR) {
     // Now safe to get player info
     try {
 
-        const [name, id] = await Promise.all([
+        const [name, id, role] = await Promise.all([
             OBR.player.getName(),
-            OBR.player.getId()
+            OBR.player.getId(),
+            OBR.player.getRole()
         ]);
 
         playerCache.name = name;
         playerCache.id = id;
+        playerCache.isGm = role==='GM';
         playerCache.ready = true;
 
         r.playerName = name;
@@ -559,14 +562,14 @@ OBR.onReady(async () => {
 
     OBR.scene.onReadyChange(async () => {
         const isReady = await OBR.scene.isReady();
-        console.log("OBR.scene.isReady() returned:", isReady);
+        Debug.log("OBR.scene.isReady() returned:", isReady);
         if (isReady) {
-            console.log("Scene is ready, executing scene-dependent code");
+            Debug.log("Scene is ready, executing scene-dependent code");
             const initialItems = (await OBR.scene.items.getItems())
                 .filter((item): item is Image => item.layer === "CHARACTER" && isImage(item));
             Debug.updateFromPlayers(initialItems.map(i => i.name))
         } else {
-            console.log("Scene is not ready, skipping scene-dependent code");
+            Debug.log("Scene is not ready, skipping scene-dependent code");
         }
     })
 

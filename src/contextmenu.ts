@@ -17,10 +17,14 @@ export function createContextMenu() {
       },
     ],
     onClick: async (context: { items: Item[] }) => {
-      const character = context.items.find((item) => item.createdUserId === playerCache.id && item.layer === "CHARACTER" && item.type === "IMAGE");
+      const character = context.items.find((item) =>  item.layer === "CHARACTER" && item.type === "IMAGE");
       if (!character) {
         Debug.log("No character found in context items");
         return;
+      }
+
+      if (!playerCache.isGm && character.createdUserId != playerCache.id) {
+        OBR.notification.show("Access restricted to characters that belong to you.", "WARNING");
       }
 
       try {
