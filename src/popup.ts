@@ -4,7 +4,7 @@ import { Character, Savaged, Trait } from "./savaged";
 import { Debug } from "./debug";
 
 const DEFAULT_STATBLOCK: Character = {
-  name: "default",
+  name: "",
   attributes: [
     { name: "agility", die: "d6" },
     { name: "smarts", die: "d6" },
@@ -22,8 +22,8 @@ const DEFAULT_STATBLOCK: Character = {
   ],
   weapons: [],
   pace: 6,
-  parry: 5,
-  toughness: 6,
+  parry: 2,
+  toughness: 5,
   edges: [],
   hindrances: [],
   gear: [],
