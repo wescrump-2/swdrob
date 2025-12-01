@@ -338,9 +338,27 @@ export class Savaged {
                 //Debug.log(`Parsed ${skillsMatch[1].split(', ').length} skills`);
             }
             // Weapons
-            const weaponsMatch = text.match(/<strong>Weapons<\/strong>: ([^<]*)/);
-            if (weaponsMatch) {
-                const weaponsStr = weaponsMatch[1];
+            const weaponsStrong = Array.from(doc.querySelectorAll('strong')).find(strong => strong.textContent?.trim() === 'Weapons');
+            if (weaponsStrong) {
+                let weaponsStr = '';
+                let current = weaponsStrong.nextSibling;
+                while (current) {
+                    if (current.nodeType === Node.TEXT_NODE) {
+                        weaponsStr += current.textContent;
+                    } else if (current.nodeType === Node.ELEMENT_NODE) {
+                        const el = current as Element;
+                        if (el.tagName === 'SUP') {
+                            // include sup text with parentheses
+                            weaponsStr += ' (' + el.textContent + ')';
+                        } else if (el.tagName === 'BR' || el.tagName === 'STRONG') {
+                            break;
+                        }
+                    }
+                    current = current.nextSibling;
+                }
+                if (weaponsStr.startsWith(': ')) {
+                    weaponsStr = weaponsStr.substring(2);
+                }
                 //Debug.log(`Weapons string: "${weaponsStr}"`);
                 const weaponParts = weaponsStr.split('), ');
                 character.weapons = [];
@@ -373,7 +391,6 @@ export class Savaged {
                         });
                         let damage = detailMap['damage'];
                         if (damage) {
-                            damage = damage.replace('<sup>us<\/sup>', '');
                             // Substitute attribute abbreviations with actual dice
                             const getAttributeDie = (name: string) => character.attributes.find(t => t.name === name)?.die || 'd4';
                             damage = damage.replace(/Str/gi, getAttributeDie('strength'));
@@ -519,10 +536,26 @@ export class Savaged {
                 //Debug.log(`Parsed ${character.hindrances!.length} hindrances`);
             }
             // Gear
-            const gearMatch = text.match(/<strong>Gear<\/strong>: ([^<]*)/);
-            if (gearMatch) {
+            const gearStrong = Array.from(doc.querySelectorAll('strong')).find(strong => strong.textContent?.trim() === 'Gear');
+            if (gearStrong) {
+                let gearStr = '';
+                let current = gearStrong.nextSibling;
+                while (current) {
+                    if (current.nodeType === Node.TEXT_NODE) {
+                        gearStr += current.textContent;
+                    } else if (current.nodeType === Node.ELEMENT_NODE) {
+                        const el = current as Element;
+                        if (el.tagName === 'BR' || el.tagName === 'STRONG') {
+                            break;
+                        }
+                    }
+                    current = current.nextSibling;
+                }
+                if (gearStr.startsWith(': ')) {
+                    gearStr = gearStr.substring(2);
+                }
                 character.gear = [];
-                splitIgnoringParentheses(gearMatch[1], ', ').forEach(g => {
+                splitIgnoringParentheses(gearStr, ', ').forEach(g => {
                     g = g.trim();
                     const containerMatch = g.match(/^(.+?)\s*\(Contains:?\s*(.+)\)$/);
                     if (containerMatch) {
@@ -535,7 +568,7 @@ export class Savaged {
                         character.gear!.push(g);
                     }
                 });
-                //Debug.log(`Parsed ${character.gear.length} gear items`);
+                //Debug.log(`Parsed ${character.gear?.length} gear items`);
             }
             // Languages
             const languagesMatch = text.match(/<strong>Languages<\/strong>: ([^<]*)/);
