@@ -815,54 +815,66 @@ function parseDiceString(diceStr: string): { [key: number]: number } {
 }
 
 async function onRoomMetadataChange(metadata: any) {
-    if (metadata[Util.DiceHistoryMkey]) {
-        const storedHistory = metadata[Util.DiceHistoryMkey] as Uint8Array
-        ROLL_HISTORY = decompress(storedHistory)
-        const logContainer = document.getElementById('log-entries');
-        if (logContainer) {
-            logContainer.innerHTML = '';
-        }
-        renderLog(ROLL_HISTORY)
+  if (metadata[Util.DiceHistoryMkey]) {
+    const storedHistory = metadata[Util.DiceHistoryMkey] as Uint8Array
+    ROLL_HISTORY = decompress(storedHistory)
+    const logContainer = document.getElementById('log-entries');
+    if (logContainer) {
+      logContainer.innerHTML = '';
     }
-    if (metadata.rollRequest) {
-        const { die, rollType, modifier, playerId } = metadata.rollRequest;
-        const currentPlayerId = await OBR.player.getId();
-        if (playerId === currentPlayerId) {
-            // Set roll type
-            const radioMap: { [key: string]: SVGElement } = {
-                'trait': traitdice,
-                'damage': damagedice,
-                'standard': standarddice
-            };
-            if (radioMap[rollType]) {
-                setRadio(radioMap[rollType]);
-            }
-            // Set modifier
-            setSpinner(modifierSpinner, modifierCurrent, modifier);
-            // Clear counters
-            clearCounters();
-            // Set counters for the dice
-            const counts = parseDiceString(die);
-            const counterMap: { [key: string]: SVGElement } = {
-                '4': d4Button,
-                '6': d6Button,
-                '8': d8Button,
-                '10': d10Button,
-                '12': d12Button,
-                '20': d20Button,
-                '100': d100Button
-            };
-            for (const [sides, count] of Object.entries(counts)) {
-                if (counterMap[sides]) {
-                    updateCounter(counterMap[sides].nextElementSibling as HTMLElement, count);
-                }
-            }
-            // Roll the dice
-            rollTheDice();
+    renderLog(ROLL_HISTORY)
+  }
+  if (metadata.rollRequest) {
+    const { dice, rollType, modifier, playerId } = metadata.rollRequest;
+    const currentPlayerId = await OBR.player.getId();
+    if (playerId === currentPlayerId) {
+      // Set roll type
+      const radioMap: { [key: string]: SVGElement } = {
+        'trait': traitdice,
+        'damage': damagedice,
+        'standard': standarddice
+      };
+      if (radioMap[rollType]) {
+        setRadio(radioMap[rollType]);
+      }
+      // Set modifier
+      setSpinner(modifierSpinner, modifierCurrent, modifier);
+      // Clear counters
+      clearCounters();
+
+      // Use the dice array to build a proper dice string
+      let diceStringToParse = '';
+      if (dice && Array.isArray(dice) && dice.length > 0) {
+        diceStringToParse = dice.join('+');
+        Debug.log(`Using dice array format: ${diceStringToParse} with modifier ${modifier}`);
+      } else {
+        // Fallback for empty or invalid dice arrays
+        diceStringToParse = 'd6';
+        Debug.log(`Fallback to default die: ${diceStringToParse}`);
+      }
+
+      // Set counters for the dice
+      const counts = parseDiceString(diceStringToParse);
+      const counterMap: { [key: string]: SVGElement } = {
+        '4': d4Button,
+        '6': d6Button,
+        '8': d8Button,
+        '10': d10Button,
+        '12': d12Button,
+        '20': d20Button,
+        '100': d100Button
+      };
+      for (const [sides, count] of Object.entries(counts)) {
+        if (counterMap[sides]) {
+          updateCounter(counterMap[sides].nextElementSibling as HTMLElement, count);
         }
-        // Clear the request (done by all players to clean up)
-        OBR.room.setMetadata({ rollRequest: undefined });
+      }
+      // Roll the dice
+      rollTheDice();
     }
+    // Clear the request (done by all players to clean up)
+    OBR.room.setMetadata({ rollRequest: undefined });
+  }
 }
 
 async function initializeExtension() {

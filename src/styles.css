@@ -485,7 +485,8 @@ h2 {
   display: block;
   height: 100vh;
   width: auto;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .popup-label {
