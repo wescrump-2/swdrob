@@ -122,10 +122,16 @@ OBR.onReady(async () => {
         }
       });
       storedChar = await applyData(itemId, storedChar);
+      // Scroll to top after loading
+      document.body.scrollTop = 0;
+      document.documentElement.scrollTop = 0;
       //urlInput.value = "";
     } catch (e) {
       alert("Failed to load from URL");
       storedChar = await applyData(itemId, DEFAULT_STATBLOCK);
+      // Scroll to top after loading default
+      document.body.scrollTop = 0;
+      document.documentElement.scrollTop = 0;
     }
   };
 
