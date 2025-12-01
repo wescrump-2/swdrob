@@ -132,7 +132,7 @@ OBR.onReady(async () => {
       const displayName = trait.name.charAt(0).toUpperCase() + trait.name.slice(1);
       button.textContent = `${displayName} ${trait.die}`;
       button.type = "button";
-      button.className = "roll-btn attribute-btn";
+      button.className = "popup-roll-btn popup-attribute-btn";
       button.dataset.die = trait.die;
       button.dataset.type = "attribute";
       button.id = trait.name;
@@ -147,7 +147,7 @@ OBR.onReady(async () => {
       const displayName = trait.name.charAt(0).toUpperCase() + trait.name.slice(1);
       button.textContent = `${displayName} ${trait.die}`;
       button.type = "button";
-      button.className = "roll-btn skill-btn";
+      button.className = "popup-roll-btn popup-skill-btn";
       button.dataset.die = trait.die;
       button.dataset.skill = trait.name;
       skillsDiv.appendChild(button);
@@ -161,20 +161,48 @@ OBR.onReady(async () => {
         const button = document.createElement("button");
         button.textContent = `${weapon.name} ${weapon.damage}`;
         button.type = "button";
-        button.className = "roll-btn weapon-btn";
+        button.className = "popup-roll-btn popup-weapon-btn";
         button.dataset.die = weapon.damage;
         button.dataset.weapon = weapon.name;
         weaponsDiv.appendChild(button);
       }
     });
 
+    // Powers
+    const powersDiv = document.getElementById("powers")!;
+    powersDiv.innerHTML = "";
+    (character.powers || []).forEach((power) => {
+      if (!power || !power.name) return;
+      const button = document.createElement("button");
+      const displayText = power.name;
+      button.title =  power.book && power.page ? `${power.book} p${power.page}` : '';
+      button.textContent = displayText;
+      button.type = "button";
+      button.className = "popup-roll-btn popup-power-btn";
+      button.dataset.die = char.arcaneDie;
+      button.dataset.skill = char.arcaneSkill;
+      powersDiv.appendChild(button);
+    });
+
+    // Arcane Info
+    const arcaneInfoDiv = document.getElementById("arcane-info")!;
+    arcaneInfoDiv.innerHTML = "";
+    if (character.powers && character.powers.length > 0 && character.arcaneBackground) {
+      const p = document.createElement("p");
+      p.className = "popup-arcane-info";
+      p.textContent = `${character.arcaneBackground} (Skill: ${character.arcaneSkill || 'unknown'})`;
+      arcaneInfoDiv.appendChild(p);
+    }
+
     // Other fields
-    if (character.pace !== undefined) (document.getElementById("pace") as HTMLInputElement).value = String(character.pace);
-    if (character.parry !== undefined) (document.getElementById("parry") as HTMLInputElement).value = String(character.parry);
-    if (character.toughness !== undefined) (document.getElementById("toughness") as HTMLInputElement).value = String(character.toughness);
+    if (character.pace !== undefined) (document.getElementById("pace") as HTMLSpanElement).textContent = String(character.pace);
+    if (character.parry !== undefined) (document.getElementById("parry") as HTMLSpanElement).textContent = String(character.parry);
+    if (character.toughness !== undefined) (document.getElementById("toughness") as HTMLSpanElement).textContent = String(character.toughness);
     if (character.edges) (document.getElementById("edges") as HTMLTextAreaElement).value = character.edges.join("\n");
     if (character.hindrances) (document.getElementById("hindrances") as HTMLTextAreaElement).value = character.hindrances.join("\n");
     if (character.gear) (document.getElementById("gear") as HTMLTextAreaElement).value = character.gear.join("\n");
+    if (character.specialAbilities) (document.getElementById("specialAbilities") as HTMLTextAreaElement).value = character.specialAbilities.join("\n");
+    if (character.advances) (document.getElementById("advances") as HTMLTextAreaElement).value = character.advances.join("\n");
   }
 
   // Parse die string like "d4-2" into { die: "d4", modifier: -2 }
@@ -188,7 +216,7 @@ OBR.onReady(async () => {
 
   // Function to add click handlers for rolling
   function addRollHandlers() {
-    document.querySelectorAll('.roll-btn').forEach(btn => {
+    document.querySelectorAll('.popup-roll-btn').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.preventDefault();
         const target = e.target as HTMLButtonElement;
@@ -262,7 +290,7 @@ OBR.onReady(async () => {
       });
 
       // Skills
-      Array.from(document.querySelectorAll("#skills .skill-btn")).forEach(btn => {
+      Array.from(document.querySelectorAll("#skills .popup-skill-btn")).forEach(btn => {
         const b = btn as HTMLButtonElement;
         const parts = b.textContent?.split(' ') || [];
         if (parts.length >= 2) {
@@ -274,12 +302,14 @@ OBR.onReady(async () => {
         name: document.getElementById("title")!.textContent || "",
         attributes,
         skills,
-        pace: Number((document.getElementById("pace") as HTMLInputElement).value),
-        parry: Number((document.getElementById("parry") as HTMLInputElement).value),
-        toughness: Number((document.getElementById("toughness") as HTMLInputElement).value),
+        pace: saved.pace,
+        parry: saved.parry,
+        toughness: saved.toughness,
         edges: (document.getElementById("edges") as HTMLTextAreaElement).value.split("\n").filter(Boolean),
         hindrances: (document.getElementById("hindrances") as HTMLTextAreaElement).value.split("\n").filter(Boolean),
         gear: (document.getElementById("gear") as HTMLTextAreaElement).value.split("\n").filter(Boolean),
+        specialAbilities: (document.getElementById("specialAbilities") as HTMLTextAreaElement).value.split("\n").filter(Boolean),
+        advances: (document.getElementById("advances") as HTMLTextAreaElement).value.split("\n").filter(Boolean),
       };
     }
 

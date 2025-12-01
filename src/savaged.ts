@@ -1,6 +1,63 @@
 
 import { Debug } from './debug';
 
+export interface Trait {
+    name: string;
+    die: string;
+}
+export interface Weapon {
+    name: string;
+    attack?: string;
+    damage?: string;
+    range?: string;
+    reach?: string;
+    parry?: string;
+    rof?: string;
+    ap?: string;
+    thrownAttack?: string;
+}
+
+export interface Armor {
+    name: string;
+    value: number;
+}
+
+export interface Power {
+    name: string;
+    book?: string;
+    page?: string;
+}
+
+export interface Character {
+    name: string;
+    description?: string;
+    race?: string;
+    rank?: string;
+    gender?: string;
+    profession?: string;
+    background?: string;
+    experience?: number;
+    bennies?: number;
+    attributes: Trait[];
+    skills: Trait[];
+    pace?: number;
+    parry?: number;
+    toughness?: number;
+    armor?: Armor[];
+    edges?: string[];
+    hindrances?: string[];
+    weapons?: Weapon[];
+    gear?: string[];
+    languages?: string[];
+    wealth?: string;
+    arcaneBackground?: string;
+    arcaneSkill?: string;
+    powerPoints?: number;
+    powers?: Power[];
+    specialAbilities?: string[];
+    advances?: string[];
+}
+
 function splitIgnoringParentheses(str: string, separator: string): string[] {
     const result: string[] = [];
     let current = '';
@@ -32,56 +89,6 @@ function toCamelCase(str: string): string {
         .split(' ')
         .map((word, index) => index === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1))
         .join('');
-}
-
-export interface Trait {
-    name: string;
-    die: string;
-}
-export interface Weapon {
-    name: string;
-    attack?: string;
-    damage?: string;
-    range?: string;
-    reach?: string;
-    parry?: string;
-    rof?: string;
-    ap?: string;
-    thrownAttack?: string;
-}
-
-export interface Armor { 
-    name: string; 
-    value: number; 
-}
-
-export interface Character {
-    name: string;
-    description?: string;
-    race?: string;
-    rank?: string;
-    gender?: string;
-    profession?: string;
-    background?: string;
-    experience?: number;
-    bennies?: number;
-    attributes: Trait[];
-    skills: Trait[];
-    pace?: number;
-    parry?: number;
-    toughness?: number;
-    armor?: Armor[];
-    edges?: string[];
-    hindrances?: string[];
-    weapons?: Weapon[];
-    gear?: string[];
-    languages?: string[];
-    wealth?: string;
-    arcaneBackground?: string;
-    powerPoints?: number;
-    powers?: string[];
-    specialAbilities?: string[];
-    advances?: string[];
 }
 
 export class Savaged {
@@ -301,7 +308,6 @@ export class Savaged {
                 character.description = descH2.nextElementSibling.textContent?.trim();
             }
 
-            const getAttributeDie = (name: string) => character.attributes.find(t => t.name === name)?.die || 'd4';
             const getSkillDie = (name: string) => character.skills.find(t => t.name === name)?.die || 'd4-2';
 
             // Attributes
@@ -416,22 +422,45 @@ export class Savaged {
                 //Debug.log(`Parsed ${weaponParts.length} weapons`);
             }
             // Arcane Background
-            const arcaneMatch = text.match(/<strong>Arcane Background<\/strong>: ([^<]*)/);
+            const arcaneMatch = text.match(/Arcane Background: ([^<]*)/i);
             if (arcaneMatch) {
-                const smartsDie = getAttributeDie('smarts');
-                character.skills.push({ name: 'arcane', die: smartsDie });
+                const bgName = arcaneMatch[1].trim().split(' (')[0]; // e.g., "Cleric" or "Arcane"
+                const skillMap: { [key: string]: string } = {
+                    'Bard': 'performance',
+                    'Cleric': 'faith',
+                    'Druid': 'faith',
+                    'Miracles': 'faith',
+                    'Alchemist': 'alchemy',
+                    'Oracle': 'faith',
+                    'Gifted': 'focus',
+                    'Psionics': 'psionics',
+                    'Weird Science': 'weird science'
+                };
+                const skillName = skillMap[bgName] || 'spellcasting';
+                const arcaneDie = getSkillDie(skillName) || getSkillDie('unskilled');
+                character.skills.push({ name: 'arcane', die: arcaneDie });
                 character.arcaneBackground = arcaneMatch[1].trim();
-                //Debug.log(`Parsed arcane background: "${character.arcaneBackground}"`);
+                character.arcaneSkill = skillName;
+                //Debug.log(`Parsed arcane background: "${character.arcaneBackground}", skill: "${skillName}", die: "${arcaneDie}"`);
             }
             // Powers
-            const powersMatch = text.match(/<strong>Powers<\/strong>: ([^<]*)/);
+            const powersMatch = text.match(/Powers: ([^<]*)/i);
             if (powersMatch) {
                 character.powers = [];
-                const arcaneDie = getSkillDie('arcane');
+                //const arcaneDie = getSkillDie(character.arcaneSkill);
                 powersMatch[1].split(', ').forEach(power => {
-                    const p = power.split(' (')[0];
-                    character.skills.push({ name: p.toLowerCase(), die: arcaneDie });
-                    character.powers!.push(p.trim());
+                    const match = power.trim().match(/(.*?) \((.*?) p(\d+)\)/);
+                    let name: string, book: string | undefined, page: string | undefined;
+                    if (match) {
+                        name = match[1].trim();
+                        book = match[2].trim();
+                        page = match[3].trim();
+                    } else {
+                        name = power.split(' (')[0].trim();
+                        book = undefined;
+                        page = undefined;
+                    }
+                    character.powers!.push({ name, book, page});
                 });
                 //Debug.log(`Parsed ${character.powers.length} powers`);
             }
@@ -527,16 +556,37 @@ export class Savaged {
                 //Debug.log(`Parsed power points: ${character.powerPoints}`);
             }
             // Special Abilities
-            const saMatch = text.match(/<strong>Special Abilities<\/strong>: ([^<]*)/);
-            if (saMatch) {
-                character.specialAbilities = saMatch[1].split(', ').map(s => s.trim());
-                //Debug.log(`Parsed ${character.specialAbilities.length} special abilities`);
+            const saH3 = Array.from(doc.querySelectorAll('h3')).find(h3 => h3.textContent?.trim() === 'Special Abilities');
+            if (saH3 && saH3.nextElementSibling && saH3.nextElementSibling.tagName === 'UL') {
+                const ul = saH3.nextElementSibling as HTMLUListElement;
+                const lis = ul.querySelectorAll('li');
+                character.specialAbilities = Array.from(lis).map(li => li.textContent?.trim() || '').filter(Boolean);
+                //Debug.log(`Parsed ${character.specialAbilities?.length} special abilities`);
             }
             // Advances
-            const advancesMatch = text.match(/<strong>Advances<\/strong>: ([^<]*)/);
-            if (advancesMatch) {
-                character.advances = advancesMatch[1].split(', ').map(a => a.trim());
-                //Debug.log(`Parsed ${character.advances.length} advances`);
+            const advancesH3 = Array.from(doc.querySelectorAll('h3')).find(h3 => h3.textContent?.trim() === 'Advances');
+            if (advancesH3) {
+                const advances: string[] = [];
+                let current = advancesH3.nextElementSibling;
+                let currentRank = '';
+                while (current) {
+                    if (current.tagName === 'STRONG' && current.textContent?.includes('Advances')) {
+                        const rankMatch = current.textContent.match(/^(.+?) Advances$/);
+                        if (rankMatch) {
+                            currentRank = rankMatch[1] + ': ';
+                        }
+                    } else if (current.tagName === 'UL') {
+                        const lis = current.querySelectorAll('li');
+                        Array.from(lis).forEach(li => {
+                            const text = li.textContent?.trim();
+                            if (text) advances.push(currentRank + text);
+                        });
+                    }
+                    current = current.nextElementSibling;
+                    if (current && current.tagName === 'H3') break; // stop at next h3
+                }
+                character.advances = advances;
+                //Debug.log(`Parsed ${character.advances?.length} advances`);
             }
             // Parse background
             const bgH2 = Array.from(doc.querySelectorAll('h2')).find(h2 => h2.textContent.trim().includes('Background'));
