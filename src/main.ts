@@ -1,7 +1,7 @@
 // Using @ts-ignore to bypass TypeScript's type checking for this line
 // @ts-ignore
 import DiceBox from "https://unpkg.com/@3d-dice/dice-box@1.1.4/dist/dice-box.es.min.js";
-import OBR, { isImage, Image } from "@owlbear-rodeo/sdk";
+import OBR from "@owlbear-rodeo/sdk";
 import * as pako from 'pako';
 
 import { Util } from './util';
@@ -510,7 +510,7 @@ async function setPlayer(r: SWDR) {
 
         playerCache.name = name;
         playerCache.id = id;
-        playerCache.isGm = role==='GM';
+        playerCache.isGm = role === 'GM';
         playerCache.ready = true;
 
         r.playerName = name;
@@ -553,6 +553,8 @@ async function testUrlExtraction() {
     // console.log(swBeasts);
 }
 
+
+
 OBR.onReady(async () => {
     console.log("OBR.onReady fired");
     await Savaged.checkProxyStatus();
@@ -560,25 +562,20 @@ OBR.onReady(async () => {
     createContextMenu();
     await initializeExtension();
 
-    OBR.scene.onReadyChange(async () => {
-        const isReady = await OBR.scene.isReady();
-        Debug.log("OBR.scene.isReady() returned:", isReady);
-        if (isReady) {
-            Debug.log("Scene is ready, executing scene-dependent code");
-            const initialItems = (await OBR.scene.items.getItems())
-                .filter((item): item is Image => item.layer === "CHARACTER" && isImage(item));
-            Debug.updateFromPlayers(initialItems.map(i => i.name))
-        } else {
-            Debug.log("Scene is not ready, skipping scene-dependent code");
-        }
-    })
+    const unsubscribeonReadyChange = OBR.scene.onReadyChange(async () => await Debug.sceneOnChange())
+    const unsubscribeItemsOnChange = OBR.scene.items.onChange(async () => await Debug.sceneOnChange())
+    await Debug.sceneOnChange();
 
     await Debug.dumpRoomMetadata();
     await Debug.findItemMetadataKeys();
     await Debug.cleanupDeadExtensionMetadata();
 
-    const unsubscribe = OBR.room.onMetadataChange(onRoomMetadataChange)
-    window.addEventListener('beforeunload', () => unsubscribe());
+    const unsubscribeonMetadataChange = OBR.room.onMetadataChange(onRoomMetadataChange)
+    window.addEventListener('beforeunload', () => {
+        unsubscribeonMetadataChange();
+        unsubscribeonReadyChange();
+        unsubscribeItemsOnChange();
+    });
 });
 
 
@@ -815,66 +812,74 @@ function parseDiceString(diceStr: string): { [key: number]: number } {
 }
 
 async function onRoomMetadataChange(metadata: any) {
-  if (metadata[Util.DiceHistoryMkey]) {
-    const storedHistory = metadata[Util.DiceHistoryMkey] as Uint8Array
-    ROLL_HISTORY = decompress(storedHistory)
-    const logContainer = document.getElementById('log-entries');
-    if (logContainer) {
-      logContainer.innerHTML = '';
-    }
-    renderLog(ROLL_HISTORY)
-  }
-  if (metadata.rollRequest) {
-    const { dice, rollType, modifier, playerId } = metadata.rollRequest;
-    const currentPlayerId = await OBR.player.getId();
-    if (playerId === currentPlayerId) {
-      // Set roll type
-      const radioMap: { [key: string]: SVGElement } = {
-        'trait': traitdice,
-        'damage': damagedice,
-        'standard': standarddice
-      };
-      if (radioMap[rollType]) {
-        setRadio(radioMap[rollType]);
-      }
-      // Set modifier
-      setSpinner(modifierSpinner, modifierCurrent, modifier);
-      // Clear counters
-      clearCounters();
-
-      // Use the dice array to build a proper dice string
-      let diceStringToParse = '';
-      if (dice && Array.isArray(dice) && dice.length > 0) {
-        diceStringToParse = dice.join('+');
-        Debug.log(`Using dice array format: ${diceStringToParse} with modifier ${modifier}`);
-      } else {
-        // Fallback for empty or invalid dice arrays
-        diceStringToParse = 'd6';
-        Debug.log(`Fallback to default die: ${diceStringToParse}`);
-      }
-
-      // Set counters for the dice
-      const counts = parseDiceString(diceStringToParse);
-      const counterMap: { [key: string]: SVGElement } = {
-        '4': d4Button,
-        '6': d6Button,
-        '8': d8Button,
-        '10': d10Button,
-        '12': d12Button,
-        '20': d20Button,
-        '100': d100Button
-      };
-      for (const [sides, count] of Object.entries(counts)) {
-        if (counterMap[sides]) {
-          updateCounter(counterMap[sides].nextElementSibling as HTMLElement, count);
+    if (metadata[Util.DiceHistoryMkey]) {
+        const storedHistory = metadata[Util.DiceHistoryMkey] as Uint8Array
+        ROLL_HISTORY = decompress(storedHistory)
+        const logContainer = document.getElementById('log-entries');
+        if (logContainer) {
+            logContainer.innerHTML = '';
         }
-      }
-      // Roll the dice
-      rollTheDice();
+        renderLog(ROLL_HISTORY)
     }
-    // Clear the request (done by all players to clean up)
-    OBR.room.setMetadata({ rollRequest: undefined });
-  }
+    if (metadata.rollRequest) {
+        const { dice, rollType, modifier, playerId, isWildCard } = metadata.rollRequest;
+        const currentPlayerId = await OBR.player.getId();
+        if (playerId === currentPlayerId) {
+            // Set roll type
+            const radioMap: { [key: string]: SVGElement } = {
+                'trait': traitdice,
+                'damage': damagedice,
+                'standard': standarddice
+            };
+            if (radioMap[rollType]) {
+                setRadio(radioMap[rollType]);
+            }
+            // Set modifier
+            setSpinner(modifierSpinner, modifierCurrent, modifier);
+            // Clear counters
+            clearCounters();
+
+            // Use the dice array to build a proper dice string
+            let diceStringToParse = '';
+            if (dice && Array.isArray(dice) && dice.length > 0) {
+                diceStringToParse = dice.join('+');
+                Debug.log(`Using dice array format: ${diceStringToParse} with modifier ${modifier}`);
+            } else {
+                // Fallback for empty or invalid dice arrays
+                diceStringToParse = 'd6';
+                Debug.log(`Fallback to default die: ${diceStringToParse}`);
+            }
+
+            // Set counters for the dice
+            const counts = parseDiceString(diceStringToParse);
+            const counterMap: { [key: string]: SVGElement } = {
+                '4': d4Button,
+                '6': d6Button,
+                '8': d8Button,
+                '10': d10Button,
+                '12': d12Button,
+                '20': d20Button,
+                '100': d100Button
+            };
+            for (const [sides, count] of Object.entries(counts)) {
+                if (counterMap[sides]) {
+                    updateCounter(counterMap[sides].nextElementSibling as HTMLElement, count);
+                }
+            }
+
+            // Handle wild card toggle based on isWildCard property
+            if (rollType === 'trait' && isWildCard !== undefined) {
+                // Set wild die toggle state based on isWildCard
+                setState(wildDieToggle, isWildCard);
+                Debug.log(`Wild card toggle set to: ${isWildCard}`);
+            }
+
+            // Roll the dice
+            rollTheDice();
+        }
+        // Clear the request (done by all players to clean up)
+        OBR.room.setMetadata({ rollRequest: undefined });
+    }
 }
 
 async function initializeExtension() {

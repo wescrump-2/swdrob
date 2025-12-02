@@ -29,6 +29,8 @@ const DEFAULT_STATBLOCK: Character = {
   gear: [],
 };
 
+let currentItemId: string | null = null;
+
 OBR.onReady(async () => {
   Debug.log("Popup onReady called");
   const urlParams = new URLSearchParams(window.location.search);
@@ -38,14 +40,16 @@ OBR.onReady(async () => {
     Debug.error("No itemId in URL params");
     return; // Can't proceed without itemId
   }
+  currentItemId = itemId;
 
   //const form = document.getElementById("statblock-form") as HTMLFormElement;
   const urlInput = document.getElementById("url-input") as HTMLInputElement;
+  const statBlockTextArea = document.getElementById("statblock-text") as HTMLTextAreaElement;
 
   // Load existing data from item metadata
   const items = await OBR.scene.items.getItems([itemId!]);
   const item = items[0];
-  const metadata = item.metadata[Util.StatBlockMkey] as { url?: string, character?: Character, timestamp?: number };
+  const metadata = item.metadata[Util.StatBlockMkey] as { url?: string, character?: Character, timestamp?: number, statBlockText?: string };
   let storedChar: Character;
 
   if (metadata?.character && metadata.timestamp) {
@@ -82,6 +86,11 @@ OBR.onReady(async () => {
   // Populate URL input if available
   if (metadata?.url) {
     urlInput.value = metadata.url;
+  }
+
+  // Populate stat block text if available
+  if (metadata?.statBlockText) {
+    statBlockTextArea.value = metadata.statBlockText;
   }
 
   // Populate form
@@ -136,14 +145,78 @@ OBR.onReady(async () => {
     }
   };
 
-
 });
 
+// Parse stat block from text
+document.getElementById("parse-statblock")!.onclick = async () => {
+  try {
+    const textArea = document.getElementById("statblock-text") as HTMLTextAreaElement;
+    const statBlockText = textArea.value.trim();
+
+    if (!statBlockText) {
+      alert("Please paste stat block text first");
+      return;
+    }
+    Debug.enabled=true;
+    Debug.log("Parsing stat block text:", statBlockText);
+    const parsedCharacter = Savaged.parseCharacterFromText(statBlockText);
+    Debug.log("Parsed character:", parsedCharacter);
+
+    if (!currentItemId) {
+      Debug.error("No current item ID available");
+      alert("No item ID available for saving parsed data");
+      return;
+    }
+
+    // Save character and stat block text to item metadata
+    await OBR.scene.items.updateItems([currentItemId], (items) => {
+      for (const item of items) {
+        const existing = item.metadata[Util.StatBlockMkey] as any;
+        item.metadata[Util.StatBlockMkey] = {
+          ...existing,
+          character: parsedCharacter,
+          statBlockText: statBlockText,
+          timestamp: Date.now()
+        };
+      }
+    });
+
+    // Update the form with parsed data
+    await applyData(currentItemId, parsedCharacter);
+
+    // Scroll to top after loading
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+
+  } catch (e) {
+    Debug.error("Failed to parse stat block text:", e);
+    alert("Failed to parse stat block text. Please check the format and try again.");
+  }
+};
+
 function populateForm(character: Character) {
-  // Title
+  // Title - use clean name without special characters
   const characterName = character.name || "Savage Worlds Stat Block";
   document.getElementById("title")!.textContent = characterName;
   document.title = characterName;
+
+  // Add wildcard symbol display element for wild card characters
+  const titleElement = document.getElementById("title");
+  if (titleElement && character.isWildCard) {
+    // Create a separate span for the wildcard symbol
+    const wildcardSymbol = document.createElement("span");
+    wildcardSymbol.textContent = "✪ ";
+    wildcardSymbol.style.marginRight = "5px";
+    wildcardSymbol.style.color = "#FFD700"; // Gold color for visibility
+    wildcardSymbol.style.fontSize = "1.2em";
+
+    // Insert the symbol before the title text
+    if (titleElement.firstChild) {
+      titleElement.insertBefore(wildcardSymbol, titleElement.firstChild);
+    } else {
+      titleElement.appendChild(wildcardSymbol);
+    }
+  }
 
   // Attributes
   const attributesDiv = document.getElementById("attributes")!;
@@ -172,6 +245,73 @@ function populateForm(character: Character) {
     button.dataset.die = trait.die;
     button.dataset.skill = trait.name;
     skillsDiv.appendChild(button);
+
+    // Add Frenzy button after Fighting skill if character has Frenzy edge
+    if (trait.name === 'fighting' && character.edges && character.edges.some(edge =>
+      edge.toLowerCase().includes('frenzy')
+    )) {
+      const frenzyButton = document.createElement("button");
+      // Extract the die from the fighting skill (e.g., "d8" from "Fighting d8")
+      const dieMatch = trait.die.match(/d\d+/i);
+      const dieType = dieMatch ? dieMatch[0] : 'd6';
+      frenzyButton.textContent = `Frenzy 2${dieType}`;
+      frenzyButton.type = "button";
+      frenzyButton.className = "popup-roll-btn popup-skill-btn popup-frenzy-btn";
+      frenzyButton.style.backgroundColor = "#ff6b6b"; // Reddish color for Frenzy
+      frenzyButton.style.color = "white";
+      // Set dataset for 2 dice of the fighting skill type
+      frenzyButton.dataset.die = `${trait.die}+${trait.die}`;
+      frenzyButton.dataset.skill = 'frenzy';
+      skillsDiv.appendChild(frenzyButton);
+    }
+
+    // Add ROF buttons after Shooting skill if character has weapons with ROF > 1
+    if (trait.name === 'shooting' && character.weapons && character.weapons.length > 0) {
+      // Calculate max ROF from all weapons
+      let maxROF = 1;
+
+      // Check for rapid fire and Improved rapid fire feats
+      const hasRapidShot = character.edges && character.edges.some(edge =>
+        edge.toLowerCase().includes('rapid fire')
+      );
+
+      // Find maximum ROF from weapons
+      character.weapons.forEach(weapon => {
+        if (weapon.rof) {
+          const rofValue = parseInt(weapon.rof);
+          if (!isNaN(rofValue) && rofValue > maxROF) {
+            maxROF = rofValue;
+          }
+        }
+      });
+
+      // Apply rapid fire feats to increase max ROF (only +1 total, regardless of which feats)
+      if ((hasRapidShot) && maxROF > 1) {
+        maxROF += 1;
+      }
+
+      // Only add ROF buttons if maxROF > 1
+      if (maxROF > 1) {
+        // Add ROF buttons from 2 up to maxROF
+        for (let rofLevel = 2; rofLevel <= maxROF; rofLevel++) {
+          const rofButton = document.createElement("button");
+          rofButton.textContent = `ROF ${rofLevel}`;
+          rofButton.type = "button";
+          rofButton.className = "popup-roll-btn popup-skill-btn popup-rof-btn";
+          rofButton.style.backgroundColor = "#4CAF50"; // Green color for ROF
+          rofButton.style.color = "white";
+
+          // Create dice string with multiple shooting dice (e.g., "d6+d6" for ROF 2)
+          const diceParts = [];
+          for (let i = 0; i < rofLevel; i++) {
+            diceParts.push(trait.die);
+          }
+          rofButton.dataset.die = diceParts.join('+');
+          rofButton.dataset.skill = `rof-${rofLevel}`;
+          skillsDiv.appendChild(rofButton);
+        }
+      }
+    }
   });
 
   // Weapons
@@ -218,12 +358,68 @@ function populateForm(character: Character) {
   // Other fields
   if (character.pace !== undefined) (document.getElementById("pace") as HTMLSpanElement).textContent = String(character.pace);
   if (character.parry !== undefined) (document.getElementById("parry") as HTMLSpanElement).textContent = String(character.parry);
-  if (character.toughness !== undefined) (document.getElementById("toughness") as HTMLSpanElement).textContent = String(character.toughness);
-  if (character.edges) (document.getElementById("edges") as HTMLTextAreaElement).value = character.edges.join("\n");
-  if (character.hindrances) (document.getElementById("hindrances") as HTMLTextAreaElement).value = character.hindrances.join("\n");
-  if (character.gear) (document.getElementById("gear") as HTMLTextAreaElement).value = character.gear.join("\n");
-  if (character.specialAbilities) (document.getElementById("specialAbilities") as HTMLTextAreaElement).value = character.specialAbilities.join("\n");
-  if (character.advances) (document.getElementById("advances") as HTMLTextAreaElement).value = character.advances.join("\n");
+  if (character.toughness !== undefined) {
+      const toughnessElement = document.getElementById("toughness") as HTMLSpanElement;
+      // Show toughness with armor value if available, otherwise use original format or just the number
+      if (character.armorValue !== undefined && character.armorValue > 0) {
+          toughnessElement.textContent = `${character.toughness} (${character.armorValue})`;
+      } else {
+          toughnessElement.textContent = String(character.toughness);
+      }
+  }
+
+  // Set textarea values and hide empty sections
+  const edgesTextarea = document.getElementById("edges") as HTMLTextAreaElement;
+  const hindrancesTextarea = document.getElementById("hindrances") as HTMLTextAreaElement;
+  const gearTextarea = document.getElementById("gear") as HTMLTextAreaElement;
+  const specialAbilitiesTextarea = document.getElementById("specialAbilities") as HTMLTextAreaElement;
+  const advancesTextarea = document.getElementById("advances") as HTMLTextAreaElement;
+
+  if (character.edges && character.edges.length > 0) {
+    edgesTextarea.value = character.edges.join("\n");
+    document.getElementById("edges-section")?.classList.remove("hidden");
+  } else {
+    document.getElementById("edges-section")?.classList.add("hidden");
+  }
+
+  if (character.hindrances && character.hindrances.length > 0) {
+    hindrancesTextarea.value = character.hindrances.join("\n");
+    document.getElementById("hindrances-section")?.classList.remove("hidden");
+  } else {
+    document.getElementById("hindrances-section")?.classList.add("hidden");
+  }
+
+  if (character.gear && character.gear.length > 0) {
+    gearTextarea.value = character.gear.join("\n");
+    document.getElementById("gear-section")?.classList.remove("hidden");
+  } else {
+    document.getElementById("gear-section")?.classList.add("hidden");
+  }
+
+  if (character.specialAbilities && character.specialAbilities.length > 0) {
+    specialAbilitiesTextarea.value = character.specialAbilities.join("\n");
+    document.getElementById("special-abilities-section")?.classList.remove("hidden");
+  } else {
+    document.getElementById("special-abilities-section")?.classList.add("hidden");
+  }
+
+  if (character.advances && character.advances.length > 0) {
+    advancesTextarea.value = character.advances.join("\n");
+    document.getElementById("advances-section")?.classList.remove("hidden");
+  } else {
+    document.getElementById("advances-section")?.classList.add("hidden");
+  }
+
+  // Hide powers section if no powers or arcane background
+  const powersSection = document.getElementById("powers-section");
+  const hasPowers = character.powers && character.powers.length > 0;
+  const hasArcaneBackground = character.arcaneBackground && character.arcaneBackground.trim() !== '';
+
+  if (hasPowers || hasArcaneBackground) {
+    powersSection?.classList.remove("hidden");
+  } else {
+    powersSection?.classList.add("hidden");
+  }
 }
 
 // Parse die string like "d4-2" into { die: "d4", modifier: -2 }
@@ -264,16 +460,47 @@ function parseWeaponDamage(damageStr: string): { dice: string[], modifier: numbe
     return { dice: expandedDice, modifier: finalModifier };
   }
 
-  // Split the remaining string by "+" to get individual dice
+  // Handle complex cases like "d12+6+d8" where there are modifiers in the middle
+  // First, extract all dice patterns and modifiers separately
+  const diceMatches = damageWithoutModifier.match(/[dD]\d+/g) || [];
+  const modifierMatches = damageWithoutModifier.match(/[+-]\d+/g) || [];
+
+  if (diceMatches.length > 0) {
+      // If we have both dice and modifiers in the middle (like "d12+6+d8")
+      // Check if we have modifiers and the total count makes sense
+      if (modifierMatches.length > 0) {
+          // Count the actual components by splitting and filtering out empty/duplicate separators
+          const components = damageWithoutModifier.split(/([+-]\d+)|([dD]\d+)/).filter(Boolean);
+          // Filter out standalone +/- signs that aren't part of modifiers
+          const validComponents = components.filter(comp => comp.match(/[dD]\d+/) || comp.match(/[+-]\d+/));
+
+          if (diceMatches.length + modifierMatches.length === validComponents.length) {
+              Debug.log(`Found complex damage pattern: dice=${JSON.stringify(diceMatches)}, middleModifiers=${JSON.stringify(modifierMatches)}`);
+
+              // Sum all the middle modifiers
+              const middleModifiersSum = modifierMatches.reduce((sum, mod) => sum + parseInt(mod), 0);
+              const totalModifier = finalModifier + middleModifiersSum;
+
+              Debug.log(`Complex damage parsed: dice=${JSON.stringify(diceMatches)}, totalModifier=${totalModifier}`);
+              return { dice: diceMatches, modifier: totalModifier };
+          }
+      }
+
+      // Simple case with just dice
+      Debug.log(`Found dice matches: ${JSON.stringify(diceMatches)}`);
+      return { dice: diceMatches, modifier: finalModifier };
+  }
+
+  // Split the remaining string by "+" to get individual dice (fallback for simple cases)
   const diceParts = damageWithoutModifier.split('+').map(part => part.trim()).filter(part => part);
 
   // If we didn't find any dice, try splitting by other separators
   if (diceParts.length === 1 && diceParts[0] === damageWithoutModifier) {
     // Try to find individual dice patterns
-    const diceMatches = damageWithoutModifier.match(/[dD]\d+/g);
-    if (diceMatches) {
-      Debug.log(`Found dice matches: ${JSON.stringify(diceMatches)}`);
-      return { dice: diceMatches, modifier: finalModifier };
+    const fallbackDiceMatches = damageWithoutModifier.match(/[dD]\d+/g);
+    if (fallbackDiceMatches) {
+      Debug.log(`Found fallback dice matches: ${JSON.stringify(fallbackDiceMatches)}`);
+      return { dice: fallbackDiceMatches, modifier: finalModifier };
     }
   }
 
@@ -306,11 +533,66 @@ function addRollHandlers() {
         dice = [parsed.die]; // Convert single die to array
         modifier = parsed.modifier;
         Debug.log(`Trait roll - dice: ${JSON.stringify(dice)}, modifier: ${modifier}`);
+
+        // Apply ROF modifier: -2 for ROF rolls unless character has "rock and roll" edge
+        const skillName = target.dataset.skill || '';
+        if (skillName.startsWith('rof-')) {
+          // Check if character has "rock and roll" edge
+          let hasRockAndRoll = false;
+          if (currentItemId) {
+            try {
+              const items = await OBR.scene.items.getItems([currentItemId]);
+              const item = items[0];
+              const metadata = item.metadata[Util.StatBlockMkey] as { character?: Character };
+              if (metadata?.character?.edges) {
+                hasRockAndRoll = metadata.character.edges.some(edge =>
+                  edge.toLowerCase().includes('rock and roll')
+                );
+              }
+            } catch (e) {
+              Debug.log("Failed to check for rock and roll edge:", e);
+            }
+          }
+
+          // Apply -2 modifier if character doesn't have rock and roll edge
+          if (!hasRockAndRoll) {
+            modifier -= 2;
+            Debug.log(`Applied ROF -2 modifier. Final modifier: ${modifier}`);
+          } else {
+            Debug.log(`Character has rock and roll edge, skipping ROF modifier`);
+          }
+        }
       }
 
       // Get player ID and send roll request to room metadata
       const playerId = await OBR.player.getId();
-      await OBR.room.setMetadata({ rollRequest: { dice, rollType, modifier, playerId } });
+
+      // Get the current character's isWildCard flag from the stored metadata
+      // We need to get this from the item metadata since we're not storing it in the DOM
+      let isWildCard = false;
+      if (currentItemId) {
+        try {
+          const items = await OBR.scene.items.getItems([currentItemId]);
+          const item = items[0];
+          const metadata = item.metadata[Util.StatBlockMkey] as { character?: Character };
+          if (metadata?.character?.isWildCard) {
+            isWildCard = metadata.character.isWildCard;
+          }
+        } catch (e) {
+          Debug.log("Failed to get isWildCard from metadata, defaulting to false");
+        }
+      }
+
+      // Include isWildCard in the roll request for trait rolls
+      const rollRequest = {
+        dice,
+        rollType,
+        modifier,
+        playerId,
+        ...(rollType === 'trait' && { isWildCard })
+      };
+
+      await OBR.room.setMetadata({ rollRequest });
     });
   });
 }
@@ -388,17 +670,21 @@ function testWeaponDamageParsing() {
   const test4 = parseWeaponDamage("d6+d8-1");
   Debug.log(`Test 4 - "d6+d8-1": dice=${JSON.stringify(test4.dice)}, modifier=${test4.modifier}`);
 
-  // Test case 5: Simple die without modifier (like "d6")
-  const test5 = parseWeaponDamage("d6");
-  Debug.log(`Test 5 - "d6": dice=${JSON.stringify(test5.dice)}, modifier=${test5.modifier}`);
+  // Test case 5: The specific case that was failing - "d12+6+d8"
+  const test5 = parseWeaponDamage("d12+6+d8");
+  Debug.log(`Test 5 - "d12+6+d8": dice=${JSON.stringify(test5.dice)}, modifier=${test5.modifier}`);
 
-  // Test case 6: Quantity notation (like "2d6")
-  const test6 = parseWeaponDamage("2d6");
-  Debug.log(`Test 6 - "2d6": dice=${JSON.stringify(test6.dice)}, modifier=${test6.modifier}`);
+  // Test case 6: Simple die without modifier (like "d6")
+  const test6 = parseWeaponDamage("d6");
+  Debug.log(`Test 6 - "d6": dice=${JSON.stringify(test6.dice)}, modifier=${test6.modifier}`);
 
-  // Test case 7: Quantity notation with modifier (like "2d6+1")
-  const test7 = parseWeaponDamage("2d6+1");
-  Debug.log(`Test 7 - "2d6+1": dice=${JSON.stringify(test7.dice)}, modifier=${test7.modifier}`);
+  // Test case 7: Quantity notation (like "2d6")
+  const test7 = parseWeaponDamage("2d6");
+  Debug.log(`Test 7 - "2d6": dice=${JSON.stringify(test7.dice)}, modifier=${test7.modifier}`);
+
+  // Test case 8: Quantity notation with modifier (like "2d6+1")
+  const test8 = parseWeaponDamage("2d6+1");
+  Debug.log(`Test 8 - "2d6+1": dice=${JSON.stringify(test8.dice)}, modifier=${test8.modifier}`);
 
   Debug.log("=== End Weapon Damage Parsing Tests ===");
 }
