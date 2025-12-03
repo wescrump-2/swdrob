@@ -494,17 +494,9 @@ export class Savaged {
                             // NEW: Handle standalone attribute references (like "Str" alone)
                             // First pass: replace standalone attributes
                             damage = damage.replace(/\bStr\b(?!\s*[+-]?\s*d\d+)/gi, strDie);
-                            damage = damage.replace(/\bAgi\b(?!\s*[+-]?\s*d\d+)/gi, getAttributeDie('agility'));
-                            damage = damage.replace(/\bSma\b(?!\s*[+-]?\s*d\d+)/gi, getAttributeDie('smarts'));
-                            damage = damage.replace(/\bSpi\b(?!\s*[+-]?\s*d\d+)/gi, getAttributeDie('spirit'));
-                            damage = damage.replace(/\bVig\b(?!\s*[+-]?\s*d\d+)/gi, getAttributeDie('vigor'));
 
                             // Second pass: replace attributes followed by dice notation
                             damage = damage.replace(/\bStr\b(?=\s*[+-]?\s*d\d+)/gi, strDie);
-                            damage = damage.replace(/\bAgi\b(?=\s*[+-]?\s*d\d+)/gi, getAttributeDie('agility'));
-                            damage = damage.replace(/\bSma\b(?=\s*[+-]?\s*d\d+)/gi, getAttributeDie('smarts'));
-                            damage = damage.replace(/\bSpi\b(?=\s*[+-]?\s*d\d+)/gi, getAttributeDie('spirit'));
-                            damage = damage.replace(/\bVig\b(?=\s*[+-]?\s*d\d+)/gi, getAttributeDie('vigor'));
 
                             Debug.log(`Weapon damage parsing - After substitution: "${damage}"`);
                         }
@@ -886,7 +878,7 @@ export class Savaged {
                         const isWeaponAttackName = weaponAttackNames.some(name => weaponName.includes(name));
                         
                         // Check for clean damage patterns in the immediate text after colon
-                        let immediateDamageMatch = damageStr.match(/(\d*d\d+[+-]?\d*|(?:Str|Agi|Sma|Spi|Vig)\s*[+-]?\s*\d*|(?:Str|Agi|Sma|Spi|Vig))/i);
+                        let immediateDamageMatch = damageStr.match(/(\d*d\d+[+-]?\d*|(?:Str)\s*[+-]?\s*\d*|(?:Str))/i);
                         
                         // If no immediate clean damage, search the entire ability text for damage patterns
                         let finalDamageStr = damageStr;
@@ -901,7 +893,7 @@ export class Savaged {
                             Debug.log(`Found immediate damage: "${finalDamageStr}"`);
                         }
 
-                        const hasDamage = finalDamageStr.match(/d\d+|(?:Str|Agi|Sma|Spi|Vig)\s*[+-]?\s*\d*|(?:Str|Agi|Sma|Spi|Vig)/i);
+                        const hasDamage = finalDamageStr.match(/d\d+|(?:Str)\s*[+-]?\s*\d*|(?:Str)/i);
 
                         if (isWeaponAttackName && hasDamage) {
                             // Debug logging for attribute substitution
@@ -920,26 +912,12 @@ export class Savaged {
                                 Debug.log(`Extracted AP: ${apValue}, remaining damage: "${finalDamageStr}"`);
                             }
 
-                            // Substitute attribute abbreviations with actual dice values
-                            const agiDie = getAttributeDie('agility');
-                            const smaDie = getAttributeDie('smarts');
-                            const spiDie = getAttributeDie('spirit');
-                            const vigDie = getAttributeDie('vigor');
-
-                            Debug.log(`Attribute dice values - Str: "${strDie}", Agi: "${agiDie}", Sma: "${smaDie}", Spi: "${spiDie}", Vig: "${vigDie}"`);
+                            Debug.log(`Attribute dice values - Str: "${strDie}"`);
 
                             finalDamageStr = finalDamageStr.replace(/\bStr\b(?!\s*[+-]?\s*d\d+)/gi, strDie);
-                            finalDamageStr = finalDamageStr.replace(/\bAgi\b(?!\s*[+-]?\s*d\d+)/gi, agiDie);
-                            finalDamageStr = finalDamageStr.replace(/\bSma\b(?!\s*[+-]?\s*d\d+)/gi, smaDie);
-                            finalDamageStr = finalDamageStr.replace(/\bSpi\b(?!\s*[+-]?\s*d\d+)/gi, spiDie);
-                            finalDamageStr = finalDamageStr.replace(/\bVig\b(?!\s*[+-]?\s*d\d+)/gi, vigDie);
 
                             // Handle attributes followed by dice notation
                             finalDamageStr = finalDamageStr.replace(/\bStr\b(?=\s*[+-]?\s*d\d+)/gi, strDie);
-                            finalDamageStr = finalDamageStr.replace(/\bAgi\b(?=\s*[+-]?\s*d\d+)/gi, agiDie);
-                            finalDamageStr = finalDamageStr.replace(/\bSma\b(?=\s*[+-]?\s*d\d+)/gi, smaDie);
-                            finalDamageStr = finalDamageStr.replace(/\bSpi\b(?=\s*[+-]?\s*d\d+)/gi, spiDie);
-                            finalDamageStr = finalDamageStr.replace(/\bVig\b(?=\s*[+-]?\s*d\d+)/gi, vigDie);
 
                             Debug.log(`After substitution: "${finalDamageStr}"`);
 
@@ -1516,17 +1494,9 @@ export class Savaged {
                         // NEW: Handle standalone attribute references (like "Str" alone)
                         // First pass: replace standalone attributes
                         damage = damage.replace(/\bStr\b(?!\s*[+-]?\s*d\d+)/gi, strDie);
-                        damage = damage.replace(/\bAgi\b(?!\s*[+-]?\s*d\d+)/gi, getAttributeDie('agility'));
-                        damage = damage.replace(/\bSma\b(?!\s*[+-]?\s*d\d+)/gi, getAttributeDie('smarts'));
-                        damage = damage.replace(/\bSpi\b(?!\s*[+-]?\s*d\d+)/gi, getAttributeDie('spirit'));
-                        damage = damage.replace(/\bVig\b(?!\s*[+-]?\s*d\d+)/gi, getAttributeDie('vigor'));
 
                         // Second pass: replace attributes followed by dice notation
                         damage = damage.replace(/\bStr\b(?=\s*[+-]?\s*d\d+)/gi, strDie);
-                        damage = damage.replace(/\bAgi\b(?=\s*[+-]?\s*d\d+)/gi, getAttributeDie('agility'));
-                        damage = damage.replace(/\bSma\b(?=\s*[+-]?\s*d\d+)/gi, getAttributeDie('smarts'));
-                        damage = damage.replace(/\bSpi\b(?=\s*[+-]?\s*d\d+)/gi, getAttributeDie('spirit'));
-                        damage = damage.replace(/\bVig\b(?=\s*[+-]?\s*d\d+)/gi, getAttributeDie('vigor'));
 
                         Debug.log(`Weapon damage parsing (text) - After substitution: "${damage}"`);
                     }
@@ -1868,9 +1838,9 @@ export class Savaged {
                     // Handle attribute abbreviations followed by +/- and dice notation
                     // Also handle patterns like "Str+d4" where there's no space
                     const isDamagePattern = 
-                        part.match(/^(Str|Agi|Sma|Spi|Vig)\s*[\+\-]\s*d\d+[\+\-]?\d*$/i) || // Str+d4, Agi-d6, etc.
+                        part.match(/(Str)\s*[\+\-]\s*d\d+[\+\-]?\d*/i) || // Str+d4, etc.
                         part.match(/^\d*d\d+[\+\-]?\d*$/i) || // d4, 2d6, d8+2, etc.
-                        part.match(/^(Str|Agi|Sma|Spi|Vig)$/i); // Just "Str" alone
+                        part.match(/(^|\s)(Str)(\s|$)/i); // Just "Str" alone
                     
                     if (isDamagePattern) {
                         detailMap['damage'] = part;
@@ -1926,17 +1896,9 @@ export class Savaged {
 
                 // Handle standalone attribute references (like "Str" alone)
                 damage = damage.replace(/\bStr\b(?!\s*[+-]?\s*d\d+)/gi, strDie);
-                damage = damage.replace(/\bAgi\b(?!\s*[+-]?\s*d\d+)/gi, getAttributeDie('agility'));
-                damage = damage.replace(/\bSma\b(?!\s*[+-]?\s*d\d+)/gi, getAttributeDie('smarts'));
-                damage = damage.replace(/\bSpi\b(?!\s*[+-]?\s*d\d+)/gi, getAttributeDie('spirit'));
-                damage = damage.replace(/\bVig\b(?!\s*[+-]?\s*d\d+)/gi, getAttributeDie('vigor'));
 
                 // Handle attributes followed by dice notation
                 damage = damage.replace(/\bStr\b(?=\s*[+-]?\s*d\d+)/gi, strDie);
-                damage = damage.replace(/\bAgi\b(?=\s*[+-]?\s*d\d+)/gi, getAttributeDie('agility'));
-                damage = damage.replace(/\bSma\b(?=\s*[+-]?\s*d\d+)/gi, getAttributeDie('smarts'));
-                damage = damage.replace(/\bSpi\b(?=\s*[+-]?\s*d\d+)/gi, getAttributeDie('spirit'));
-                damage = damage.replace(/\bVig\b(?=\s*[+-]?\s*d\d+)/gi, getAttributeDie('vigor'));
 
                 Debug.log(`Gear weapon damage parsing - After substitution: "${damage}"`);
                 weapon.damage = damage;
@@ -2180,7 +2142,7 @@ export class Savaged {
                     const isWeaponAttackName = weaponAttackNames.some(name => weaponName.includes(name));
                     
                     // Check for clean damage patterns in the immediate text after colon
-                    let immediateDamageMatch = damageStr.match(/(\d*d\d+[+-]?\d*|(?:Str|Agi|Sma|Spi|Vig)\s*[+-]?\s*\d*|(?:Str|Agi|Sma|Spi|Vig))/i);
+                    let immediateDamageMatch = damageStr.match(/(\d*d\d+[+-]?\d*|(?:Str)\s*[+-]?\s*\d*|(?:Str))/i);
                     
                     // If no immediate clean damage, search the entire ability text for damage patterns
                     let finalDamageStr = damageStr;
@@ -2195,7 +2157,7 @@ export class Savaged {
                         Debug.log(`Found immediate damage: "${finalDamageStr}"`);
                     }
 
-                    const hasDamage = finalDamageStr.match(/d\d+|(?:Str|Agi|Sma|Spi|Vig)\s*[+-]?\s*\d*|(?:Str|Agi|Sma|Spi|Vig)/i);
+                    const hasDamage = finalDamageStr.match(/d\d+|(?:Str)\s*[+-]?\s*\d*|(?:Str)/i);
 
                     if (isWeaponAttackName && hasDamage) {
                         // Debug logging for attribute substitution
@@ -2214,10 +2176,6 @@ export class Savaged {
                         // Substitute attribute abbreviations with actual dice values
                         // Handle both dice notation (Str+d8) and simple modifiers (Str+2)
                         finalDamageStr = finalDamageStr.replace(/\bStr\b(?=\s*[+-]?\s*(?:d\d+|\d+))/gi, strDie);
-                        finalDamageStr = finalDamageStr.replace(/\bAgi\b(?=\s*[+-]?\s*(?:d\d+|\d+))/gi, getAttributeDie('agility'));
-                        finalDamageStr = finalDamageStr.replace(/\bSma\b(?=\s*[+-]?\s*(?:d\d+|\d+))/gi, getAttributeDie('smarts'));
-                        finalDamageStr = finalDamageStr.replace(/\bSpi\b(?=\s*[+-]?\s*(?:d\d+|\d+))/gi, getAttributeDie('spirit'));
-                        finalDamageStr = finalDamageStr.replace(/\bVig\b(?=\s*[+-]?\s*(?:d\d+|\d+))/gi, getAttributeDie('vigor'));
 
                         Debug.log(`After substitution: "${finalDamageStr}"`);
 
