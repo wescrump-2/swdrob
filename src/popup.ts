@@ -252,9 +252,9 @@ function populateForm(character: Character) {
     )) {
       const frenzyButton = document.createElement("button");
       // Extract the die from the fighting skill (e.g., "d8" from "Fighting d8")
-      const dieMatch = trait.die.match(/d\d+/i);
-      const dieType = dieMatch ? dieMatch[0] : 'd6';
-      frenzyButton.textContent = `Frenzy 2${dieType}`;
+      //const dieMatch = trait.die.match(/d\d+/i);
+      //const dieType = dieMatch ? dieMatch[0] : 'd6';
+      frenzyButton.textContent = `Frenzy 2${trait.die}`;
       frenzyButton.type = "button";
       frenzyButton.className = "popup-roll-btn popup-skill-btn popup-frenzy-btn";
       frenzyButton.style.backgroundColor = "#ff6b6b"; // Reddish color for Frenzy
@@ -367,6 +367,7 @@ function populateForm(character: Character) {
           toughnessElement.textContent = String(character.toughness);
       }
   }
+  if (character.rank !== undefined) (document.getElementById("rank") as HTMLSpanElement).textContent = String(character.rank);
 
   // Set textarea values and hide empty sections
   const edgesTextarea = document.getElementById("edges") as HTMLTextAreaElement;

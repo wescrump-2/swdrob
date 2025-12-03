@@ -1,79 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Savage Worlds Stat Block</title>
-    <link rel="stylesheet" href="/src/styles.css" />
-    <style>
-      .popup-section.hidden {
-        display: none !important;
-      }
-    </style>
-    <script type="module" src="/src/popup.ts"></script>
-  </head>
-  <body class="popup-body">
-    <h1 id="title" class="popup-h1" contenteditable="true">Savage Worlds Stat Block</h1>
-    <form id="statblock-form">
 
-      <div class="popup-stats-row">
-        <div class="popup-stat-item"><label class="popup-label">Pace:</label> <span id="pace" class="popup-stat-value"></span></div>
-        <div class="popup-stat-item"><label class="popup-label">Parry:</label> <span id="parry" class="popup-stat-value"></span></div>
-        <div class="popup-stat-item"><label class="popup-label">Toughness:</label> <span id="toughness" class="popup-stat-value"></span></div>
-      </div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Savage Worlds Stat Block</title>
+  <link rel="stylesheet" href="/src/styles.css" />
+  <style>
+    .popup-section.hidden {
+      display: none !important;
+    }
+  </style>
+  <script type="module" src="/src/popup.ts"></script>
+</head>
 
-      <h3 class="popup-h3">Attributes</h3>
-      <div id="attributes" class="popup-attributes"></div>
+<body class="popup-body">
+  <h1 id="title" class="popup-h1" contenteditable="true">Savage Worlds Stat Block</h1>
+  <form id="statblock-form">
 
-      <h3 class="popup-h3">Skills</h3>
-      <div id="skills" class="popup-skills"></div>
-
-      <h3 class="popup-h3">Weapons</h3>
-      <div id="weapons" class="popup-weapons"></div>
-
-      <div id="powers-section" class="popup-section">
-        <h3 class="popup-h3">Powers</h3>
-        <div id="arcane-info"></div>
-        <div id="powers" class="popup-powers"></div>
-      </div>
-
-      <div id="edges-section" class="popup-section">
-        <label class="popup-label">Edges</label>
-        <textarea id="edges" class="popup-textarea" rows="4" placeholder="List edges here"></textarea>
-      </div>
-
-      <div id="gear-section" class="popup-section">
-        <label class="popup-label">Gear</label>
-        <textarea id="gear" class="popup-textarea" rows="4" placeholder="List gear here"></textarea>
-      </div>
-
-      <div id="special-abilities-section" class="popup-section">
-        <label class="popup-label">Special Abilities</label>
-        <textarea id="specialAbilities" class="popup-textarea" rows="3" placeholder="List special abilities here"></textarea>
-      </div>
-
-      <div id="hindrances-section" class="popup-section">
-        <label class="popup-label">Hindrances</label>
-        <textarea id="hindrances" class="popup-textarea" rows="3" placeholder="List hindrances here"></textarea>
-      </div>
-
-      <div id="advances-section" class="popup-section">
-        <label class="popup-label">Advances</label>
-        <textarea id="advances" class="popup-textarea" rows="5" placeholder="List advances here"></textarea>
-      </div>
-    </form>
-
-    <hr class="popup-hr" />
-    <label for="url-input" class="popup-label">Import from Savaged.us shared URL</label>
-    <div class="popup-row">
-      <input type="url" id="url-input" class="popup-input" placeholder="https://savaged.us/s/ingrid" />
-      <button type="button" id="import-url" class="popup-button">Load</button>
+    <div class="popup-stats-row">
+      <div class="popup-stat-item"><label class="popup-label">Pace:</label> <span id="pace"
+          class="popup-stat-value"></span></div>
+      <div class="popup-stat-item"><label class="popup-label">Parry:</label> <span id="parry"
+          class="popup-stat-value"></span></div>
+      <div class="popup-stat-item"><label class="popup-label">Toughness:</label> <span id="toughness"
+          class="popup-stat-value"></span></div>
+      <div class="popup-stat-item"><label class="popup-label">Rank:</label> <span id="rank"
+          class="popup-stat-value"></span></div>
     </div>
 
-    <hr class="popup-hr" />
-    <label for="statblock-text" class="popup-label">Paste Stat Block Text</label>
-    <textarea id="statblock-text" class="popup-textarea" rows="6" placeholder="Paste stat block text here..."></textarea>
-    <button type="button" id="parse-statblock" class="popup-button">Parse Stat Block</button>
+    <h3 class="popup-h3">Attributes</h3>
+    <div id="attributes" class="popup-attributes"></div>
 
-  </body>
+    <h3 class="popup-h3">Skills</h3>
+    <div id="skills" class="popup-skills"></div>
+
+    <h3 class="popup-h3">Weapons</h3>
+    <div id="weapons" class="popup-weapons"></div>
+
+    <div id="powers-section" class="popup-section">
+      <h3 class="popup-h3">Powers</h3>
+      <div id="arcane-info"></div>
+      <div id="powers" class="popup-powers"></div>
+    </div>
+
+    <div id="edges-section" class="popup-section">
+      <label class="popup-label">Edges</label>
+      <textarea id="edges" class="popup-textarea" rows="4" placeholder="List edges here"></textarea>
+    </div>
+
+    <div id="gear-section" class="popup-section">
+      <label class="popup-label">Gear</label>
+      <textarea id="gear" class="popup-textarea" rows="4" placeholder="List gear here"></textarea>
+    </div>
+
+    <div id="special-abilities-section" class="popup-section">
+      <label class="popup-label">Special Abilities</label>
+      <textarea id="specialAbilities" class="popup-textarea" rows="4"
+        placeholder="List special abilities here"></textarea>
+    </div>
+
+    <div id="hindrances-section" class="popup-section">
+      <label class="popup-label">Hindrances</label>
+      <textarea id="hindrances" class="popup-textarea" rows="3" placeholder="List hindrances here"></textarea>
+    </div>
+
+    <div id="advances-section" class="popup-section">
+      <label class="popup-label">Advances</label>
+      <textarea id="advances" class="popup-textarea" rows="5" placeholder="List advances here"></textarea>
+    </div>
+  </form>
+
+  <hr class="popup-hr" />
+  <label for="url-input" class="popup-label">Import from Savaged.us shared URL</label>
+  <div class="popup-row">
+    <input type="url" id="url-input" class="popup-input" placeholder="https://savaged.us/s/ingrid" />
+    <button type="button" id="import-url" class="popup-button">Load</button>
+  </div>
+
+  <hr class="popup-hr" />
+  <label for="statblock-text" class="popup-label">Paste Stat Block Text</label>
+  <textarea id="statblock-text" class="popup-textarea" rows="6" placeholder="Paste stat block text here..."></textarea>
+  <button type="button" id="parse-statblock" class="popup-button">Parse Stat Block</button>
+
+</body>
+
 </html>

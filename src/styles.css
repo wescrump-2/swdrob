@@ -576,14 +576,13 @@ h2 {
 
 .popup-stats-row {
   display: flex;
-  gap: 10px;
+  gap: 4px;
 }
 
 .popup-stat-item {
-  flex: 1;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 2px;
 }
 
 .popup-stat-value {
@@ -595,7 +594,7 @@ h2 {
 
 .popup-row {
   display: flex;
-  gap: 10px;
+  gap: 2px;
   align-items: center;
 }
 

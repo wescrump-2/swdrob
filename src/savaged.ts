@@ -43,7 +43,7 @@ export interface Character {
     pace?: number;
     parry?: number;
     toughness?: number;
-    armorValue?: number; // Armor value from parentheses in toughness
+    armorValue?: number;
     armor?: Armor[];
     edges?: string[];
     hindrances?: string[];
@@ -261,7 +261,7 @@ export class Savaged {
     }
 
     static async parseCharacterFromURL(url: string): Promise<Character> {
-            try {
+        try {
             const proxyUrl = `${Savaged.proxy_url_base}`;
             const options = {
                 method: "POST",
@@ -271,7 +271,7 @@ export class Savaged {
             const response = await fetch(proxyUrl, options);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const html = await response.text();
-            Debug.enabled=true;
+            Debug.enabled = true;
             Debug.log(`Fetched HTML from ${url} via proxy, length: ${html.length}`);
             return this.parseCharacterFromHTML(html);
         } catch (e) {
@@ -303,7 +303,7 @@ export class Savaged {
                         const [key, value] = part.split(': ').map(s => s.trim());
                         if (key === 'Rank') character.rank = value;
                         else if (key === 'Gender') character.gender = value;
-                        else if (key === 'Race') character.race = value;
+                        else if (key === 'Race' || key === 'Type') character.race = value;
                         else if (key === 'Profession') character.profession = value;
                     });
 
@@ -520,7 +520,7 @@ export class Savaged {
                         const getSkillDie = (name: string) => character.skills.find(t => t.name === name)?.die || 'd4-2';
                         Debug.log(`Weapon attack determination - Name: "${name}", isMelee: ${isMelee}, isThrown: ${isThrown}, isShooting: ${isShooting}`);
                         Debug.log(`Available skills: ${JSON.stringify(character.skills.map(s => `${s.name}:${s.die}`))}`);
-    
+
                         // Special handling for Unarmed weapons - they should use fighting skill if available
                         const isUnarmed = name.toLowerCase().includes('unarmed');
                         if (isUnarmed && isMelee && !isThrown) {
@@ -730,8 +730,11 @@ export class Savaged {
             // Hindrances
             const hindrancesMatch = text.match(/<strong>Hindrances<\/strong>: ([^<]*)/);
             if (hindrancesMatch) {
-                character.hindrances = splitIgnoringParentheses(hindrancesMatch[1], ', ');
-                //Debug.log(`Parsed ${character.hindrances!.length} hindrances`);
+                const hindStr = hindrancesMatch[1].trim();
+                if (hindStr && hindStr !== '—' && hindStr !== '-' && hindStr !== '–' && hindStr.trim() !== '') {
+                    character.hindrances = splitIgnoringParentheses(hindrancesMatch[1], ', ');
+                    //Debug.log(`Parsed ${character.hindrances!.length} hindrances`);
+                }
             }
             // Gear
             const gearStrong = Array.from(doc.querySelectorAll('strong')).find(strong => strong.textContent?.trim() === 'Gear');
@@ -890,6 +893,15 @@ export class Savaged {
                             // Debug: Log all attributes to see what we're working with
                             Debug.log('Available attributes:', character.attributes);
 
+                            // Extract AP value if present (e.g., "Str+d6 AP 2" -> ap: "2")
+                            let apValue: string | undefined;
+                            const apMatch = damageStr.match(/\s+AP\s*(\d+)/i);
+                            if (apMatch) {
+                                apValue = apMatch[1];
+                                damageStr = damageStr.replace(/\s+AP\s*\d+/i, '').trim();
+                                Debug.log(`Extracted AP: ${apValue}, remaining damage: "${damageStr}"`);
+                            }
+
                             // Substitute attribute abbreviations with actual dice values
                             const agiDie = getAttributeDie('agility');
                             const smaDie = getAttributeDie('smarts');
@@ -911,8 +923,8 @@ export class Savaged {
                                 name: match[1].trim(), // Use original case for display
                                 damage: damageStr,
                                 range: 'melee', // Default to melee for natural attacks
-                                reach: '1'     // Default reach for natural attacks
-                                // Other properties will use default values
+                                reach: '1',     // Default reach for natural attacks
+                                ap: apValue     // AP extracted from damage string
                             };
                             weaponsFromSpecialAbilities.push(weapon);
 
@@ -941,16 +953,84 @@ export class Savaged {
         return character;
     }
 
-    static removeHyphenNewline(text: string): string {
-    // Use a regular expression to match words ending with -\n
-    const pattern = /\b(\w+)-\n/g;
-    // Replace the matched pattern with just the word (captured group $1)
-    return text.replace(pattern, '$1');
-}
 
-    static parseCharacterFromText(text: string): Character {
+    static cleanText(text: string, which: number): string {
+        if (!text) return text;
+        let clean: string = '';
+        // Regex patterns to replace Unicode characters with *
+        const regexhyphen = /(?<=\p{L})-[\r\n]+(?=\p{L})/gu;
+        // Option 1: Replace all non-ASCII characters (most common need)
+        // This preserves ASCII letters, numbers, punctuation, and spaces
+        const regex1 = /[^\x00-\x7F]/g;
+        const xregex1 = /[\x00-\x7F]/g;
+
+        // // Option 2: Replace all Unicode letters, numbers, and symbols (preserve basic punctuation)
+        // const regex2 = /[^\p{L}\p{N}\p{M}\p{S}\s]/gu;
+        // const xregex2 = /[\p{L}\p{N}\p{M}\p{S}\s]/gu;
+        // // Option 3: Replace all Unicode characters except spaces and basic ASCII punctuation
+        // const regex3 = /[^\x20-\x7E\s]/g;
+        // const xregex3 = /[\x20-\x7E\s]/g;
+        // // Option 4: Replace everything that isn't standard ASCII (most aggressive)
+        // const regex4 = /[\u0080-\uFFFF]/g;
+        // const xregex4 = /[^\u0080-\uFFFF]/g;
+
+        // // Option 5: Match any character with code point above 255 (broader Unicode coverage)
+        // const regex5 = /[^\x100-\xFFFF\s]/gu;
+        // const xregex5 = /[\x100-\xFFFF\s]/gu;
+        // Test each regex option
+        const regexes = [
+            { name: "Non-ASCII only", pattern: regex1, replace: "•", description: "Replaces everything outside ASCII range (0-127)" },
+            { name: "Non-ASCII only-REMOVED", pattern: xregex1, replace: "", description: "Replaces everything outside ASCII range (0-127)" },
+
+            // { name: "Unicode letters/numbers", pattern: regex2, replace: "•", description: "Replaces letters, numbers, marks, and symbols" },
+            // { name: "Unicode letters/numbers-REMOVED", pattern: xregex2, replace: "", description: "Replaces letters, numbers, marks, and symbols" },
+
+            // { name: "Non-ASCII except spaces", pattern: regex3, replace: "•", description: "Replaces non-ASCII except spaces and basic punctuation" },
+            // { name: "Non-ASCII except spaces-REMOVED", pattern: xregex3, replace: "", description: "Replaces non-ASCII except spaces and basic punctuation" },
+
+            // { name: "Unicode block range", pattern: regex4, replace: "•", description: "Replaces characters in Unicode ranges 128-65535" },
+            // { name: "Unicode block range-REMOVED", pattern: xregex4, replace: "", description: "Replaces characters in Unicode ranges 128-65535" },
+
+            // { name: "Extended Unicode", pattern: regex5, replace: "•", description: "Replaces characters with code points 256-65535" },
+            // { name: "Extended Unicode-REMOVED", pattern: xregex5, replace: "", description: "Replaces characters with code points 256-65535" },
+
+        ];
+        console.log("Testing Unicode character replacement patterns:\n");
+        //remove hyphenation
+        let testString = text.replace(regexhyphen, '');
+        const from = "—’″−";
+        const to = "-'\"-";
+        const map = new Map<string, string>(
+            [...from].map((char, i) => [char, to[i] ?? char])
+        );
+
+        testString = testString.replace(/./g, ch => map.get(ch) ?? ch);
+
+
+        console.log(`Test: "${testString}"`);
+        console.log(`Length: ${testString.length} chars`);
+
+        regexes.forEach(({ name, pattern, replace, description }, patcnt) => {
+            try {
+                const result = testString.replace(pattern, replace);
+                console.log(description)
+                console.log(`  ${name}: "${result}"`);
+                if (patcnt === which - 1) clean = result
+            } catch (e) {
+                console.log(`  ${name}: ERROR - ${e}`);
+            }
+
+        });
+        console.log('');
+
+        return clean;
+    }
+
+    static
+        parseCharacterFromText(text: string): Character {
         const character: Character = { name: 'name', description: '', attributes: [], skills: [] };
-        const lines = this.removeHyphenNewline(text).split('\n').map(line => line.trim()).filter(line => line.length > 0);
+        const clean = this.cleanText(text, 1);
+        const lines = clean.split('\n').map(line => line.trim()).filter(line => line.length > 0);
 
         // Parse name from first line assuming it's the h1 equivalent
         const name = lines[0];
@@ -982,7 +1062,7 @@ export class Savaged {
             const [key, value] = part.split(': ').map(s => s.trim());
             if (key === 'Rank') character.rank = value;
             else if (key === 'Gender') character.gender = value;
-            else if (key === 'Race') character.race = value;
+            else if (key === 'Race' || key === 'Type') character.race = value;
             else if (key === 'Profession') character.profession = value;
         });
 
@@ -1240,7 +1320,7 @@ export class Savaged {
             // Look for alternative skills format (skills listed without "Skills:" header)
             // Only match if the line doesn't start with a colon (to avoid false positives)
             else if (line.match(/(Fighting|Shooting|Athletics|Stealth|Persuasion|Notice|Repair|Taunt|Intimidation|Healing|Survival|Thievery|Gambling|Climbing|Swimming|Riding|Driving|Piloting|Boating|Language|Knowledge|Spellcasting|Faith|Focus|Performance|Psionics|Weird Science|Alchemy|Research|Investigation|Streetwise|Guts|Common Knowledge|Battle|Shooting|Throwing|Fighting|Gambling|Lockpicking|Sleight of Hand|Stealth|Persuasion|Intimidation|Taunt|Performance|Healing|Survival|Tracking|Riding|Driving|Piloting|Boating|Climbing|Swimming|Throwing|Shooting|Fighting|Guts|Common Knowledge|Battle|Arcane|Power Points)\s*[:d]/i) &&
-               !line.match(/^[:，、]/)) {
+                !line.match(/^[:，、]/)) {
                 Debug.log(`Found alternative skill format: "${line}"`);
                 // Handle alternative formats like "Fighting: d8" or "Fighting d8"
                 const altSkillMatch = line.match(/^(.+?)\s*[:]?\s*(d\d+\+?\d*)/i);
@@ -1529,13 +1609,13 @@ export class Savaged {
             lineIndex++;
         }
 
-        // Modifiers (example for persuasion)
-        if (text.includes('Subtract 2 from all Persuasion rolls')) {
-            const persuasionTrait = character.skills.find(t => t.name === 'persuasion');
-            if (persuasionTrait && !persuasionTrait.die.includes('-')) {
-                persuasionTrait.die = (persuasionTrait.die || 'd4') + '-2';
-            }
-        }
+        // // Modifiers (example for persuasion)
+        // if (text.includes('Subtract 2 from all Persuasion rolls')) {
+        //     const persuasionTrait = character.skills.find(t => t.name === 'persuasion');
+        //     if (persuasionTrait && !persuasionTrait.die.includes('-')) {
+        //         persuasionTrait.die = (persuasionTrait.die || 'd4') + '-2';
+        //     }
+        // }
 
         // Pace, Parry, Toughness - look for them anywhere in the text, not just at line start
         lineIndex = 0;
@@ -1640,8 +1720,9 @@ export class Savaged {
             const line = lines[lineIndex];
             if (line.match(/^Hindrances:\s*(.*)$/i)) {
                 const hindrancesStr = line.replace(/^Hindrances:\s*/i, '').trim();
-                character.hindrances = splitIgnoringParentheses(hindrancesStr, ', ');
-                Debug.log(`Parsed hindrances (text): ${JSON.stringify(character.hindrances)}`);
+                if (hindrancesStr && hindrancesStr !== '—' && hindrancesStr !== '-' && hindrancesStr !== '–' && hindrancesStr.trim() !== '') {
+                    character.hindrances = splitIgnoringParentheses(hindrancesStr, ', ');
+                }
                 break;
             }
             lineIndex++;
@@ -1673,93 +1754,201 @@ export class Savaged {
                 lineIndex++;
             }
         }
-        
-        // NEW: Pre-process gear string to extract and handle weapons and other proper sections
+
+        // NEW: Enhanced gear parsing to extract weapons and other proper sections
         if (gearStr) {
             // Split gear by commas first to process individual items
             const potentialGearItems = splitIgnoringParentheses(gearStr, ', ');
             character.gear = [];
-            
+
             potentialGearItems.forEach(item => {
                 const trimmedItem = item.trim();
                 if (!trimmedItem) return;
+
+                // Check if this looks like a weapon pattern
+                const weaponFromGear = parseWeaponFromGearItem(trimmedItem, character);
                 
-                // NEW: Check if this looks like a weapon pattern (name (damage) or name (Str+d8))
-                const weaponPattern = /^(.+?)\s*\(.*[Dd]amage.*\)/i;
-                const weaponMatch = trimmedItem.match(weaponPattern);
-                
-                // NEW: Special case for simple attribute + dice weapons like "Needle (Str+d8)"
-                const simpleWeaponPattern = /^(.+?)\s*\(([Ss]tr|[Aa]gi|[Ss]ma|[Ss]pi|[Vv]ig)[+]?[d]\d+.*\)/i;
-                const simpleWeaponMatch = trimmedItem.match(simpleWeaponPattern);
-                
-                const isWeapon = weaponMatch || simpleWeaponMatch;
-                
-                // NEW: Check if this looks like an edge list entry (common edge names)
-                const commonEdgeNames = ['Level Headed', 'Luck', 'Great Luck', 'Frenzy', 'Dodge', 'Combo', 'Improved', 'Alertness', 'Ambidextrous', 'Arcane', 'Artificer', 'Assassin', 'Berserker', 'Better', 'Quick', 'Marksman', 'Giant', 'McGyver', 'Muscle', 'Nerves', 'Rocket', 'Steely', 'Trademark'];
-                const isEdgeItem = commonEdgeNames.some(edge => 
-                    trimmedItem.toLowerCase().includes(edge.toLowerCase())
-                );
-                
-                // Check if this looks like a section header that shouldn't be in gear
-                const isSectionHeader = trimmedItem.match(/^(Edges|Hindrances|Advances|Background|Experience|Bennies):/i) ||
-                                       trimmedItem.match(/^(Pace|Parry|Toughness):/i) ||
-                                       trimmedItem.match(/^(Strength|Agility|Smarts|Spirit|Vigor):/i);
-                
-                if (isWeapon) {
-                    // Handle as weapon - create a weapon entry
-                    const weaponName = (weaponMatch || simpleWeaponMatch)![1].trim();
-                    const weapon: Partial<Weapon> = {
-                        name: weaponName,
-                        range: 'melee' // Default range for parsed weapons
-                    };
-                    
-                    // Extract damage information if possible
-                    const damageMatch = trimmedItem.match(/[Dd]amage[:\s]*([^+)]+)/);
-                    if (damageMatch) {
-                        weapon.damage = damageMatch[1].trim();
-                    } else {
-                        // Try to extract attribute + dice pattern
-                        const attrDamageMatch = trimmedItem.match(/\(([^+)]+)\)/);
-                        if (attrDamageMatch) {
-                            const damageStr = attrDamageMatch[1];
-                            
-                            // Handle attribute + dice patterns like "Str+d8"
-                            const attrDiceMatch = damageStr.match(/^([Ss]tr|[Aa]gi|[Ss]ma|[Ss]pi|[Vv]ig)[+]?([d]\d+[+-]?\d*)$/i);
-                            if (attrDiceMatch) {
-                                const attrName = attrDiceMatch[1].toLowerCase();
-                                const diceValue = attrDiceMatch[2];
-                                // Get the attribute die value and combine
-                                const attrDie = character.attributes.find(t => t.name === attrName)?.die || 'd4';
-                                weapon.damage = attrDie + diceValue.replace(/^d/, '+'); // Convert d8 to +d8
-                            } else if (damageStr.match(/[Ss]tr/i) && damageStr.match(/d\d+/i)) {
-                                // Convert attribute damage to actual value
-                                const strDie = character.attributes.find(t => t.name === 'strength')?.die || 'd6';
-                                weapon.damage = strDie + '+1'; // Default +1 for Str+d8 pattern
-                            }
-                        }
-                    }
-                    
+                if (weaponFromGear) {
+                    // This is a weapon, add to weapons array
                     if (!character.weapons) character.weapons = [];
-                    character.weapons.push(weapon as Weapon);
-                    Debug.log(`Extracted weapon from gear: ${weapon.name} -> ${weapon.damage}`);
-                    
-                } else if (isEdgeItem || isSectionHeader) {
-                    // Skip items that are clearly edges or section headers
-                    Debug.log(`Skipping non-gear item: "${trimmedItem}"`);
+                    character.weapons.push(weaponFromGear);
+                    Debug.log(`Extracted weapon from gear: ${weaponFromGear.name} -> damage: ${weaponFromGear.damage}, range: ${weaponFromGear.range}, ap: ${weaponFromGear.ap}`);
                 } else {
-                    // This appears to be legitimate gear
-                    const containerMatch = trimmedItem.match(/^(.+?)\s*\(Contains:?\s*(.+)\)$/);
-                    if (containerMatch) {
-                        const container = containerMatch[1].trim();
-                        const contentsStr = containerMatch[2].replace(/\)$/, '');
-                        character.gear!.push(container);
-                        const contents = splitIgnoringParentheses(contentsStr, ', ');
-                        contents.forEach(c => character.gear!.push(c.trim()));
+                    // Check if this looks like an edge list entry (common edge names)
+                    const commonEdgeNames = ['Level Headed', 'Luck', 'Great Luck', 'Frenzy', 'Dodge', 'Combo', 'Improved', 'Alertness', 'Ambidextrous', 'Arcane', 'Artificer', 'Assassin', 'Berserker', 'Better', 'Quick', 'Marksman', 'Giant', 'McGyver', 'Muscle', 'Nerves', 'Rocket', 'Steely', 'Trademark'];
+                    const isEdgeItem = commonEdgeNames.some(edge =>
+                        trimmedItem.toLowerCase().includes(edge.toLowerCase())
+                    );
+
+                    // Check if this looks like a section header that shouldn't be in gear
+                    const isSectionHeader = trimmedItem.match(/^(Edges|Hindrances|Advances|Background|Experience|Bennies):/i) ||
+                        trimmedItem.match(/^(Pace|Parry|Toughness):/i) ||
+                        trimmedItem.match(/^(Strength|Agility|Smarts|Spirit|Vigor):/i);
+
+                    if (isEdgeItem || isSectionHeader) {
+                        // Skip items that are clearly edges or section headers
+                        Debug.log(`Skipping non-gear item: "${trimmedItem}"`);
                     } else {
-                        character.gear!.push(trimmedItem);
+                        // This appears to be legitimate gear
+                        const containerMatch = trimmedItem.match(/^(.+?)\s*\(Contains:?\s*(.+)\)$/);
+                        if (containerMatch) {
+                            const container = containerMatch[1].trim();
+                            const contentsStr = containerMatch[2].replace(/\)$/, '');
+                            character.gear!.push(container);
+                            const contents = splitIgnoringParentheses(contentsStr, ', ');
+                            contents.forEach(c => character.gear!.push(c.trim()));
+                        } else {
+                            character.gear!.push(trimmedItem);
+                        }
                     }
                 }
             });
+        }
+
+        // Helper function to parse weapons from gear items
+        function parseWeaponFromGearItem(gearItem: string, character: Character): Weapon | null {
+            const trimmedItem = gearItem.trim();
+            
+            // Check if this looks like a weapon pattern - must have parentheses with details
+            const weaponDetailsMatch = trimmedItem.match(/^(.+?)\s*\((.+)\)$/);
+            if (!weaponDetailsMatch) {
+                return null; // No details in parentheses, probably not a weapon
+            }
+
+            const weaponName = weaponDetailsMatch[1].trim();
+            const detailsStr = weaponDetailsMatch[2].trim();
+
+            // Parse the details to extract weapon information
+            const detailParts = detailsStr.split(';').map(part => part.trim());
+            const detailMap: Record<string, string> = {};
+
+            detailParts.forEach(part => {
+                // Handle different detail formats
+                if (part.match(/^[-+]\d+ Parry$/i)) {
+                    const value = part.replace(/parry/i, '').trim();
+                    detailMap['parry'] = value;
+                } else if (part.includes(':')) {
+                    // Format: "Range: value" or "Damage: value"
+                    const [key, ...valueParts] = part.split(':');
+                    detailMap[key.toLowerCase().trim()] = valueParts.join(':').trim();
+                } else if (part.includes(' ')) {
+                    // Format: "Str+d6" or "AP 2" or "Reach 1\""
+                    const spaceIndex = part.indexOf(' ');
+                    const key = part.substring(0, spaceIndex).toLowerCase();
+                    const value = part.substring(spaceIndex + 1).trim();
+                    detailMap[key] = value;
+                } else {
+                    // Check for damage patterns that don't have "Damage:" prefix
+                    // Patterns like "2d6", "Str+d6", "1d8+1", etc.
+                    if (part.match(/^(Str|Agi|Sma|Spi|Vig)[+]?[d]\d+[+-]?\d*$/i) || 
+                        part.match(/^\d+[d]\d+[+-]?\d*$/)) {
+                        detailMap['damage'] = part;
+                    } else {
+                        // Single word parts like "Throwing" or "Shooting"
+                        detailMap[part.toLowerCase()] = 'true';
+                    }
+                }
+            });
+
+            // Determine if this is actually a weapon by checking for weapon-like details
+            const isWeapon = detailMap['damage'] || 
+                            detailMap['range'] || 
+                            detailMap['ap'] || 
+                            detailMap['reach'] ||
+                            detailMap['parry'] ||
+                            detailMap['rof'] ||
+                            detailMap['throwing'] === 'true' ||
+                            detailMap['shooting'] === 'true';
+
+            if (!isWeapon) {
+                return null;
+            }
+
+            // Build the weapon object
+            const weapon: Weapon = {
+                name: weaponName,
+                range: (detailMap['range'] || 'melee').toLowerCase(),
+                reach: detailMap['reach'],
+                parry: detailMap['parry'],
+                rof: detailMap['rof'],
+                ap: detailMap['ap']
+            };
+
+            // Process damage string
+            let damage = detailMap['damage'];
+            if (damage) {
+                const getAttributeDie = (name: string) => character.attributes.find(t => t.name.toLowerCase() === name.toLowerCase())?.die || 'd4';
+                const strDie = getAttributeDie('strength');
+                Debug.log(`Gear weapon damage parsing - Original: "${damage}", Str die: "${strDie}"`);
+
+                // Handle complex damage patterns like "(1-3)d6" first
+                const complexDamageMatch = damage.match(/^\((\d+)-(\d+)\)(d\d+)$/i);
+                if (complexDamageMatch) {
+                    const minDice = parseInt(complexDamageMatch[1]);
+                    const maxDice = parseInt(complexDamageMatch[2]);
+                    const dieType = complexDamageMatch[3];
+                    const avgDice = Math.ceil((minDice + maxDice) / 2);
+                    damage = `${avgDice}${dieType}`;
+                    Debug.log(`Complex damage pattern converted: "${complexDamageMatch[0]}" -> "${damage}"`);
+                }
+
+                // Handle standalone attribute references (like "Str" alone)
+                damage = damage.replace(/\bStr\b(?!\s*[+-]?\s*d\d+)/gi, strDie);
+                damage = damage.replace(/\bAgi\b(?!\s*[+-]?\s*d\d+)/gi, getAttributeDie('agility'));
+                damage = damage.replace(/\bSma\b(?!\s*[+-]?\s*d\d+)/gi, getAttributeDie('smarts'));
+                damage = damage.replace(/\bSpi\b(?!\s*[+-]?\s*d\d+)/gi, getAttributeDie('spirit'));
+                damage = damage.replace(/\bVig\b(?!\s*[+-]?\s*d\d+)/gi, getAttributeDie('vigor'));
+
+                // Handle attributes followed by dice notation
+                damage = damage.replace(/\bStr\b(?=\s*[+-]?\s*d\d+)/gi, strDie);
+                damage = damage.replace(/\bAgi\b(?=\s*[+-]?\s*d\d+)/gi, getAttributeDie('agility'));
+                damage = damage.replace(/\bSma\b(?=\s*[+-]?\s*d\d+)/gi, getAttributeDie('smarts'));
+                damage = damage.replace(/\bSpi\b(?=\s*[+-]?\s*d\d+)/gi, getAttributeDie('spirit'));
+                damage = damage.replace(/\bVig\b(?=\s*[+-]?\s*d\d+)/gi, getAttributeDie('vigor'));
+
+                Debug.log(`Gear weapon damage parsing - After substitution: "${damage}"`);
+                weapon.damage = damage;
+            }
+
+            // Determine attack values based on weapon type and skills
+            const getSkillDie = (name: string) => character.skills.find(t => t.name === name)?.die || 'd4-2';
+            
+            const weaponNameLower = weaponName.toLowerCase();
+            const isThrown = ['axe', 'hand axe', 'throwing axe', 'dagger', 'knife', 'net', 'sling', 'spear', 'javelin', 'trident', 'starknife', 'shuriken', 'bolas', 'hammer', 'warhammer', 'rock'].some(tw => weaponNameLower.includes(tw));
+            const isOnlyThrown = ['net', 'sling', 'shuriken', 'bolas', 'rock'].some(tw => weaponNameLower.includes(tw));
+            const isMelee = !detailMap['range'] || detailMap['range'].toLowerCase() === 'melee';
+            const isShooting = detailMap['shooting'] === 'true' || (!isMelee && !isThrown);
+
+            // Special handling for Unarmed weapons
+            const isUnarmed = weaponNameLower.includes('unarmed');
+            if (isUnarmed && isMelee && !isThrown) {
+                weapon.attack = getSkillDie('fighting');
+            } else if (isMelee && !isThrown) {
+                weapon.attack = getSkillDie('fighting');
+            } else if (isThrown) {
+                if (isOnlyThrown) {
+                    weapon.attack = getSkillDie('athletics');
+                } else {
+                    weapon.attack = getSkillDie('fighting');
+                    weapon.thrownAttack = getSkillDie('athletics');
+                }
+            } else if (isShooting) {
+                weapon.attack = getSkillDie('shooting');
+            }
+
+            // Set default reach and parry for melee weapons
+            if (isMelee && !weapon.reach) {
+                weapon.reach = '1';
+            }
+            if (isMelee && !weapon.parry) {
+                weapon.parry = '0';
+            }
+            if (!isMelee && !weapon.rof) {
+                weapon.rof = '1';
+            }
+
+            Debug.log(`Parsed weapon from gear: ${weapon.name} -> attack: ${weapon.attack}, damage: ${weapon.damage}, range: ${weapon.range}`);
+            return weapon;
         }
 
         // Languages
@@ -1802,7 +1991,7 @@ export class Savaged {
         character.specialAbilities = [];
         lineIndex = 0;
         let currentAbility = '';
-        
+
         while (lineIndex < lines.length) {
             const line = lines[lineIndex];
             if (line.match(/^Special Abilities/i)) {
@@ -1819,19 +2008,19 @@ export class Savaged {
                     break;
                 } else if (line.trim().length > 0) {
                     const trimmedLine = line.trim();
-                    
+
                     // Check if this line starts a new ability:
                     // 1. Starts with bullet points (•, -, *)
                     // 2. Starts with capital letter and contains a colon
-                    const isNewAbility = trimmedLine.match(/^[•\-*]\s/) || 
-                                        (trimmedLine.match(/^[A-Z]/) && trimmedLine.includes(':'));
-                    
+                    const isNewAbility = trimmedLine.match(/^[•\-*]\s/) ||
+                        (trimmedLine.match(/^[A-Z]/) && trimmedLine.includes(':'));
+
                     if (isNewAbility) {
                         // Save previous ability if exists
                         if (currentAbility.trim()) {
                             character.specialAbilities.push(currentAbility.trim());
                         }
-                        
+
                         // Start new ability
                         let cleanLine = trimmedLine;
                         if (cleanLine.match(/^[•\-*]\s/)) {
@@ -1853,7 +2042,7 @@ export class Savaged {
                 lineIndex++;
             }
         }
-        
+
         // Don't forget the last ability
         if (currentAbility.trim()) {
             character.specialAbilities.push(currentAbility.trim());
@@ -1964,6 +2153,15 @@ export class Savaged {
                         const strDie = getAttributeDie('strength');
                         Debug.log(`Special ability weapon parsing: ${match[1].trim()} - Original damage: "${damageStr}", Str die: "${strDie}"`);
 
+                        // Extract AP value if present (e.g., "Str+d6 AP 2" -> ap: "2")
+                        let apValue: string | undefined;
+                        const apMatch = damageStr.match(/\s+AP\s*(\d+)/i);
+                        if (apMatch) {
+                            apValue = apMatch[1];
+                            damageStr = damageStr.replace(/\s+AP\s*\d+/i, '').trim();
+                            Debug.log(`Extracted AP: ${apValue}, remaining damage: "${damageStr}"`);
+                        }
+
                         // Substitute attribute abbreviations with actual dice values
                         // Only replace attribute abbreviations that are followed by dice notation or modifiers
                         damageStr = damageStr.replace(/\bStr\b(?=\s*[+-]?\s*d\d+)/gi, strDie);
@@ -1979,8 +2177,8 @@ export class Savaged {
                             name: match[1].trim(), // Use original case for display
                             damage: damageStr,
                             range: 'melee', // Default to melee for natural attacks
-                            reach: '1'     // Default reach for natural attacks
-                            // Other properties will use default values
+                            reach: '1',     // Default reach for natural attacks
+                            ap: apValue     // AP extracted from damage string
                         };
                         weaponsFromSpecialAbilities.push(weapon);
 
@@ -2167,7 +2365,7 @@ export class Savaged {
                 const ul = saH3.nextElementSibling as HTMLUListElement;
                 const lis = ul.querySelectorAll('li');
                 Array.from(lis).forEach(li => {
-                    extractedText += '• ' + li.textContent?.trim() + '\n';
+                    extractedText += '• ' + li.textContent?.trim() || '' + '\n';
                 });
                 extractedText += '\n';
             }
@@ -2225,7 +2423,7 @@ export class Savaged {
             this.parseCharacterFromText(this.extractTextFromHtml1(testHtml)),
             this.parseCharacterFromText(this.extractTextFromHtml2(testHtml))
         ]
-        let i=1;
+        let i = 1;
         chars.forEach(textCharacter => {
             Debug.log(`Text ${i} Parser Result:`, textCharacter);
             i++;
@@ -2415,7 +2613,7 @@ Weapons: Sword (Damage 2d8, Range melee)
         Debug.log("=== End Skill Parsing Tests ===");
     }
 
-       // Test function to verify special ability weapon damage parsing
+    // Test function to verify special ability weapon damage parsing
     static testSpecialAbilityWeaponDamage() {
         const testText = `
 Test Character
@@ -2580,7 +2778,7 @@ Size 2: Common gators are about 10′ long, thick, heavy, and weigh just under 7
         Debug.log("");
 
         const character = this.parseCharacterFromText(testText);
-        
+
         Debug.log("Parsed character:");
         Debug.log(`Name: ${character.name}`);
         Debug.log(`Edges: ${JSON.stringify(character.edges)}`);
@@ -2606,10 +2804,10 @@ Size 2: Common gators are about 10′ long, thick, heavy, and weigh just under 7
             "Size 2: Common gators are about 10′ long, thick, heavy, and weigh just under 750 lbs."
         ];
 
-        const specialAbilitiesTest = character.specialAbilities && 
-                                   character.specialAbilities.length === expectedSpecialAbilities.length;
+        const specialAbilitiesTest = character.specialAbilities &&
+            character.specialAbilities.length === expectedSpecialAbilities.length;
         Debug.log(`Special Abilities test (${expectedSpecialAbilities.length} expected): ${specialAbilitiesTest ? 'PASSED' : 'FAILED'}`);
-        
+
         if (character.specialAbilities) {
             Debug.log("Parsed special abilities:");
             character.specialAbilities.forEach((ability, index) => {
@@ -2634,6 +2832,114 @@ Size 2: Common gators are about 10′ long, thick, heavy, and weigh just under 7
 
         Debug.log("=== End Edges and Special Abilities Parsing Test ===");
         return character;
+    }
+
+    // Test function to verify gear weapon parsing
+    static testGearWeaponParsing() {
+        Debug.log("=== Testing Gear Weapon Parsing ===");
+
+        // Test cases using the provided examples
+        const testCases = [
+            {
+                name: "Scale mail, heavy mace, light crossbow",
+                text: `
+Test Character
+Rank: Veteran, Gender: Male, Race: Human, Profession: Warrior
+
+Attributes: Agility d8, Smarts d6, Spirit d6, Strength d8, Vigor d8
+
+Skills: Fighting d8, Shooting d8, Athletics d6
+
+Gear: Scale mail (+2), heavy mace (Str+d6; AP 2), light crossbow (Shooting; range 12/24/48; 2d6; AP 1)
+                `.trim()
+            },
+            {
+                name: "Masterwork adamantine warhammer and rock",
+                text: `
+Test Character
+Rank: Veteran, Gender: Male, Race: Human, Profession: Warrior
+
+Attributes: Agility d8, Smarts d6, Spirit d6, Strength d10, Vigor d8
+
+Skills: Fighting d8, Athletics d6
+
+Gear: Masterwork adamantine warhammer (Str+d6; AP 2), rock (Throwing; range 3/6/12; Str+d6)
+                `.trim()
+            },
+            {
+                name: "Spear with multiple modes",
+                text: `
+Test Character
+Rank: Veteran, Gender: Male, Race: Human, Profession: Warrior
+
+Attributes: Agility d8, Smarts d6, Spirit d6, Strength d8, Vigor d8
+
+Skills: Fighting d8, Athletics d6
+
+Gear: Spear (Str+d6; Reach 1"; Parry +1; Poison), spear (Throwing; range 3/6/12; Str+d6)
+                `.trim()
+            },
+            {
+                name: "Flaming weapons",
+                text: `
+Test Character
+Rank: Veteran, Gender: Male, Race: Human, Profession: Warrior
+
+Attributes: Agility d8, Smarts d6, Spirit d6, Strength d8, Vigor d8
+
+Skills: Fighting d8, Shooting d8
+
+Gear: Flaming longsword (Str+d8; +2 fire damage), flaming javelin (Throwing; range 3/6/12; Str+d6; +2 fire damage)
+                `.trim()
+            }
+        ];
+
+        testCases.forEach((testCase, index) => {
+            Debug.log(`\n--- Test Case ${index + 1}: ${testCase.name} ---`);
+            Debug.log("Input gear section:");
+            const gearMatch = testCase.text.match(/Gear:\s*(.+)/i);
+            if (gearMatch) {
+                Debug.log(`  ${gearMatch[1]}`);
+            }
+
+            const character = this.parseCharacterFromText(testCase.text);
+
+            Debug.log(`Parsed gear items (${character.gear?.length || 0}):`);
+            if (character.gear) {
+                character.gear.forEach((gear, i) => {
+                    Debug.log(`  ${i + 1}. ${gear}`);
+                });
+            }
+
+            Debug.log(`Parsed weapons (${character.weapons?.length || 0}):`);
+            if (character.weapons) {
+                character.weapons.forEach((weapon, i) => {
+                    Debug.log(`  ${i + 1}. ${weapon.name}`);
+                    Debug.log(`     - Attack: ${weapon.attack || 'undefined'}`);
+                    Debug.log(`     - Damage: ${weapon.damage || 'undefined'}`);
+                    Debug.log(`     - Range: ${weapon.range || 'undefined'}`);
+                    Debug.log(`     - Reach: ${weapon.reach || 'undefined'}`);
+                    Debug.log(`     - Parry: ${weapon.parry || 'undefined'}`);
+                    Debug.log(`     - AP: ${weapon.ap || 'undefined'}`);
+                    Debug.log(`     - Thrown Attack: ${weapon.thrownAttack || 'undefined'}`);
+                });
+            }
+
+            // Validate results
+            let passed = true;
+            if (!character.gear || character.gear.length === 0) {
+                Debug.log("  ERROR: No gear items found");
+                passed = false;
+            }
+            if (!character.weapons || character.weapons.length === 0) {
+                Debug.log("  ERROR: No weapons extracted from gear");
+                passed = false;
+            }
+
+            Debug.log(`Test ${passed ? 'PASSED' : 'FAILED'}`);
+        });
+
+        Debug.log("=== End Gear Weapon Parsing Test ===");
     }
 
 }
