@@ -867,10 +867,11 @@ export class Savaged {
 
                 // List of known weapon attack names to be more precise
                 const weaponAttackNames = [
-                    'bite', 'claw', 'slam', 'strike', 'punch', 'kick', 'gore', 'trample',
-                    'crush', 'rend', 'maul', 'rake', 'peck', 'sting', 'lash', 'swipe',
-                    'chomp', 'snap', 'slash', 'stab', 'pierce', 'bludgeon', 'tail', 'horn',
-                    'tentacle', 'fang', 'talon', 'hoof', 'pincer', 'mandible', 'beak'
+                    'bite', 'claw', 'slam', 'strike', 'punch', 'kick', 'gore', 'trample', 'antler',
+                    'crush', 'rend', 'maul', 'rake', 'peck', 'sting', 'lash', 'swipe', 'tusks', 'trunk',
+                    'touch', 'tongue', 'tendrils','swarm', 'sting or bite', 'bite or sting',
+                    'slam', 'chomp', 'snap', 'slash', 'stab', 'pierce', 'bludgeon', 'tail', 'horn', 'vines',
+                    'tentacle', 'fang', 'talon', 'hoof', 'pincer', 'mandible', 'beak' , 'wings'
                 ];
 
                 // Process special abilities in reverse order to avoid index issues when removing
@@ -881,25 +882,42 @@ export class Savaged {
                         const weaponName = match[1].trim().toLowerCase();
                         let damageStr = match[2].trim();
 
-                        // More precise detection: must be a known weapon attack name AND have damage dice
+                        // More precise detection: must be a known weapon attack name
                         const isWeaponAttackName = weaponAttackNames.some(name => weaponName.includes(name));
-                        const hasDamageDice = damageStr.match(/d\d+/i); // Must contain dice notation like d4, d6, d8, etc.
+                        
+                        // Check for clean damage patterns in the immediate text after colon
+                        let immediateDamageMatch = damageStr.match(/(\d*d\d+[+-]?\d*|(?:Str|Agi|Sma|Spi|Vig)\s*[+-]?\s*\d*|(?:Str|Agi|Sma|Spi|Vig))/i);
+                        
+                        // If no immediate clean damage, search the entire ability text for damage patterns
+                        let finalDamageStr = damageStr;
+                        if (!immediateDamageMatch) {
+                            const fullDamageMatch = ability.match(/(?:damage|causing)\s+(\d*d\d+[+-]?\d*)/i);
+                            if (fullDamageMatch) {
+                                finalDamageStr = fullDamageMatch[1];
+                                Debug.log(`Found damage later in text: "${finalDamageStr}"`);
+                            }
+                        } else {
+                            finalDamageStr = immediateDamageMatch[1];
+                            Debug.log(`Found immediate damage: "${finalDamageStr}"`);
+                        }
 
-                        if (isWeaponAttackName && hasDamageDice) {
+                        const hasDamage = finalDamageStr.match(/d\d+|(?:Str|Agi|Sma|Spi|Vig)\s*[+-]?\s*\d*|(?:Str|Agi|Sma|Spi|Vig)/i);
+
+                        if (isWeaponAttackName && hasDamage) {
                             // Debug logging for attribute substitution
                             const strDie = getAttributeDie('strength');
-                            Debug.log(`Special ability weapon parsing: ${match[1].trim()} - Original damage: "${damageStr}", Str die: "${strDie}"`);
+                            Debug.log(`Special ability weapon parsing: ${match[1].trim()} - Original damage: "${finalDamageStr}", Str die: "${strDie}"`);
 
                             // Debug: Log all attributes to see what we're working with
                             Debug.log('Available attributes:', character.attributes);
 
                             // Extract AP value if present (e.g., "Str+d6 AP 2" -> ap: "2")
                             let apValue: string | undefined;
-                            const apMatch = damageStr.match(/\s+AP\s*(\d+)/i);
+                            const apMatch = finalDamageStr.match(/\s+AP\s*(\d+)/i) || ability.match(/\s+AP\s*(\d+)/i);
                             if (apMatch) {
                                 apValue = apMatch[1];
-                                damageStr = damageStr.replace(/\s+AP\s*\d+/i, '').trim();
-                                Debug.log(`Extracted AP: ${apValue}, remaining damage: "${damageStr}"`);
+                                finalDamageStr = finalDamageStr.replace(/\s+AP\s*\d+/i, '').trim();
+                                Debug.log(`Extracted AP: ${apValue}, remaining damage: "${finalDamageStr}"`);
                             }
 
                             // Substitute attribute abbreviations with actual dice values
@@ -910,18 +928,25 @@ export class Savaged {
 
                             Debug.log(`Attribute dice values - Str: "${strDie}", Agi: "${agiDie}", Sma: "${smaDie}", Spi: "${spiDie}", Vig: "${vigDie}"`);
 
-                            damageStr = damageStr.replace(/Str/gi, strDie);
-                            damageStr = damageStr.replace(/Agi/gi, agiDie);
-                            damageStr = damageStr.replace(/Sma/gi, smaDie);
-                            damageStr = damageStr.replace(/Spi/gi, spiDie);
-                            damageStr = damageStr.replace(/Vig/gi, vigDie);
+                            finalDamageStr = finalDamageStr.replace(/\bStr\b(?!\s*[+-]?\s*d\d+)/gi, strDie);
+                            finalDamageStr = finalDamageStr.replace(/\bAgi\b(?!\s*[+-]?\s*d\d+)/gi, agiDie);
+                            finalDamageStr = finalDamageStr.replace(/\bSma\b(?!\s*[+-]?\s*d\d+)/gi, smaDie);
+                            finalDamageStr = finalDamageStr.replace(/\bSpi\b(?!\s*[+-]?\s*d\d+)/gi, spiDie);
+                            finalDamageStr = finalDamageStr.replace(/\bVig\b(?!\s*[+-]?\s*d\d+)/gi, vigDie);
 
-                            Debug.log(`After substitution: "${damageStr}"`);
+                            // Handle attributes followed by dice notation
+                            finalDamageStr = finalDamageStr.replace(/\bStr\b(?=\s*[+-]?\s*d\d+)/gi, strDie);
+                            finalDamageStr = finalDamageStr.replace(/\bAgi\b(?=\s*[+-]?\s*d\d+)/gi, agiDie);
+                            finalDamageStr = finalDamageStr.replace(/\bSma\b(?=\s*[+-]?\s*d\d+)/gi, smaDie);
+                            finalDamageStr = finalDamageStr.replace(/\bSpi\b(?=\s*[+-]?\s*d\d+)/gi, spiDie);
+                            finalDamageStr = finalDamageStr.replace(/\bVig\b(?=\s*[+-]?\s*d\d+)/gi, vigDie);
+
+                            Debug.log(`After substitution: "${finalDamageStr}"`);
 
                             // Create a weapon from this special ability
                             const weapon: Weapon = {
                                 name: match[1].trim(), // Use original case for display
-                                damage: damageStr,
+                                damage: finalDamageStr,
                                 range: 'melee', // Default to melee for natural attacks
                                 reach: '1',     // Default reach for natural attacks
                                 ap: apValue     // AP extracted from damage string
@@ -1810,7 +1835,7 @@ export class Savaged {
             const trimmedItem = gearItem.trim();
             
             // Check if this looks like a weapon pattern - must have parentheses with details
-            const weaponDetailsMatch = trimmedItem.match(/^(.+?)\s*\((.+)\)$/);
+            const weaponDetailsMatch = trimmedItem.match(/^(.+?)\s*\(([^()]+)\)\s*[.,;!?]*/);
             if (!weaponDetailsMatch) {
                 return null; // No details in parentheses, probably not a weapon
             }
@@ -1839,10 +1864,17 @@ export class Savaged {
                     detailMap[key] = value;
                 } else {
                     // Check for damage patterns that don't have "Damage:" prefix
-                    // Patterns like "2d6", "Str+d6", "1d8+1", etc.
-                    if (part.match(/^(Str|Agi|Sma|Spi|Vig)[+]?[d]\d+[+-]?\d*$/i) || 
-                        part.match(/^\d+[d]\d+[+-]?\d*$/)) {
+                    // Patterns like "2d6", "Str+d6", "1d8+1", "Str+d4", etc.
+                    // Handle attribute abbreviations followed by +/- and dice notation
+                    // Also handle patterns like "Str+d4" where there's no space
+                    const isDamagePattern = 
+                        part.match(/^(Str|Agi|Sma|Spi|Vig)\s*[\+\-]\s*d\d+[\+\-]?\d*$/i) || // Str+d4, Agi-d6, etc.
+                        part.match(/^\d*d\d+[\+\-]?\d*$/i) || // d4, 2d6, d8+2, etc.
+                        part.match(/^(Str|Agi|Sma|Spi|Vig)$/i); // Just "Str" alone
+                    
+                    if (isDamagePattern) {
                         detailMap['damage'] = part;
+                        Debug.log(`Detected damage pattern in gear: "${part}"`);
                     } else {
                         // Single word parts like "Throwing" or "Shooting"
                         detailMap[part.toLowerCase()] = 'true';
@@ -2133,7 +2165,7 @@ export class Savaged {
                 'bite', 'claw', 'slam', 'strike', 'punch', 'kick', 'gore', 'trample',
                 'crush', 'rend', 'maul', 'rake', 'peck', 'sting', 'lash', 'swipe',
                 'chomp', 'snap', 'slash', 'stab', 'pierce', 'bludgeon', 'tail', 'horn',
-                'tentacle', 'fang', 'talon', 'hoof', 'pincer', 'mandible', 'beak'
+                'tentacle', 'fang', 'talon', 'hoof', 'pincer', 'mandible', 'beak', 'sting or bite', 'bite or sting'
             ];
 
             // Process special abilities in reverse order to avoid index issues when removing
@@ -2144,38 +2176,55 @@ export class Savaged {
                     const weaponName = match[1].trim().toLowerCase();
                     let damageStr = match[2].trim();
 
-                    // More precise detection: must be a known weapon attack name AND have damage dice
+                    // More precise detection: must be a known weapon attack name
                     const isWeaponAttackName = weaponAttackNames.some(name => weaponName.includes(name));
-                    const hasDamageDice = damageStr.match(/d\d+/i); // Must contain dice notation like d4, d6, d8, etc.
+                    
+                    // Check for clean damage patterns in the immediate text after colon
+                    let immediateDamageMatch = damageStr.match(/(\d*d\d+[+-]?\d*|(?:Str|Agi|Sma|Spi|Vig)\s*[+-]?\s*\d*|(?:Str|Agi|Sma|Spi|Vig))/i);
+                    
+                    // If no immediate clean damage, search the entire ability text for damage patterns
+                    let finalDamageStr = damageStr;
+                    if (!immediateDamageMatch) {
+                        const fullDamageMatch = ability.match(/(?:damage|causing)\s+(\d*d\d+[+-]?\d*)/i);
+                        if (fullDamageMatch) {
+                            finalDamageStr = fullDamageMatch[1];
+                            Debug.log(`Found damage later in text: "${finalDamageStr}"`);
+                        }
+                    } else {
+                        finalDamageStr = immediateDamageMatch[1];
+                        Debug.log(`Found immediate damage: "${finalDamageStr}"`);
+                    }
 
-                    if (isWeaponAttackName && hasDamageDice) {
+                    const hasDamage = finalDamageStr.match(/d\d+|(?:Str|Agi|Sma|Spi|Vig)\s*[+-]?\s*\d*|(?:Str|Agi|Sma|Spi|Vig)/i);
+
+                    if (isWeaponAttackName && hasDamage) {
                         // Debug logging for attribute substitution
                         const strDie = getAttributeDie('strength');
-                        Debug.log(`Special ability weapon parsing: ${match[1].trim()} - Original damage: "${damageStr}", Str die: "${strDie}"`);
+                        Debug.log(`Special ability weapon parsing: ${match[1].trim()} - Original damage: "${finalDamageStr}", Str die: "${strDie}"`);
 
                         // Extract AP value if present (e.g., "Str+d6 AP 2" -> ap: "2")
                         let apValue: string | undefined;
-                        const apMatch = damageStr.match(/\s+AP\s*(\d+)/i);
+                        const apMatch = finalDamageStr.match(/\s+AP\s*(\d+)/i) || ability.match(/\s+AP\s*(\d+)/i);
                         if (apMatch) {
                             apValue = apMatch[1];
-                            damageStr = damageStr.replace(/\s+AP\s*\d+/i, '').trim();
-                            Debug.log(`Extracted AP: ${apValue}, remaining damage: "${damageStr}"`);
+                            finalDamageStr = finalDamageStr.replace(/\s+AP\s*\d+/i, '').trim();
+                            Debug.log(`Extracted AP: ${apValue}, remaining damage: "${finalDamageStr}"`);
                         }
 
                         // Substitute attribute abbreviations with actual dice values
-                        // Only replace attribute abbreviations that are followed by dice notation or modifiers
-                        damageStr = damageStr.replace(/\bStr\b(?=\s*[+-]?\s*d\d+)/gi, strDie);
-                        damageStr = damageStr.replace(/\bAgi\b(?=\s*[+-]?\s*d\d+)/gi, getAttributeDie('agility'));
-                        damageStr = damageStr.replace(/\bSma\b(?=\s*[+-]?\s*d\d+)/gi, getAttributeDie('smarts'));
-                        damageStr = damageStr.replace(/\bSpi\b(?=\s*[+-]?\s*d\d+)/gi, getAttributeDie('spirit'));
-                        damageStr = damageStr.replace(/\bVig\b(?=\s*[+-]?\s*d\d+)/gi, getAttributeDie('vigor'));
+                        // Handle both dice notation (Str+d8) and simple modifiers (Str+2)
+                        finalDamageStr = finalDamageStr.replace(/\bStr\b(?=\s*[+-]?\s*(?:d\d+|\d+))/gi, strDie);
+                        finalDamageStr = finalDamageStr.replace(/\bAgi\b(?=\s*[+-]?\s*(?:d\d+|\d+))/gi, getAttributeDie('agility'));
+                        finalDamageStr = finalDamageStr.replace(/\bSma\b(?=\s*[+-]?\s*(?:d\d+|\d+))/gi, getAttributeDie('smarts'));
+                        finalDamageStr = finalDamageStr.replace(/\bSpi\b(?=\s*[+-]?\s*(?:d\d+|\d+))/gi, getAttributeDie('spirit'));
+                        finalDamageStr = finalDamageStr.replace(/\bVig\b(?=\s*[+-]?\s*(?:d\d+|\d+))/gi, getAttributeDie('vigor'));
 
-                        Debug.log(`After substitution: "${damageStr}"`);
+                        Debug.log(`After substitution: "${finalDamageStr}"`);
 
                         // Create a weapon from this special ability
                         const weapon: Weapon = {
                             name: match[1].trim(), // Use original case for display
-                            damage: damageStr,
+                            damage: finalDamageStr,
                             range: 'melee', // Default to melee for natural attacks
                             reach: '1',     // Default reach for natural attacks
                             ap: apValue     // AP extracted from damage string
