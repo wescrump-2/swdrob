@@ -1177,13 +1177,24 @@ export class Savaged {
         const clean = this.cleanText(text, 1);
         const lines = clean.split('\n').map(line => line.trim()).filter(line => line.length > 0);
 
+        // Define section headers for extraction functions (moved to top)
+        const sectionHeaders = [
+            "Attributes", "Skills", "Edges", "Hindrances", "Gear",
+            "Special Abilities", "Advances", "Background",
+            "Experience", "Bennies", "Pace", "Parry", "Toughness",
+            "Arcane Background", "Powers", "Weapons", "Armor",
+            "Languages", "Wealth", "Power Points", "Description"
+        ];
+
+        const getSkillDie = (name: string) => character.skills.find(t => t.name === name)?.die || 'd4-2';
+
         // Parse name from first line assuming it's the h1 equivalent
         let name = lines[0];
 
         character.isWildCard = /^\S\s/.test(name);
         if (character.isWildCard) name=name && name.length > 2 ? name.slice(2) : name ?? '';
         character.name = Util.toTitleCase(name);
-        
+
         // Parse quick info after name (Rank, Gender, Race, Profession)
         let lineIndex = 1;
         let quickText = '';
@@ -1228,135 +1239,76 @@ export class Savaged {
 
         if (!character.race) character.race = 'Human';
 
-        // Try Pattern 1 first: text immediately after name in the quick info section
-        let descFound = false;
-        let tempLineIndex = 1; 
-        while (tempLineIndex < lines.length && !descFound) {
+        // Parse Description - using new extraction function
+        let tempLineIndex = 0;
+        while (tempLineIndex < lines.length) {
             const line = lines[tempLineIndex];
-            // Look for descriptive text that comes right after the name
-            // This should be before any section headers like "Attributes:", "Skills:", etc.
-            if (!line.match(/^(Attributes|Skills|Weapons|Arcane Background|Powers|Gear|Special Abilities|Advances|Background|Experience|Bennies):?/i)) {
-                // Skip lines that look like they contain structured data (key: value pairs)
-                if (!line.includes(':') && line.length > 10 && !line.match(/\b(Veteran|Novice|Seasoned|Heroic|Legendary)\b/i)) {
-                    if (!character.description) {
-                        character.description = line.trim();
-                    } else {
-                        character.description += ' ' + line.trim();
-                    }
-                } else {
-                    descFound = true; // Found a structured line, stop looking for pattern 1
+            if (line.match(/^Description[:]?/i)) {
+                // Use new extraction function to get all description content
+                const descResult = extractSectionContent(lines, tempLineIndex, sectionHeaders);
+                const descriptionText = descResult.content.replace(/^Description[:]?\s*/i, '').trim();
+                if (descriptionText.length > 0) {
+                    character.description = descriptionText;
                 }
-            } else {
-                descFound = true; // Found a section header, stop looking for pattern 1
+                tempLineIndex = descResult.endIndex;
+                break;
             }
             tempLineIndex++;
         }
 
-        // Try Pattern 2: Look for "Description:" prefix
+        // Try fallback pattern: Look for descriptive text immediately after name
         if (!character.description) {
-            let tempLineIndex2 = 0;
-            while (tempLineIndex2 < lines.length) {
+            let tempLineIndex2 = 1;
+            let descriptionLines: string[] = [];
+            let foundSectionHeader = false;
+
+            while (tempLineIndex2 < lines.length && !foundSectionHeader) {
                 const line = lines[tempLineIndex2];
-                if (line.match(/^Description:\s*(.*)$/i)) {
-                    let descriptionText = line.replace(/^Description:\s*/i, '').trim();
+                const trimmedLine = line.trim();
+                if (!trimmedLine) {
                     tempLineIndex2++;
-                    // Collect all subsequent lines until next section header
-                    while (tempLineIndex2 < lines.length) {
-                        const nextLine = lines[tempLineIndex2];
-                        // Stop if we hit a new section header
-                        if (nextLine.match(/^(Attributes|Skills|Weapons|Arcane Background|Powers|Gear|Special Abilities|Advances|Background|Experience|Bennies):?/i)) {
-                            break;
-                        }
-                        // Skip empty lines
-                        if (nextLine.trim().length > 0) {
-                            descriptionText += ' ' + nextLine.trim();
-                        }
-                        tempLineIndex2++;
-                    }
-                    if (descriptionText.trim().length > 0) {
-                        character.description = descriptionText.trim();
-                    }
+                    continue;
+                }
+
+                // Check if this line is a section header
+                if (trimmedLine.match(/^(Attributes|Skills|Weapons|Arcane Background|Powers|Gear|Special Abilities|Advances|Background|Experience|Bennies):?/i)) {
+                    foundSectionHeader = true;
                     break;
+                }
+
+                // If we haven't found a section header yet, this might be description text
+                if (!foundSectionHeader) {
+                    // Skip lines that look like they contain structured data (key: value pairs)
+                    if (!trimmedLine.includes(':') && trimmedLine.length > 10 && !trimmedLine.match(/\b(Veteran|Novice|Seasoned|Heroic|Legendary)\b/i)) {
+                        descriptionLines.push(trimmedLine);
+                    } else {
+                        foundSectionHeader = true; // Found a structured line, stop looking for fallback pattern
+                    }
                 }
                 tempLineIndex2++;
             }
-        }
 
-        // Try Pattern 3: Look for "Description" header (without colon)
-        if (!character.description) {
-            let tempLineIndex3 = 0;
-            while (tempLineIndex3 < lines.length) {
-                const line = lines[tempLineIndex3];
-                if (line.match(/^Description$/i)) {
-                    tempLineIndex3++;
-                    // Collect all subsequent lines until next section header
-                    let descriptionText = '';
-                    while (tempLineIndex3 < lines.length) {
-                        const nextLine = lines[tempLineIndex3];
-                        // Stop if we hit a new section header
-                        if (nextLine.match(/^(Attributes|Skills|Weapons|Arcane Background|Powers|Gear|Special Abilities|Advances|Background|Experience|Bennies):?/i)) {
-                            break;
-                        }
-                        // Skip empty lines
-                        if (nextLine.trim().length > 0) {
-                            if (descriptionText.length > 0) {
-                                descriptionText += ' ';
-                            }
-                            descriptionText += nextLine.trim();
-                        }
-                        tempLineIndex3++;
-                    }
-                    if (descriptionText.trim().length > 0) {
-                        character.description = descriptionText.trim();
-                    }
-                    break;
-                }
-                tempLineIndex3++;
+            if (descriptionLines.length > 0) {
+                character.description = descriptionLines.join(' ').trim();
             }
         }
 
-        // Parse Background - improved to handle "Background:" and "Background" formats
-        let bgFound = false;
+        // Parse Background - using new extraction function
         lineIndex = 0;
-        while (lineIndex < lines.length && !bgFound) {
-            if (lines[lineIndex].match(/Background[:]?/i)) {
-                lineIndex++;
-                // Collect all subsequent lines until next section header
-                let backgroundText = '';
-                while (lineIndex < lines.length) {
-                    const line = lines[lineIndex];
-                    // Stop if we hit a new section header
-                    if (line.match(/^(Attributes|Skills|Weapons|Arcane Background|Powers|Gear|Special Abilities|Advances|Description|Experience|Bennies):?/i)) {
-                        break;
-                    }
-                    // Skip empty lines
-                    if (line.trim().length > 0) {
-                        if (backgroundText.length > 0) {
-                            backgroundText += ' ';
-                        }
-                        backgroundText += line.trim();
-                    }
-                    lineIndex++;
+        while (lineIndex < lines.length) {
+            const line = lines[lineIndex];
+            if (line.match(/^Background[:]?/i)) {
+                // Use new extraction function to get all background content
+                const backgroundResult = extractSectionContent(lines, lineIndex, sectionHeaders);
+                const backgroundText = backgroundResult.content.replace(/^Background[:]?\s*/i, '').trim();
+                if (backgroundText.length > 0) {
+                    character.background = backgroundText;
                 }
-                if (backgroundText.trim().length > 0) {
-                    character.background = backgroundText.trim();
-                }
-                bgFound = true;
-            } else {
-                lineIndex++;
+                lineIndex = backgroundResult.endIndex;
+                break;
             }
+            lineIndex++;
         }
-
-        const getSkillDie = (name: string) => character.skills.find(t => t.name === name)?.die || 'd4-2';
-
-        // Define section headers for extraction functions
-        const sectionHeaders = [
-            "Attributes", "Skills", "Edges", "Hindrances", "Gear",
-            "Special Abilities", "Advances", "Background",
-            "Experience", "Bennies", "Pace", "Parry", "Toughness",
-            "Arcane Background", "Powers", "Weapons", "Armor",
-            "Languages", "Wealth", "Power Points"
-        ];
 
         // Attributes - using new extraction function
         lineIndex = 0;
