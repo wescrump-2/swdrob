@@ -551,58 +551,53 @@ async function setPlayer(r: SWDR) {
     await playerCachePromise;
 }
 
-async function testUrlExtraction() {
-    // Debug.log("Testing API connection...");
-    // const connectionValid = await Savaged.testApiConnection(Savaged.API_KEY);
-    // if (!connectionValid) {
-    //     Debug.error("API connection test failed. Skipping character and bestiary fetches.");
-    //     return;
-    // }
-    // const char1 = await Savaged.parseCharacterFromURL("https://svgd.us/o9o99vpm");
-    // console.log(JSON.stringify(char1));
-
-    // const char2 = await Savaged.parseCharacterFromURL("https://savaged.us/s/greedeegrimstone");
-    // console.log(JSON.stringify(char2));
-
-    // const char3 = await Savaged.parseCharacterFromURL("https://svgd.us/ingrid");
-    // console.log(JSON.stringify(char3));
-
-    // const swuser = await Util.fetchUserData(Util.API_KEY);
-    // console.log(swuser);
-    // const swsaved = await Util.fetchSaved(Util.API_KEY);
-    // console.log(swsaved);
-    // const swchar = await Util.fetchThisCharacter(Util.API_KEY,"ed567f3b-5ad7-486e-a969-15c7c2bba99f");
-    // console.log(swchar);
-
-    // const swchars = await Util.fetchCharacters(Util.API_KEY);
-    // console.log(swchars);
-
-    // const swBeasts = await Util.searchBestiary(Util.API_KEY,"spider");
-    // console.log(swBeasts);
-}
-
-
-
 OBR.onReady(async () => {
     console.log("OBR.onReady fired");
     await Savaged.checkProxyStatus();
-    await testUrlExtraction();
     createContextMenu();
     await initializeExtension();
 
-    const unsubscribeonReadyChange = OBR.scene.onReadyChange(async () => await Debug.sceneOnChange())
-    const unsubscribeItemsOnChange = OBR.scene.items.onChange(async () => await Debug.sceneOnChange())
-    await Debug.sceneOnChange();
+    const unsubscribeonReadyChange = OBR.scene.onReadyChange(async () => {
+        try {
+            await Debug.sceneOnChange();
+        } catch (error) {
+            console.error("Error in scene ready change handler:", error);
+        }
+    });
+    const unsubscribeItemsOnChange = OBR.scene.items.onChange(async () => {
+        try {
+            await Debug.sceneOnChange();
+        } catch (error) {
+            console.error("Error in scene items change handler:", error);
+        }
+    });
+
+    try {
+        await Debug.sceneOnChange();
+    } catch (error) {
+        console.error("Error in initial scene change check:", error);
+    }
 
     await Debug.dumpRoomMetadata();
     await Debug.findItemMetadataKeys();
     await Debug.cleanupDeadExtensionMetadata();
 
-    const unsubscribeonMetadataChange = OBR.room.onMetadataChange(onRoomMetadataChange)
+    const unsubscribeonMetadataChange = OBR.room.onMetadataChange(async (metadata) => {
+        try {
+            await onRoomMetadataChange(metadata);
+        } catch (error) {
+            console.error("Error in metadata change handler:", error);
+        }
+    });
+
     window.addEventListener('beforeunload', () => {
-        unsubscribeonMetadataChange();
-        unsubscribeonReadyChange();
-        unsubscribeItemsOnChange();
+        try {
+            unsubscribeonMetadataChange();
+            unsubscribeonReadyChange();
+            unsubscribeItemsOnChange();
+        } catch (error) {
+            console.error("Error during cleanup:", error);
+        }
     });
 });
 
@@ -840,73 +835,93 @@ function parseDiceString(diceStr: string): { [key: number]: number } {
 }
 
 async function onRoomMetadataChange(metadata: any) {
-    if (metadata[Util.DiceHistoryMkey]) {
-        const storedHistory = metadata[Util.DiceHistoryMkey] as Uint8Array
-        ROLL_HISTORY = decompress(storedHistory)
-        const logContainer = document.getElementById('log-entries');
-        if (logContainer) {
-            logContainer.innerHTML = '';
+    try {
+        if (metadata[Util.DiceHistoryMkey]) {
+            try {
+                const storedHistory = metadata[Util.DiceHistoryMkey] as Uint8Array;
+                ROLL_HISTORY = decompress(storedHistory);
+                const logContainer = document.getElementById('log-entries');
+                if (logContainer) {
+                    logContainer.innerHTML = '';
+                }
+                renderLog(ROLL_HISTORY);
+            } catch (error) {
+                console.error("Failed to process roll history:", error);
+                // Continue with other metadata processing
+            }
         }
-        renderLog(ROLL_HISTORY)
-    }
-    if (metadata.rollRequest) {
-        const { dice, rollType, modifier, playerId, isWildCard } = metadata.rollRequest;
-        const currentPlayerId = await OBR.player.getId();
-        if (playerId === currentPlayerId) {
-            // Set roll type
-            const radioMap: { [key: string]: SVGElement } = {
-                'trait': traitdice,
-                'damage': damagedice,
-                'standard': standarddice
-            };
-            if (radioMap[rollType]) {
-                setRadio(radioMap[rollType]);
-            }
-            // Set modifier
-            setSpinner(modifierSpinner, modifierCurrent, modifier);
-            // Clear counters
-            clearCounters();
 
-            // Use the dice array to build a proper dice string
-            let diceStringToParse = '';
-            if (dice && Array.isArray(dice) && dice.length > 0) {
-                diceStringToParse = dice.join('+');
-                Debug.log(`Using dice array format: ${diceStringToParse} with modifier ${modifier}`);
-            } else {
-                // Fallback for empty or invalid dice arrays
-                diceStringToParse = 'd6';
-                Debug.log(`Fallback to default die: ${diceStringToParse}`);
-            }
+        if (metadata.rollRequest) {
+            try {
+                const { dice, rollType, modifier, playerId, isWildCard } = metadata.rollRequest;
+                const currentPlayerId = await OBR.player.getId();
 
-            // Set counters for the dice
-            const counts = parseDiceString(diceStringToParse);
-            const counterMap: { [key: string]: SVGElement } = {
-                '4': d4Button,
-                '6': d6Button,
-                '8': d8Button,
-                '10': d10Button,
-                '12': d12Button,
-                '20': d20Button,
-                '100': d100Button
-            };
-            for (const [sides, count] of Object.entries(counts)) {
-                if (counterMap[sides]) {
-                    updateCounter(counterMap[sides].nextElementSibling as HTMLElement, count);
+                if (playerId === currentPlayerId) {
+                    // Set roll type
+                    const radioMap: { [key: string]: SVGElement } = {
+                        'trait': traitdice,
+                        'damage': damagedice,
+                        'standard': standarddice
+                    };
+                    if (radioMap[rollType]) {
+                        setRadio(radioMap[rollType]);
+                    }
+                    // Set modifier
+                    setSpinner(modifierSpinner, modifierCurrent, modifier);
+                    // Clear counters
+                    clearCounters();
+
+                    // Use the dice array to build a proper dice string
+                    let diceStringToParse = '';
+                    if (dice && Array.isArray(dice) && dice.length > 0) {
+                        diceStringToParse = dice.join('+');
+                        Debug.log(`Using dice array format: ${diceStringToParse} with modifier ${modifier}`);
+                    } else {
+                        // Fallback for empty or invalid dice arrays
+                        diceStringToParse = 'd6';
+                        Debug.log(`Fallback to default die: ${diceStringToParse}`);
+                    }
+
+                    // Set counters for the dice
+                    const counts = parseDiceString(diceStringToParse);
+                    const counterMap: { [key: string]: SVGElement } = {
+                        '4': d4Button,
+                        '6': d6Button,
+                        '8': d8Button,
+                        '10': d10Button,
+                        '12': d12Button,
+                        '20': d20Button,
+                        '100': d100Button
+                    };
+                    for (const [sides, count] of Object.entries(counts)) {
+                        if (counterMap[sides]) {
+                            updateCounter(counterMap[sides].nextElementSibling as HTMLElement, count);
+                        }
+                    }
+
+                    // Handle wild card toggle based on isWildCard property
+                    if (rollType === 'trait' && isWildCard !== undefined) {
+                        // Set wild die toggle state based on isWildCard
+                        setState(wildDieToggle, isWildCard);
+                        Debug.log(`Wild card toggle set to: ${isWildCard}`);
+                    }
+
+                    // Roll the dice
+                    await rollTheDice();
+                }
+            } catch (error) {
+                console.error("Failed to process roll request:", error);
+            } finally {
+                // Always clear the request to prevent stuck state
+                try {
+                    await OBR.room.setMetadata({ rollRequest: undefined });
+                } catch (cleanupError) {
+                    console.error("Failed to clean up roll request:", cleanupError);
                 }
             }
-
-            // Handle wild card toggle based on isWildCard property
-            if (rollType === 'trait' && isWildCard !== undefined) {
-                // Set wild die toggle state based on isWildCard
-                setState(wildDieToggle, isWildCard);
-                Debug.log(`Wild card toggle set to: ${isWildCard}`);
-            }
-
-            // Roll the dice
-            rollTheDice();
         }
-        // Clear the request (done by all players to clean up)
-        OBR.room.setMetadata({ rollRequest: undefined });
+    } catch (error) {
+        console.error("Unexpected error in onRoomMetadataChange:", error);
     }
 }
 
@@ -1007,7 +1022,6 @@ function compress(data: SWDR[]): Uint8Array {
 // Decompress
 function decompress(compressedData: Uint8Array): SWDR[] {
     try {
-        Debug.log(`decompressing ${compressedData.length} bytes.`)
         const decompressed = pako.inflate(compressedData);
         const parsed = JSON.parse(new TextDecoder().decode(decompressed));
         return Array.isArray(parsed) ? parsed : [];

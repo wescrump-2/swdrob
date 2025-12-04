@@ -170,10 +170,16 @@ function extractSpecialAbilityContent(lines: string[], startIndex: number, secti
 
         // If the line is not empty, add it to the content
         if (line.length > 0) {
+            // Clean up bullet points and spaces from the beginning of the line
+            let cleanedLine = line;
+            if (cleanedLine.match(/^[•\-*]\s/)) {
+                cleanedLine = cleanedLine.replace(/^[•\-*]\s/, '').trim();
+            }
+
             if (content.length > 0) {
                 content += ' ';
             }
-            content += line;
+            content += cleanedLine;
         }
 
         currentIndex++;
@@ -482,12 +488,6 @@ export class Savaged {
                     if (!character.race) character.race = 'Human';
                 }
             }
-
-
-            // NEW: Parse description using the 3 patterns
-            // Pattern 1: Immediately after the name (for creatures like Baku)
-            // Pattern 2: After "Description:" prefix
-            // Pattern 3: After "Description" header (like for character Ingrid)
 
             // Try Pattern 1 first: text immediately after name in the quick info section
             if (!character.description && h1) {
@@ -1343,12 +1343,11 @@ export class Savaged {
         "Arcane Background", "Powers", "Weapons", "Armor",
         "Languages", "Wealth", "Power Points", "Description"
     ];
+
     static escaped = Savaged.sectionHeaders.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
     static sectionHeadersRegEx = new RegExp(`^(${Savaged.escaped})`, 'i');
 
     static rankRegEx = /\b(Veteran|Novice|Seasoned|Heroic|Legendary)\b/i;
-
-
 
     static
         parseCharacterFromText(text: string): Character {
@@ -1990,14 +1989,6 @@ export class Savaged {
             lineIndex++;
         }
 
-        // // Modifiers (example for persuasion)
-        // if (text.includes('Subtract 2 from all Persuasion rolls')) {
-        //     const persuasionTrait = character.skills.find(t => t.name === 'persuasion');
-        //     if (persuasionTrait && !persuasionTrait.die.includes('-')) {
-        //         persuasionTrait.die = (persuasionTrait.die || 'd4') + '-2';
-        //     }
-        // }
-
         // Pace, Parry, Toughness - look for them anywhere in the text, not just at line start
         lineIndex = 0;
         while (lineIndex < lines.length) {
@@ -2186,18 +2177,6 @@ export class Savaged {
         // Helper function to parse weapons from gear items
         function parseWeaponFromGearItem(gearItem: string, character: Character): Weapon | null {
             const trimmedItem = gearItem.trim();
-
-            // NEW: More flexible weapon pattern matching
-            // Handle cases like:
-            // "spear (Str+d6, Reach 1, Parry+1)"
-            // "bows (Range 12/24/48, Damage 2d6)"
-            // "Masterwork greatsword (Str+d10, AP, 3)"
-            // "longbow (Range 15/30/60, Damage 2d6, AP 1)"
-            // "2x Javelin (Range 3/6/12, Damage Str+d6)"
-
-            // First, try to find the weapon name and details
-            // Look for patterns like "name (details)" or "name(details)"
-            //const weaponPattern = /^(.+?)\s*\((.+)\)\s*$/;
             const weaponPattern = /^(.*?)\s*\(([^()]+)\)\s*\.?$/;
             const weaponMatch = trimmedItem.match(weaponPattern);
 
@@ -2442,66 +2421,46 @@ export class Savaged {
             lineIndex++;
         }
 
-        // Special Abilities - assume after h3 equivalent, list until next section
-        let saStart = false;
+        // Special Abilities - using extractSpecialAbilityContent function
         character.specialAbilities = [];
         lineIndex = 0;
-        let currentAbility = '';
 
         while (lineIndex < lines.length) {
             const line = lines[lineIndex];
             if (line.match(/^Special Abilities/i)) {
-                saStart = true;
                 lineIndex++;
-                continue;
-            }
-            if (saStart) {
-                if (line.match(/^Advances|Background/i)) {
-                    // Save any partially collected ability
-                    if (currentAbility.trim()) {
-                        character.specialAbilities.push(currentAbility.trim());
+                // Process special abilities using the dedicated function
+                while (lineIndex < lines.length) {
+                    const currentLine = lines[lineIndex].trim();
+                    if (!currentLine) {
+                        lineIndex++;
+                        continue;
                     }
-                    break;
-                } else if (line.trim().length > 0) {
-                    const trimmedLine = line.trim();
 
-                    // Check if this line starts a new ability:
-                    // 1. Starts with bullet points (•, -, *)
-                    // 2. Starts with capital letter and contains a colon
-                    const isNewAbility = trimmedLine.match(/^[•\-*]\s/) ||
-                        (trimmedLine.match(/^[A-Z]/) && trimmedLine.includes(':'));
+                    // Check if this line starts a new ability or is a section header
+                    const isNewAbility = currentLine.match(/^[•\-*]\s/) ||
+                        (currentLine.match(/^[A-Z]/) && currentLine.includes(':'));
+                    const isSectionHeader = currentLine.match(Savaged.sectionHeadersRegEx);
+
+                    if (isSectionHeader) {
+                        break; // Stop at next section
+                    }
 
                     if (isNewAbility) {
-                        // Save previous ability if exists
-                        if (currentAbility.trim()) {
-                            character.specialAbilities.push(currentAbility.trim());
+                        // Extract this special ability using the dedicated function
+                        const abilityResult = extractSpecialAbilityContent(lines, lineIndex, Savaged.sectionHeaders);
+                        if (abilityResult.content.trim()) {
+                            character.specialAbilities.push(abilityResult.content.trim());
                         }
-
-                        // Start new ability
-                        let cleanLine = trimmedLine;
-                        if (cleanLine.match(/^[•\-*]\s/)) {
-                            cleanLine = cleanLine.replace(/^[•\-*]\s/, '');
-                        }
-                        currentAbility = cleanLine;
+                        lineIndex = abilityResult.endIndex;
                     } else {
-                        // This line continues the current ability
-                        if (currentAbility) {
-                            currentAbility += ' ' + trimmedLine;
-                        } else {
-                            // No current ability, start one
-                            currentAbility = trimmedLine;
-                        }
+                        lineIndex++;
                     }
                 }
-                lineIndex++;
+                break;
             } else {
                 lineIndex++;
             }
-        }
-
-        // Don't forget the last ability
-        if (currentAbility.trim()) {
-            character.specialAbilities.push(currentAbility.trim());
         }
 
         // Advances
@@ -2537,7 +2496,6 @@ export class Savaged {
                 lineIndex++;
             }
         }
-
 
         // Experience
         lineIndex = 0;
@@ -2950,179 +2908,5 @@ export class Savaged {
         })
         Debug.log("=== End Parser Comparison ===");
         return htmlCharacter;
-    }
-
-    // Test function for the new description parsing
-    static testDescriptionParsing() {
-        // Test Pattern 1: Description immediately after name
-        const testHtml1 = `
-        <div class="content">
-            <h1>Baku</h1>
-            <div>
-                The baku looks like a floating animal with brown fur, tusks, and a trunk. It feeds on dreams and nightmares.
-                Rank: Veteran
-                Race: Spirit
-            </div>
-            <strong>Attributes</strong>: Agility d12+1, Smarts d8, Spirit d10, Strength d8, Vigor d12
-        </div>
-        `;
-
-        // Test Pattern 2: Description with prefix
-        const testHtml2 = `
-        <div class="content">
-            <h1>Ingrid</h1>
-            <div>Sophomore Female, The Crusader</div>
-            <strong>Description:</strong> wears glasses and has a determined look.
-            <strong>Attributes</strong>: Agility d6, Smarts d6, Spirit d8, Strength d4, Vigor d6
-        </div>
-        `;
-
-        // Test Pattern 3: Description header
-        const testHtml3 = `
-        <div class="content">
-            <h1>Ingrid</h1>
-            <div>Sophomore Female, The Crusader</div>
-            <h2>Description</h2>
-            <p>wears glasses and has a determined look.</p>
-            <strong>Attributes</strong>: Agility d6, Smarts d6, Spirit d8, Strength d4, Vigor d6
-        </div>
-        `;
-
-        console.log('Testing Pattern 1 (immediate description):');
-        const char1 = this.parseCharacterFromHTML(testHtml1);
-        console.log('Description:', char1.description);
-
-        console.log('\nTesting Pattern 2 (Description: prefix):');
-        const char2 = this.parseCharacterFromHTML(testHtml2);
-        console.log('Description:', char2.description);
-
-        console.log('\nTesting Pattern 3 (Description header):');
-        const char3 = this.parseCharacterFromHTML(testHtml3);
-        console.log('Description:', char3.description);
-
-        // Test text parser patterns
-        const testText1 = `Baku
-        The baku looks like a floating animal with brown fur, tusks, and a trunk. It feeds on dreams and nightmares.
-        Rank: Veteran
-        Race: Spirit
-        Attributes: Agility d12+1, Smarts d8, Spirit d10, Strength d8, Vigor d12`;
-
-        const testText2 = `Ingrid
-        Sophomore Female, The Crusader
-        Description: wears glasses and has a determined look.
-        Attributes: Agility d6, Smarts d6, Spirit d8, Strength d4, Vigor d6`;
-
-        const testText3 = `Ingrid
-        Sophomore Female, The Crusader
-        Description
-        wears glasses and has a determined look.
-        Attributes: Agility d6, Smarts d6, Spirit d8, Strength d4, Vigor d6`;
-
-        console.log('\nTesting Text Parser Pattern 1:');
-        const textChar1 = this.parseCharacterFromText(testText1);
-        console.log('Description:', textChar1.description);
-
-        console.log('\nTesting Text Parser Pattern 2:');
-        const textChar2 = this.parseCharacterFromText(testText2);
-        console.log('Description:', textChar2.description);
-
-        console.log('\nTesting Text Parser Pattern 3:');
-        const textChar3 = this.parseCharacterFromText(testText3);
-        console.log('Description:', textChar3.description);
-    }
-
-    /**
-     * Test function to demonstrate section content extraction
-     */
-    static testSectionExtraction() {
-        // Test data with various section formats
-        const testLines = [
-            "Character Name",
-            "Rank: Veteran, Race: Human",
-            "Attributes: Agility d8, Smarts d6, Spirit d6, Strength d8, Vigor d8",
-            "Skills: Fighting d8, Shooting d6, Notice d6, Stealth d6, Persuasion d4",
-            "Edges: Combat Reflexes, Quick Draw, Two-Fisted",
-            "Hindrances: Mean, Vengeful (Minor)",
-            "Gear: Sword (Damage Str+d8, Parry +1), Leather Armor (Armor 1), Backpack with rope and rations",
-            "Special Abilities",
-            "• Bite: Str+d6 damage, can be used as a natural weapon",
-            "• Night Vision: Ignores attack penalties for Dim and Dark lighting",
-            "• Fleet-Footed: Pace increases by 2 when running",
-            "• Keen Senses: +2 to Notice rolls involving smell or hearing",
-            "Advances: Novice: Improved Combat Reflexes, Seasoned: Improved Quick Draw",
-            "Background: Former soldier turned adventurer",
-            "Experience: 20",
-            "Bennies: 3"
-        ];
-
-        // Common section headers in Savage Worlds
-        const sectionHeaders = [
-            "Attributes", "Skills", "Edges", "Hindrances", "Gear",
-            "Special Abilities", "Advances", "Background",
-            "Experience", "Bennies", "Pace", "Parry", "Toughness",
-            "Arcane Background", "Powers", "Weapons", "Armor",
-            "Languages", "Wealth", "Power Points"
-        ];
-
-        console.log("=== Testing Section Content Extraction ===");
-
-        // Test extracting the Skills section
-        const skillsStart = testLines.findIndex(line => line.startsWith("Skills:"));
-        if (skillsStart !== -1) {
-            const skillsResult = extractSectionContent(testLines, skillsStart, sectionHeaders);
-            console.log(`Skills section content: "${skillsResult.content}"`);
-            console.log(`Skills section ended at line: ${skillsResult.endIndex}`);
-        }
-
-        // Test extracting the Edges section
-        const edgesStart = testLines.findIndex(line => line.startsWith("Edges:"));
-        if (edgesStart !== -1) {
-            const edgesResult = extractSectionContent(testLines, edgesStart, sectionHeaders);
-            console.log(`Edges section content: "${edgesResult.content}"`);
-            console.log(`Edges section ended at line: ${edgesResult.endIndex}`);
-        }
-
-        // Test extracting the Gear section (multi-line)
-        const gearStart = testLines.findIndex(line => line.startsWith("Gear:"));
-        if (gearStart !== -1) {
-            const gearResult = extractSectionContent(testLines, gearStart, sectionHeaders);
-            console.log(`Gear section content: "${gearResult.content}"`);
-            console.log(`Gear section ended at line: ${gearResult.endIndex}`);
-        }
-
-        // Test extracting Special Abilities (multi-line with bullet points)
-        const specialAbilitiesStart = testLines.findIndex(line => line.startsWith("Special Abilities"));
-        if (specialAbilitiesStart !== -1) {
-            console.log("\n=== Testing Special Ability Extraction ===");
-
-            // Start from the first ability after the header
-            let currentIndex = specialAbilitiesStart + 1;
-
-            while (currentIndex < testLines.length) {
-                const line = testLines[currentIndex].trim();
-
-                // Check if this line starts a new ability
-                if (line.match(/^[•\-*]\s/) || (line.match(/^[A-Z]/) && line.includes(':'))) {
-                    const abilityResult = extractSpecialAbilityContent(testLines, currentIndex, sectionHeaders);
-                    console.log(`Special ability content: "${abilityResult.content}"`);
-                    console.log(`Special ability ended at line: ${abilityResult.endIndex}`);
-
-                    // Move to the next ability
-                    currentIndex = abilityResult.endIndex;
-                } else {
-                    currentIndex++;
-                }
-
-                // Stop if we hit a section header
-                const isSectionHeader = sectionHeaders.some(header =>
-                    new RegExp(`^${header}:?`, 'i').test(line)
-                );
-                if (isSectionHeader) {
-                    break;
-                }
-            }
-        }
-
-        console.log("\n=== Extraction Test Complete ===");
     }
 }
