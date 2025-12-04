@@ -205,12 +205,21 @@ export class Debug {
 	}
 
 	/**
-	 * Approximate the memory size of an object in bytes.
+	 * Approximate the memory size of an object in bytes with circular reference protection.
 	 */
-	static getObjectMemorySize(obj: any): number {
+	static getObjectMemorySize(obj: any, seen: WeakSet<object> = new WeakSet()): number {
+		// Handle circular references
+		if (obj && typeof obj === 'object') {
+			if (seen.has(obj)) {
+				return 0; // Circular reference detected, return 0 to avoid infinite recursion
+			}
+			seen.add(obj);
+		}
+
 		if (obj instanceof Uint8Array) {
 			return obj.byteLength;
 		}
+
 		const type = typeof obj;
 		if (type === 'string') {
 			return obj.length * 2; // UTF-16
@@ -223,14 +232,16 @@ export class Debug {
 		} else if (Array.isArray(obj)) {
 			let size = 16; // array overhead
 			for (const item of obj) {
-				size += Debug.getObjectMemorySize(item);
+				size += Debug.getObjectMemorySize(item, seen);
 			}
 			return size;
 		} else if (type === 'object') {
 			let size = 16; // object overhead
 			for (const key in obj) {
-				size += key.length * 2 + 8; // key + pointer
-				size += Debug.getObjectMemorySize(obj[key]);
+				if (obj.hasOwnProperty(key)) { // Only count own properties
+					size += key.length * 2 + 8; // key + pointer
+					size += Debug.getObjectMemorySize(obj[key], seen);
+				}
 			}
 			return size;
 		}

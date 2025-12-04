@@ -1,4 +1,3 @@
-
 import { Debug } from './debug';
 import { Util } from './util';
 
@@ -27,6 +26,11 @@ export interface Power {
     name: string;
     book?: string;
     page?: string;
+    limitations?: string;
+    skillBonus?: string;
+    duration?: string;
+    range?: string;
+    [key: string]: any; // Allow additional properties
 }
 
 export interface Character {
@@ -157,7 +161,7 @@ function extractSpecialAbilityContent(lines: string[], startIndex: number, secti
     // Check if line starts a new ability (bullet point or capital letter with colon)
     const isNewAbility = (line: string): boolean => {
         return Boolean(line.match(/^[•\-*]\s/)) ||
-               (Boolean(line.match(/^[A-Z]/)) && line.includes(':'));
+            (Boolean(line.match(/^[A-Z]/)) && line.includes(':'));
     };
 
     // Start from the given index and collect content until we hit another ability or section header
@@ -366,6 +370,37 @@ export class Savaged {
         }
     }
 
+    static damagePowers = [
+        /// {"name","damage","raise","damage mod"}
+        { name: "minor bolt", damage: "d6+d6", raise: "+d6", mod: "d6+d6+d6" },
+        { name: "bolt", damage: "d6+d6", raise: "+d6", mod: "d6+d6+d6" },
+        { name: "blast", damage: "d6+d6", raise: "+d6", mod: "d6+d6+d6" },
+        { name: "burst", damage: "d6+d6", raise: "+d6", mod: "d6+d6+d6" },
+        { name: "damage field", damage: "d4+d4", raise: "", mod: "d6+d6" },
+    ]
+
+    /**
+     * Finds a power by name in the damagePowers array and adds damage and damagemod properties
+     * @param powerObj The power object to enhance
+     */
+    static enhancePowerWithDamageInfo(powerObj: Power): void {
+        if (!powerObj.name) return;
+
+        // Search for the power by name (case-insensitive)
+        const foundPower = Savaged.damagePowers.find(damagePower =>
+            damagePower.name.toLowerCase() === powerObj.name.toLowerCase()
+        );
+
+        if (foundPower) {
+            // Add damage and damagemod properties to the power object
+            powerObj.damage = foundPower.damage;
+            powerObj.damagemod = foundPower.mod;
+            Debug.log(`Enhanced power "${powerObj.name}" with damage: ${foundPower.damage}, damagemod: ${foundPower.mod}`);
+        }
+    }
+
+
+
     static async parseCharacterFromURL(url: string): Promise<Character> {
         try {
             const proxyUrl = `${Savaged.proxy_url_base}`;
@@ -449,86 +484,86 @@ export class Savaged {
             }
 
 
-        // NEW: Parse description using the 3 patterns
-        // Pattern 1: Immediately after the name (for creatures like Baku)
-        // Pattern 2: After "Description:" prefix
-        // Pattern 3: After "Description" header (like for character Ingrid)
+            // NEW: Parse description using the 3 patterns
+            // Pattern 1: Immediately after the name (for creatures like Baku)
+            // Pattern 2: After "Description:" prefix
+            // Pattern 3: After "Description" header (like for character Ingrid)
 
-        // Try Pattern 1 first: text immediately after name in the quick info section
-        if (!character.description && h1) {
-            const nextDiv = h1.nextElementSibling;
-            if (nextDiv && nextDiv.tagName === 'DIV') {
-                const quickText = nextDiv.textContent || '';
-                // Look for multi-line descriptive text that comes right after the name
-                // This should be before any section headers like "Rank:", "Attributes:", etc.
-                const lines = quickText.split('\n');
-                let descriptionLines: string[] = [];
-                let foundSectionHeader = false;
+            // Try Pattern 1 first: text immediately after name in the quick info section
+            if (!character.description && h1) {
+                const nextDiv = h1.nextElementSibling;
+                if (nextDiv && nextDiv.tagName === 'DIV') {
+                    const quickText = nextDiv.textContent || '';
+                    // Look for multi-line descriptive text that comes right after the name
+                    // This should be before any section headers like "Rank:", "Attributes:", etc.
+                    const lines = quickText.split('\n');
+                    let descriptionLines: string[] = [];
+                    let foundSectionHeader = false;
 
-                for (const line of lines) {
-                    const trimmedLine = line.trim();
-                    if (!trimmedLine) continue;
+                    for (const line of lines) {
+                        const trimmedLine = line.trim();
+                        if (!trimmedLine) continue;
 
-                    // Check if this line is a section header
-                    if (trimmedLine.match(Savaged.sectionHeadersRegEx)) {
-                        foundSectionHeader = true;
-                        break;
-                    }
+                        // Check if this line is a section header
+                        if (trimmedLine.match(Savaged.sectionHeadersRegEx)) {
+                            foundSectionHeader = true;
+                            break;
+                        }
 
-                    // If we haven't found a section header yet, this might be description text
-                    if (!foundSectionHeader) {
-                        // Skip lines that look like they contain structured data (key: value pairs)
-                        if (!trimmedLine.includes(':') && trimmedLine.length > 10 && !trimmedLine.match(Savaged.rankRegEx)) {
-                            descriptionLines.push(trimmedLine);
+                        // If we haven't found a section header yet, this might be description text
+                        if (!foundSectionHeader) {
+                            // Skip lines that look like they contain structured data (key: value pairs)
+                            if (!trimmedLine.includes(':') && trimmedLine.length > 10 && !trimmedLine.match(Savaged.rankRegEx)) {
+                                descriptionLines.push(trimmedLine);
+                            }
                         }
                     }
-                }
 
-                if (descriptionLines.length > 0) {
-                    character.description = descriptionLines.join(' ').trim();
-                }
-            }
-        }
-
-        // Try Pattern 2: Look for "Description:" prefix
-        if (!character.description) {
-            const descPrefixMatch = text.match(/Description:\s*([\s\S]*?)(?=\n\n|\n<strong>|<\/p>|<h[2-6]>|<ul>|<ol>|$)/i);
-            if (descPrefixMatch && descPrefixMatch[1]) {
-                const descText = descPrefixMatch[1].trim();
-                if (descText.length > 0) {
-                    character.description = descText;
-                }
-            }
-        }
-
-        // Try Pattern 3: Look for "Description" header (h2)
-        if (!character.description) {
-            const descH2 = Array.from(doc.querySelectorAll('h2')).find(h2 => h2.textContent?.trim().toLowerCase() === 'description');
-            if (descH2) {
-                let descriptionText = '';
-                let current: ChildNode | null = descH2.nextSibling;
-                while (current) {
-                    if (current.nodeType === Node.TEXT_NODE) {
-                        descriptionText += current.textContent?.trim() + ' ';
-                    } else if (current.nodeType === Node.ELEMENT_NODE) {
-                        const el = current as Element;
-                        if (el.tagName === 'BR') {
-                            descriptionText += '\n';
-                        } else if (el.tagName === 'P' || el.tagName === 'DIV') {
-                            descriptionText += el.textContent?.trim() + ' ';
-                        } else if (el.tagName === 'STRONG' || el.tagName === 'H2' || el.tagName === 'H3' || el.tagName === 'UL' || el.tagName === 'OL') {
-                            break; // Stop at section headers or lists
-                        } else {
-                            descriptionText += el.textContent?.trim() + ' ';
-                        }
+                    if (descriptionLines.length > 0) {
+                        character.description = descriptionLines.join(' ').trim();
                     }
-                    current = current.nextSibling;
-                }
-                if (descriptionText.trim().length > 0) {
-                    character.description = descriptionText.trim();
                 }
             }
-        }
+
+            // Try Pattern 2: Look for "Description:" prefix
+            if (!character.description) {
+                const descPrefixMatch = text.match(/Description:\s*([\s\S]*?)(?=\n\n|\n<strong>|<\/p>|<h[2-6]>|<ul>|<ol>|$)/i);
+                if (descPrefixMatch && descPrefixMatch[1]) {
+                    const descText = descPrefixMatch[1].trim();
+                    if (descText.length > 0) {
+                        character.description = descText;
+                    }
+                }
+            }
+
+            // Try Pattern 3: Look for "Description" header (h2)
+            if (!character.description) {
+                const descH2 = Array.from(doc.querySelectorAll('h2')).find(h2 => h2.textContent?.trim().toLowerCase() === 'description');
+                if (descH2) {
+                    let descriptionText = '';
+                    let current: ChildNode | null = descH2.nextSibling;
+                    while (current) {
+                        if (current.nodeType === Node.TEXT_NODE) {
+                            descriptionText += current.textContent?.trim() + ' ';
+                        } else if (current.nodeType === Node.ELEMENT_NODE) {
+                            const el = current as Element;
+                            if (el.tagName === 'BR') {
+                                descriptionText += '\n';
+                            } else if (el.tagName === 'P' || el.tagName === 'DIV') {
+                                descriptionText += el.textContent?.trim() + ' ';
+                            } else if (el.tagName === 'STRONG' || el.tagName === 'H2' || el.tagName === 'H3' || el.tagName === 'UL' || el.tagName === 'OL') {
+                                break; // Stop at section headers or lists
+                            } else {
+                                descriptionText += el.textContent?.trim() + ' ';
+                            }
+                        }
+                        current = current.nextSibling;
+                    }
+                    if (descriptionText.trim().length > 0) {
+                        character.description = descriptionText.trim();
+                    }
+                }
+            }
             const getSkillDie = (name: string) => character.skills.find(t => t.name === name)?.die || 'd4-2';
 
             // Background - NEW: Add background extraction similar to text parser
@@ -833,26 +868,72 @@ export class Savaged {
                 character.arcaneSkill = skillName;
                 //Debug.log(`Parsed arcane background: "${character.arcaneBackground}", skill: "${skillName}", die: "${arcaneDie}"`);
             }
-            // Powers
+            // Powers - ENHANCED with complex pattern matching and nested parentheses handling
             const powersMatch = text.match(/Powers: ([^<]*)/i);
             if (powersMatch) {
                 character.powers = [];
                 //const arcaneDie = getSkillDie(character.arcaneSkill);
-                powersMatch[1].split(', ').forEach(power => {
-                    const match = power.trim().match(/(.*?) \((.*?) p(\d+)\)/);
+                // Split powers but stop when we encounter "Power Points"
+                const powersStr = powersMatch[1].split('Power Points')[0].trim();
+                powersStr.split(', ').forEach(power => {
+                    // ENHANCED: Handle complex power patterns with additional properties and nested parentheses
+                    const enhancedMatch = power.trim().replace(/\.$/, '').match(/(.*?) \((.*?)(?:; (.*?))? p(\d+)\)/);
                     let name: string, book: string | undefined, page: string | undefined;
-                    if (match) {
-                        name = match[1].trim();
-                        book = match[2].trim();
-                        page = match[3].trim();
+                    let properties: Record<string, string> = {};
+
+                    if (enhancedMatch) {
+                        name = enhancedMatch[1].trim();
+                        const mainDetails = enhancedMatch[2].trim();
+                        const additionalProps = enhancedMatch[3] ? enhancedMatch[3].trim() : '';
+                        page = enhancedMatch[4].trim();
+
+                        // Parse book from main details
+                        const bookMatch = mainDetails.match(/(.*?) p\d+/);
+                        book = bookMatch ? bookMatch[1].trim() : mainDetails;
+
+                        // Parse additional properties (after semicolons) with nested parentheses handling
+                        if (additionalProps) {
+                            // Handle nested parentheses in property values (like "Touch (limited)")
+                            const propertyParts = splitIgnoringParentheses(additionalProps, ';');
+                            propertyParts.forEach(prop => {
+                                const trimmedProp = prop.trim();
+                                if (trimmedProp) {
+                                    const colonIndex = trimmedProp.indexOf(':');
+                                    if (colonIndex !== -1) {
+                                        const key = trimmedProp.substring(0, colonIndex).trim();
+                                        const value = trimmedProp.substring(colonIndex + 1).trim();
+                                        properties[key] = value;
+                                    } else {
+                                        // Standalone property (like "Touch (limited)")
+                                        properties[trimmedProp] = 'true';
+                                    }
+                                }
+                            });
+                        }
                     } else {
-                        name = power.split(' (')[0].trim();
-                        book = undefined;
-                        page = undefined;
+                        // Fallback to original simple pattern
+                        const simpleMatch = power.trim().match(/(.*?) \((.*?) p(\d+)\)/);
+                        if (simpleMatch) {
+                            name = simpleMatch[1].trim();
+                            book = simpleMatch[2].trim();
+                            page = simpleMatch[3].trim();
+                        } else {
+                            name = power.split(' (')[0].trim();
+                            book = undefined;
+                            page = undefined;
+                        }
                     }
-                    character.powers!.push({ name, book, page });
+
+                    // Create power object with additional properties
+                    const powerObj: Power = { name, book, page };
+                    if (Object.keys(properties).length > 0) {
+                        Object.assign(powerObj, properties);
+                    }
+                    // Enhance power with damage information from damagePowers array
+                    Savaged.enhancePowerWithDamageInfo(powerObj);
+                    character.powers!.push(powerObj);
                 });
-                //Debug.log(`Parsed ${character.powers.length} powers`);
+                Debug.log(`Parsed ${character.powers.length} powers with enhanced details and nested parentheses`);
             }
             // Modifiers
             if (text.includes('Subtract 2 from all Persuasion rolls')) {
@@ -1090,10 +1171,10 @@ export class Savaged {
 
                         // More precise detection: must be a known weapon attack name
                         const isWeaponAttackName = Savaged.weaponAttackNames.some(name => weaponName.includes(name));
-                        
+
                         // Check for clean damage patterns in the immediate text after colon
                         let immediateDamageMatch = damageStr.match(/(\d*d\d+[+-]?\d*|(?:Str)\s*[+-]?\s*\d*|(?:Str))/i);
-                        
+
                         // If no immediate clean damage, search the entire ability text for damage patterns
                         let finalDamageStr = damageStr;
                         if (!immediateDamageMatch) {
@@ -1243,31 +1324,31 @@ export class Savaged {
         return clean;
     }
 
-                static weaponAttackNames = [
-                'bite', 'claw', 'slam', 'strike', 'punch', 'kick', 'gore', 'trample','antler',
-                'crush', 'rend', 'maul', 'rake', 'peck', 'sting', 'lash', 'swipe','tusks', 'trunk',
-                'chomp', 'snap', 'slash', 'stab', 'pierce', 'bludgeon', 'tail', 'horn',
-                'touch', 'tongue', 'tendrils','swarm', 'sting or bite', 'bite or sting',
-                'slam', 'chomp', 'snap', 'slash', 'stab', 'pierce', 'bludgeon', 'tail', 'horn', 'vines',
-                'tentacle', 'fang', 'talon', 'hoof', 'pincer', 'mandible', 'beak',
-            ];
+    static weaponAttackNames = [
+        'bite', 'claw', 'slam', 'strike', 'punch', 'kick', 'gore', 'trample', 'antler',
+        'crush', 'rend', 'maul', 'rake', 'peck', 'sting', 'lash', 'swipe', 'tusks', 'trunk',
+        'chomp', 'snap', 'slash', 'stab', 'pierce', 'bludgeon', 'tail', 'horn',
+        'touch', 'tongue', 'tendrils', 'swarm', 'sting or bite', 'bite or sting',
+        'slam', 'chomp', 'snap', 'slash', 'stab', 'pierce', 'bludgeon', 'tail', 'horn', 'vines',
+        'tentacle', 'fang', 'talon', 'hoof', 'pincer', 'mandible', 'beak',
+    ];
 
 
-        // Define section headers for extraction functions (moved to top)
-        static sectionHeaders = [
-            "Attributes", "Skills", "Edges", "Hindrances", "Gear",
-            "Special Abilities", "Advances", "Background", "Type", 
-            "Rank", "Race","Profession",
-            "Experience", "Bennies", "Pace", "Parry", "Toughness",
-            "Arcane Background", "Powers", "Weapons", "Armor",
-            "Languages", "Wealth", "Power Points", "Description"
-        ];
-        static escaped = Savaged.sectionHeaders.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-        static sectionHeadersRegEx = new RegExp(`^(${Savaged.escaped})`,'i');
+    // Define section headers for extraction functions (moved to top)
+    static sectionHeaders = [
+        "Attributes", "Skills", "Edges", "Hindrances", "Gear",
+        "Special Abilities", "Advances", "Background", "Type",
+        "Rank", "Race", "Profession",
+        "Experience", "Bennies", "Pace", "Parry", "Toughness",
+        "Arcane Background", "Powers", "Weapons", "Armor",
+        "Languages", "Wealth", "Power Points", "Description"
+    ];
+    static escaped = Savaged.sectionHeaders.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+    static sectionHeadersRegEx = new RegExp(`^(${Savaged.escaped})`, 'i');
 
-        static rankRegEx =/\b(Veteran|Novice|Seasoned|Heroic|Legendary)\b/i;
+    static rankRegEx = /\b(Veteran|Novice|Seasoned|Heroic|Legendary)\b/i;
 
-        
+
 
     static
         parseCharacterFromText(text: string): Character {
@@ -1281,17 +1362,17 @@ export class Savaged {
         // Parse name from first line assuming it's the h1 equivalent
         let name = lines[0];
 
-       
+
         if (/^\S\s/.test(name)) {
-             character.isWildCard = true;
-             name=name && name.length > 1 ? name.slice(2) : name ?? '';
+            character.isWildCard = true;
+            name = name && name.length > 1 ? name.slice(2) : name ?? '';
         } else if (/^[^a-zA-Z]/.test(name)) {
-            character.isWildCard=true;
-            name=name && name.length > 0 ? name.slice(1) : name ?? '';
+            character.isWildCard = true;
+            name = name && name.length > 0 ? name.slice(1) : name ?? '';
         } else {
-            character.isWildCard=false;
+            character.isWildCard = false;
         }
-        
+
         character.name = Util.toTitleCase(name);
 
         // Parse quick info after name (Rank, Gender, Race, Profession)
@@ -1834,7 +1915,7 @@ export class Savaged {
             lineIndex++;
         }
 
-        // Powers - using new extraction function
+        // Powers - ENHANCED with complex pattern matching
         lineIndex = 0;
         while (lineIndex < lines.length) {
             const line = lines[lineIndex];
@@ -1842,20 +1923,66 @@ export class Savaged {
                 // Use new extraction function to get all powers content
                 const powersResult = extractSectionContent(lines, lineIndex, Savaged.sectionHeaders);
                 const powersStr = powersResult.content.replace(/^Powers:\s*/i, '').trim();
+                // Split powers but stop when we encounter "Power Points"
+                const cleanPowersStr = powersStr.split('Power Points')[0].trim();
                 character.powers = [];
-                powersStr.split(', ').forEach(power => {
-                    const match = power.trim().match(/(.*?) \((.*?) p(\d+)\)/);
+                cleanPowersStr.split(', ').forEach(power => {
+                    // ENHANCED: Handle complex power patterns with additional properties
+                    const enhancedMatch = power.trim().replace(/\.$/, '').match(/(.*?) \((.*?)(?:; (.*?))? p(\d+)\)/);
                     let name: string, book: string | undefined, page: string | undefined;
-                    if (match) {
-                        name = match[1].trim();
-                        book = match[2].trim();
-                        page = match[3].trim();
+                    let properties: Record<string, string> = {};
+
+                    if (enhancedMatch) {
+                        name = enhancedMatch[1].trim();
+                        const mainDetails = enhancedMatch[2].trim();
+                        const additionalProps = enhancedMatch[3] ? enhancedMatch[3].trim() : '';
+                        page = enhancedMatch[4].trim();
+
+                        // Parse book from main details
+                        const bookMatch = mainDetails.match(/(.*?) p\d+/);
+                        book = bookMatch ? bookMatch[1].trim() : mainDetails;
+
+                        // Parse additional properties (after semicolons) with nested parentheses handling
+                        if (additionalProps) {
+                            // Handle nested parentheses in property values (like "Touch (limited)")
+                            const propertyParts = splitIgnoringParentheses(additionalProps, ';');
+                            propertyParts.forEach(prop => {
+                                const trimmedProp = prop.trim();
+                                if (trimmedProp) {
+                                    const colonIndex = trimmedProp.indexOf(':');
+                                    if (colonIndex !== -1) {
+                                        const key = trimmedProp.substring(0, colonIndex).trim();
+                                        const value = trimmedProp.substring(colonIndex + 1).trim();
+                                        properties[key] = value;
+                                    } else {
+                                        // Standalone property (like "Touch (limited)")
+                                        properties[trimmedProp] = 'true';
+                                    }
+                                }
+                            });
+                        }
                     } else {
-                        name = power.split(' (')[0].trim();
-                        book = undefined;
-                        page = undefined;
+                        // Fallback to original simple pattern
+                        const simpleMatch = power.trim().match(/(.*?) \((.*?) p(\d+)\)/);
+                        if (simpleMatch) {
+                            name = simpleMatch[1].trim();
+                            book = simpleMatch[2].trim();
+                            page = simpleMatch[3].trim();
+                        } else {
+                            name = power.split(' (')[0].trim();
+                            book = undefined;
+                            page = undefined;
+                        }
                     }
-                    character.powers!.push({ name, book, page });
+
+                    // Create power object with additional properties
+                    const powerObj: Power = { name, book, page };
+                    if (Object.keys(properties).length > 0) {
+                        Object.assign(powerObj, properties);
+                    }
+                    // Enhance power with damage information from damagePowers array
+                    Savaged.enhancePowerWithDamageInfo(powerObj);
+                    character.powers!.push(powerObj);
                 });
                 lineIndex = powersResult.endIndex;
                 break;
@@ -2183,13 +2310,13 @@ export class Savaged {
 
             // Determine if this is actually a weapon by checking for weapon-like details
             const isWeapon = detailMap['damage'] ||
-                            detailMap['range'] ||
-                            detailMap['ap'] ||
-                            detailMap['reach'] ||
-                            detailMap['parry'] ||
-                            detailMap['rof'] ||
-                            detailMap['throwing'] === 'true' ||
-                            detailMap['shooting'] === 'true';
+                detailMap['range'] ||
+                detailMap['ap'] ||
+                detailMap['reach'] ||
+                detailMap['parry'] ||
+                detailMap['rof'] ||
+                detailMap['throwing'] === 'true' ||
+                detailMap['shooting'] === 'true';
 
             if (!isWeapon) {
                 return null;
@@ -2457,11 +2584,11 @@ export class Savaged {
 
                     // More precise detection: must be a known weapon attack name
                     const isWeaponAttackName = Savaged.weaponAttackNames.some(name => weaponName.includes(name));
-                    
+
                     // Check for clean damage patterns in the immediate text after colon
                     // Fixed: Improved regex to correctly capture "Str+d6" and similar patterns
                     let immediateDamageMatch = damageStr.match(/(\d*d\d+[+-]?\d*|(?:Str)\s*[+-]?\s*d\d+[+-]?\d*|(?:Str)\s*[+-]?\s*\d*|(?:Str))/i);
-                    
+
                     // If no immediate clean damage, search the entire ability text for damage patterns
                     let finalDamageStr = damageStr;
                     if (!immediateDamageMatch) {

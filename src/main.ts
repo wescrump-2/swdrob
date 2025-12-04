@@ -472,6 +472,9 @@ class RollResult {
     value: number = 0
 }
 
+// Add a promise to track player initialization
+let playerCachePromise: Promise<void> | null = null;
+
 export let playerCache = {
     name: "Unknown Player",
     id: "unknown",
@@ -488,39 +491,64 @@ async function setPlayer(r: SWDR) {
         return;
     }
 
-    // Wait until OBR signals it's ready
-    if (!OBR.isReady) {
-        await new Promise<void>((resolve) => {
-            const handler = () => {
-                OBR.onReady(handler); // remove listener
-                resolve();
-            };
-            OBR.onReady(handler);
-        });
+    // If initialization is already in progress, wait for it to complete
+    if (playerCachePromise) {
+        await playerCachePromise;
+        // After waiting, check again if we're ready
+        if (playerCache.ready) {
+            r.playerName = playerCache.name;
+            r.playerId = playerCache.id;
+            return;
+        }
     }
 
-    // Now safe to get player info
-    try {
+    // Create a new promise for this initialization attempt
+    playerCachePromise = (async () => {
+        try {
+            // Wait until OBR signals it's ready
+            if (!OBR.isReady) {
+                await new Promise<void>((resolve) => {
+                    const handler = () => {
+                        OBR.onReady(handler); // remove listener
+                        resolve();
+                    };
+                    OBR.onReady(handler);
+                });
+            }
 
-        const [name, id, role] = await Promise.all([
-            OBR.player.getName(),
-            OBR.player.getId(),
-            OBR.player.getRole()
-        ]);
+            // Now safe to get player info
+            const [name, id, role] = await Promise.all([
+                OBR.player.getName(),
+                OBR.player.getId(),
+                OBR.player.getRole()
+            ]);
 
-        playerCache.name = name;
-        playerCache.id = id;
-        playerCache.isGm = role === 'GM';
-        playerCache.ready = true;
+            // Update cache atomically
+            playerCache.name = name;
+            playerCache.id = id;
+            playerCache.isGm = role === 'GM';
+            playerCache.ready = true;
 
-        r.playerName = name;
-        r.playerId = id;
+            // Update the request object
+            r.playerName = name;
+            r.playerId = id;
 
-    } catch (err) {
-        console.error("Failed to get player:", err);
-        r.playerName = "GM";
-        r.playerId = "error";
-    }
+        } catch (err) {
+            console.error("Failed to get player:", err);
+            // Set error state
+            playerCache.name = "GM";
+            playerCache.id = "error";
+            playerCache.ready = true; // Mark as ready even on error to prevent retry loops
+
+            r.playerName = "GM";
+            r.playerId = "error";
+        } finally {
+            playerCachePromise = null; // Reset the promise
+        }
+    })();
+
+    // Wait for the initialization to complete
+    await playerCachePromise;
 }
 
 async function testUrlExtraction() {

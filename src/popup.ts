@@ -329,8 +329,21 @@ function populateForm(character: Character) {
     button.textContent = displayText;
     button.type = "button";
     button.className = "popup-roll-btn popup-power-btn";
-    button.dataset.die = character.skills.find(t => t.name === character.arcaneSkill)?.die;
-    button.dataset.skill = character.arcaneSkill;
+
+    // Check if power has damage property (from damagePowers enhancement)
+    if (power.damage) {
+      // Power has damage - treat it like a weapon with damage dice
+      button.dataset.die = power.damage;
+      button.dataset.weapon = power.name;
+      button.classList.add("popup-power-damage-btn");
+      Debug.log(`Created damage power button for ${power.name} with damage: ${power.damage}`);
+    } else {
+      // Power has no damage - treat it as a regular arcane skill roll
+      button.dataset.die = character.skills.find(t => t.name === character.arcaneSkill)?.die;
+      button.dataset.skill = character.arcaneSkill;
+      Debug.log(`Created regular power button for ${power.name} with arcane skill`);
+    }
+
     powersDiv.appendChild(button);
   });
 
