@@ -1202,8 +1202,17 @@ export class Savaged {
         // Parse name from first line assuming it's the h1 equivalent
         let name = lines[0];
 
-        character.isWildCard = /^\S\s/.test(name);
-        if (character.isWildCard) name=name && name.length > 2 ? name.slice(2) : name ?? '';
+       
+        if (/^\S\s/.test(name)) {
+             character.isWildCard = true;
+             name=name && name.length > 1 ? name.slice(2) : name ?? '';
+        } else if (/^[^a-zA-Z]/.test(name)) {
+            character.isWildCard=true;
+            name=name && name.length > 0 ? name.slice(1) : name ?? '';
+        } else {
+            character.isWildCard=false;
+        }
+        
         character.name = Util.toTitleCase(name);
 
         // Parse quick info after name (Rank, Gender, Race, Profession)
@@ -1549,10 +1558,49 @@ export class Savaged {
                 let weaponName = weaponText;
                 let detailsStr = '';
 
-                // NEW: Handle nested parentheses in weapon names (same fix as HTML parser)
+                // ENHANCED: Handle nested parentheses in weapon names using HTML parser's sophisticated approach
                 // Find the last occurrence of "(" that starts the weapon details section
                 // This should be the one that contains "Range", "Damage", etc.
-                const lastDetailsParenIndex = weaponText.lastIndexOf('(Range');
+                // Try multiple detail patterns to be more robust
+                const detailPatterns = ['(Range', '(Damage', '(Str+', '(Str-', '(AP'];
+                let lastDetailsParenIndex = -1;
+                let detailPatternUsed = '';
+
+                // Find the last occurrence of any detail pattern
+                for (const pattern of detailPatterns) {
+                    const index = weaponText.lastIndexOf(pattern);
+                    if (index > lastDetailsParenIndex) {
+                        lastDetailsParenIndex = index;
+                        detailPatternUsed = pattern;
+                    }
+                }
+
+                // Fallback: if no specific patterns found, look for any parenthesis with weapon-like content
+                if (lastDetailsParenIndex === -1) {
+                    // Look for parentheses containing known weapon properties
+                    const weaponPropertyPatterns = ['Range', 'Damage', 'Str+', 'Str-', 'AP', 'Parry', 'Reach', 'ROF'];
+                    const parenMatches = weaponText.matchAll(/\(([^)]+)\)/g);
+                    let bestMatchIndex = -1;
+                    let bestMatchScore = 0;
+
+                    for (const match of parenMatches) {
+                        let score = 0;
+                        const content = match[1];
+                        weaponPropertyPatterns.forEach(prop => {
+                            if (content.includes(prop)) score++;
+                        });
+                        if (score > bestMatchScore) {
+                            bestMatchScore = score;
+                            bestMatchIndex = match.index;
+                        }
+                    }
+
+                    if (bestMatchIndex !== -1) {
+                        lastDetailsParenIndex = bestMatchIndex;
+                        detailPatternUsed = 'fallback';
+                    }
+                }
+
                 if (lastDetailsParenIndex === -1) {
                     Debug.log(`  No weapon details found for: "${weaponText}"`);
                     continue; // Skip weapons without proper details
@@ -1562,6 +1610,20 @@ export class Savaged {
                 weaponName = weaponText.substring(0, lastDetailsParenIndex).trim();
                 // Extract details (everything from the last details parenthesis onwards)
                 detailsStr = weaponText.substring(lastDetailsParenIndex + 1).trim();
+
+                // Clean up weapon name by removing any trailing parentheses that might be part of the name
+                // e.g., ".45" in "Colt .45 (Range 12/24/48, Damage 2d6)"
+                const nameCleanupPattern = /(\.\d+|\([^)]+\))$/;
+                const nameCleanupMatch = weaponName.match(nameCleanupPattern);
+                if (nameCleanupMatch) {
+                    const potentialNamePart = weaponName.substring(0, nameCleanupMatch.index).trim();
+                    // Only use the cleanup if it results in a reasonable weapon name
+                    if (potentialNamePart.length > 2 && !potentialNamePart.endsWith('(')) {
+                        weaponName = potentialNamePart;
+                    }
+                }
+
+                Debug.log(`  Enhanced parsing - Name: "${weaponName}", Details: "${detailsStr}", Pattern: "${detailPatternUsed}"`);
 
                 if (weaponName && detailsStr) {
                     const detailParts = detailsStr.split(', ');
@@ -2629,10 +2691,10 @@ export class Savaged {
                 background: htmlCharacter.background === textCharacter.background,
                 experience: htmlCharacter.experience === textCharacter.experience,
                 bennies: htmlCharacter.bennies === textCharacter.bennies,
-                pace: htmlCharacter.bennies === textCharacter.bennies,
-                parry: htmlCharacter.bennies === textCharacter.bennies,
-                toughness: htmlCharacter.bennies === textCharacter.bennies,
-                toughnessDisplay: htmlCharacter.bennies === textCharacter.bennies,
+                pace: htmlCharacter.pace === textCharacter.pace,
+                parry: htmlCharacter.parry === textCharacter.parry,
+                toughness: htmlCharacter.toughness === textCharacter.toughness,
+                armorValue: htmlCharacter.armorValue === textCharacter.armorValue,
                 attributes: JSON.stringify(htmlCharacter.attributes) === JSON.stringify(textCharacter.attributes),
                 attributesCount: (htmlCharacter.attributes?.length || 0) === (textCharacter.attributes?.length || 0),
                 skills: JSON.stringify(htmlCharacter.skills) === JSON.stringify(textCharacter.skills),
@@ -2649,17 +2711,17 @@ export class Savaged {
                 gearCount: (htmlCharacter.gear?.length || 0) === (textCharacter.gear?.length || 0),
                 languages: JSON.stringify(htmlCharacter.languages) === JSON.stringify(textCharacter.languages),
                 languagesCount: (htmlCharacter.languages?.length || 0) === (textCharacter.languages?.length || 0),
-                wealth: htmlCharacter.bennies === textCharacter.bennies,
-                arcaneBackground: htmlCharacter.bennies === textCharacter.bennies,
-                arcaneSkill: htmlCharacter.bennies === textCharacter.bennies,
-                powerPoints: htmlCharacter.bennies === textCharacter.bennies,
+                wealth: htmlCharacter.wealth === textCharacter.wealth,
+                arcaneBackground: htmlCharacter.arcaneBackground === textCharacter.arcaneBackground,
+                arcaneSkill: htmlCharacter.arcaneSkill === textCharacter.arcaneSkill,
+                powerPoints: htmlCharacter.powerPoints === textCharacter.powerPoints,
                 powers: JSON.stringify(htmlCharacter.powers) === JSON.stringify(textCharacter.powers),
                 powersCount: (htmlCharacter.powers?.length || 0) === (textCharacter.powers?.length || 0),
                 specialAbilities: JSON.stringify(htmlCharacter.specialAbilities) === JSON.stringify(textCharacter.specialAbilities),
                 specialAbilitiesCount: (htmlCharacter.specialAbilities?.length || 0) === (textCharacter.specialAbilities?.length || 0),
                 advances: JSON.stringify(htmlCharacter.advances) === JSON.stringify(textCharacter.advances),
                 advancesCount: (htmlCharacter.advances?.length || 0) === (textCharacter.advances?.length || 0),
-                isWildCard: htmlCharacter.bennies === textCharacter.bennies,
+                isWildCard: htmlCharacter.isWildCard === textCharacter.isWildCard,
             };
 
             Debug.log("Parser Comparison Results:", comparison);
