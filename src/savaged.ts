@@ -423,7 +423,7 @@ export class Savaged {
 
                     // Additional rank parsing for standalone rank lines like "Veteran" or "Novice"
                     if (!character.rank) {
-                        const standaloneRankMatch = quickText.match(/\b(Veteran|Novice|Seasoned|Heroic|Legendary)\b/i);
+                        const standaloneRankMatch = quickText.match(Savaged.rankRegEx);
                         if (standaloneRankMatch) {
                             character.rank = standaloneRankMatch[1];
                         }
@@ -470,7 +470,7 @@ export class Savaged {
                     if (!trimmedLine) continue;
 
                     // Check if this line is a section header
-                    if (trimmedLine.match(/^(Rank|Gender|Race|Type|Profession|Attributes|Skills|Weapons|Arcane Background|Powers|Gear|Special Abilities|Advances|Background|Experience|Bennies):/i)) {
+                    if (trimmedLine.match(Savaged.sectionHeadersRegEx)) {
                         foundSectionHeader = true;
                         break;
                     }
@@ -478,7 +478,7 @@ export class Savaged {
                     // If we haven't found a section header yet, this might be description text
                     if (!foundSectionHeader) {
                         // Skip lines that look like they contain structured data (key: value pairs)
-                        if (!trimmedLine.includes(':') && trimmedLine.length > 10 && !trimmedLine.match(/\b(Veteran|Novice|Seasoned|Heroic|Legendary)\b/i)) {
+                        if (!trimmedLine.includes(':') && trimmedLine.length > 10 && !trimmedLine.match(Savaged.rankRegEx)) {
                             descriptionLines.push(trimmedLine);
                         }
                     }
@@ -999,14 +999,7 @@ export class Savaged {
                 // Helper function to substitute attribute abbreviations with actual dice
                 const getAttributeDie = (name: string) => character.attributes.find(t => t.name.toLowerCase() === name.toLowerCase())?.die || 'd4';
 
-                // List of known weapon attack names to be more precise
-                const weaponAttackNames = [
-                    'bite', 'claw', 'slam', 'strike', 'punch', 'kick', 'gore', 'trample', 'antler',
-                    'crush', 'rend', 'maul', 'rake', 'peck', 'sting', 'lash', 'swipe', 'tusks', 'trunk',
-                    'touch', 'tongue', 'tendrils','swarm', 'sting or bite', 'bite or sting',
-                    'slam', 'chomp', 'snap', 'slash', 'stab', 'pierce', 'bludgeon', 'tail', 'horn', 'vines',
-                    'tentacle', 'fang', 'talon', 'hoof', 'pincer', 'mandible', 'beak' , 'wings'
-                ];
+
 
                 // Process special abilities in reverse order to avoid index issues when removing
                 for (let i = character.specialAbilities.length - 1; i >= 0; i--) {
@@ -1017,7 +1010,7 @@ export class Savaged {
                         let damageStr = match[2].trim();
 
                         // More precise detection: must be a known weapon attack name
-                        const isWeaponAttackName = weaponAttackNames.some(name => weaponName.includes(name));
+                        const isWeaponAttackName = Savaged.weaponAttackNames.some(name => weaponName.includes(name));
                         
                         // Check for clean damage patterns in the immediate text after colon
                         let immediateDamageMatch = damageStr.match(/(\d*d\d+[+-]?\d*|(?:Str)\s*[+-]?\s*\d*|(?:Str))/i);
@@ -1171,20 +1164,38 @@ export class Savaged {
         return clean;
     }
 
+                static weaponAttackNames = [
+                'bite', 'claw', 'slam', 'strike', 'punch', 'kick', 'gore', 'trample','antler',
+                'crush', 'rend', 'maul', 'rake', 'peck', 'sting', 'lash', 'swipe','tusks', 'trunk',
+                'chomp', 'snap', 'slash', 'stab', 'pierce', 'bludgeon', 'tail', 'horn',
+                'touch', 'tongue', 'tendrils','swarm', 'sting or bite', 'bite or sting',
+                'slam', 'chomp', 'snap', 'slash', 'stab', 'pierce', 'bludgeon', 'tail', 'horn', 'vines',
+                'tentacle', 'fang', 'talon', 'hoof', 'pincer', 'mandible', 'beak',
+            ];
+
+
+        // Define section headers for extraction functions (moved to top)
+        static sectionHeaders = [
+            "Attributes", "Skills", "Edges", "Hindrances", "Gear",
+            "Special Abilities", "Advances", "Background", "Type", 
+            "Rank", "Race","Profession",
+            "Experience", "Bennies", "Pace", "Parry", "Toughness",
+            "Arcane Background", "Powers", "Weapons", "Armor",
+            "Languages", "Wealth", "Power Points", "Description"
+        ];
+        static escaped = Savaged.sectionHeaders.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+        static sectionHeadersRegEx = new RegExp(`^(${Savaged.escaped})`,'i');
+
+        static rankRegEx =/\b(Veteran|Novice|Seasoned|Heroic|Legendary)\b/i;
+
+        
+
     static
         parseCharacterFromText(text: string): Character {
         const character: Character = { name: 'name', description: '', attributes: [], skills: [] };
         const clean = this.cleanText(text, 1);
         const lines = clean.split('\n').map(line => line.trim()).filter(line => line.length > 0);
 
-        // Define section headers for extraction functions (moved to top)
-        const sectionHeaders = [
-            "Attributes", "Skills", "Edges", "Hindrances", "Gear",
-            "Special Abilities", "Advances", "Background",
-            "Experience", "Bennies", "Pace", "Parry", "Toughness",
-            "Arcane Background", "Powers", "Weapons", "Armor",
-            "Languages", "Wealth", "Power Points", "Description"
-        ];
 
         const getSkillDie = (name: string) => character.skills.find(t => t.name === name)?.die || 'd4-2';
 
@@ -1198,7 +1209,7 @@ export class Savaged {
         // Parse quick info after name (Rank, Gender, Race, Profession)
         let lineIndex = 1;
         let quickText = '';
-        while (lineIndex < lines.length && !lines[lineIndex].match(/^(Attributes|Description|Special Abilities):?/i)) {
+        while (lineIndex < lines.length && !lines[lineIndex].match(Savaged.sectionHeadersRegEx)) {
             quickText += (quickText ? ', ' : '') + lines[lineIndex];
             lineIndex++;
         }
@@ -1222,7 +1233,7 @@ export class Savaged {
 
         // Additional rank parsing for standalone rank lines like "Veteran" or "Novice"
         if (!character.rank) {
-            const standaloneRankMatch = quickText.match(/\b(Veteran|Novice|Seasoned|Heroic|Legendary)\b/i);
+            const standaloneRankMatch = quickText.match(Savaged.rankRegEx);
             if (standaloneRankMatch) {
                 character.rank = standaloneRankMatch[1];
             }
@@ -1238,14 +1249,29 @@ export class Savaged {
         }
 
         if (!character.race) character.race = 'Human';
+        let tempLineIndex = 0;
+        while (tempLineIndex < lines.length) {
+            const line = lines[tempLineIndex];
+            if (line.match(/^(Race|Type)[:]?/i)) {
+                // Use new extraction function to get all description content
+                const typeResult = extractSectionContent(lines, tempLineIndex, Savaged.sectionHeaders);
+                const typeText = typeResult.content.replace(/^(Race|Type)[:]?\s*/i, '').trim();
+                if (typeText.length > 0) {
+                    character.race = typeText;
+                }
+                tempLineIndex = typeResult.endIndex;
+                break;
+            }
+            tempLineIndex++;
+        }
 
         // Parse Description - using new extraction function
-        let tempLineIndex = 0;
+        tempLineIndex = 0;
         while (tempLineIndex < lines.length) {
             const line = lines[tempLineIndex];
             if (line.match(/^Description[:]?/i)) {
                 // Use new extraction function to get all description content
-                const descResult = extractSectionContent(lines, tempLineIndex, sectionHeaders);
+                const descResult = extractSectionContent(lines, tempLineIndex, Savaged.sectionHeaders);
                 const descriptionText = descResult.content.replace(/^Description[:]?\s*/i, '').trim();
                 if (descriptionText.length > 0) {
                     character.description = descriptionText;
@@ -1271,7 +1297,7 @@ export class Savaged {
                 }
 
                 // Check if this line is a section header
-                if (trimmedLine.match(/^(Attributes|Skills|Weapons|Arcane Background|Powers|Gear|Special Abilities|Advances|Background|Experience|Bennies):?/i)) {
+                if (trimmedLine.match(Savaged.sectionHeadersRegEx)) {
                     foundSectionHeader = true;
                     break;
                 }
@@ -1279,7 +1305,7 @@ export class Savaged {
                 // If we haven't found a section header yet, this might be description text
                 if (!foundSectionHeader) {
                     // Skip lines that look like they contain structured data (key: value pairs)
-                    if (!trimmedLine.includes(':') && trimmedLine.length > 10 && !trimmedLine.match(/\b(Veteran|Novice|Seasoned|Heroic|Legendary)\b/i)) {
+                    if (!trimmedLine.includes(':') && trimmedLine.length > 10 && !trimmedLine.match(Savaged.rankRegEx)) {
                         descriptionLines.push(trimmedLine);
                     } else {
                         foundSectionHeader = true; // Found a structured line, stop looking for fallback pattern
@@ -1299,7 +1325,7 @@ export class Savaged {
             const line = lines[lineIndex];
             if (line.match(/^Background[:]?/i)) {
                 // Use new extraction function to get all background content
-                const backgroundResult = extractSectionContent(lines, lineIndex, sectionHeaders);
+                const backgroundResult = extractSectionContent(lines, lineIndex, Savaged.sectionHeaders);
                 const backgroundText = backgroundResult.content.replace(/^Background[:]?\s*/i, '').trim();
                 if (backgroundText.length > 0) {
                     character.background = backgroundText;
@@ -1318,7 +1344,7 @@ export class Savaged {
             // Look for standard format: "Attributes: Agility d6, Smarts d6, Spirit d6, Strength d6, Vigor d6"
             if (line.match(/^Attributes:\s*(.*)$/i)) {
                 // Use new extraction function to get all attribute content
-                const attrsResult = extractSectionContent(lines, lineIndex, sectionHeaders);
+                const attrsResult = extractSectionContent(lines, lineIndex, Savaged.sectionHeaders);
                 const attrsStr = attrsResult.content.replace(/^Attributes:\s*/i, '').trim();
                 Debug.log(`Parsing attributes: "${attrsStr}"`);
                 attrsStr.split(', ').forEach(attr => {
@@ -1401,7 +1427,7 @@ export class Savaged {
             // Look for Skills: line (start of skills section) - handle both "Skills:" and "Skills" followed by colon on next line
             if (line.match(/^Skills[:]?\s*(.*)$/i)) {
                 // Use new extraction function to get all skills content
-                const skillsResult = extractSectionContent(lines, lineIndex, sectionHeaders);
+                const skillsResult = extractSectionContent(lines, lineIndex, Savaged.sectionHeaders);
                 skillsStr = skillsResult.content.replace(/^Skills[:]?\s*/i, '').trim();
                 // Handle case where skills start with ": " (like ": Academics d4, ...")
                 if (skillsStr.startsWith(': ')) {
@@ -1414,7 +1440,7 @@ export class Savaged {
             // Handle the case where "Skills" is on one line and skills start with ":" on the next line
             else if (line.match(/^Skills$/i)) {
                 // Use new extraction function to get all skills content
-                const skillsResult = extractSectionContent(lines, lineIndex, sectionHeaders);
+                const skillsResult = extractSectionContent(lines, lineIndex, Savaged.sectionHeaders);
                 skillsStr = skillsResult.content.replace(/^Skills\s*/i, '').trim();
                 // Handle case where skills start with ": " (skills continuation)
                 if (skillsStr.startsWith(': ')) {
@@ -1673,7 +1699,7 @@ export class Savaged {
             const line = lines[lineIndex];
             if (line.match(/^Powers:\s*(.*)$/i)) {
                 // Use new extraction function to get all powers content
-                const powersResult = extractSectionContent(lines, lineIndex, sectionHeaders);
+                const powersResult = extractSectionContent(lines, lineIndex, Savaged.sectionHeaders);
                 const powersStr = powersResult.content.replace(/^Powers:\s*/i, '').trim();
                 character.powers = [];
                 powersStr.split(', ').forEach(power => {
@@ -1768,12 +1794,14 @@ export class Savaged {
             lineIndex++;
         }
 
-        // Armor
+        // Armor - using new extraction function
         lineIndex = 0;
         while (lineIndex < lines.length) {
             const line = lines[lineIndex];
             if (line.match(/^Armor:\s*(.*)$/i)) {
-                const armorStr = line.replace(/^Armor:\s*/i, '').trim();
+                // Use new extraction function to get all armor content
+                const armorResult = extractSectionContent(lines, lineIndex, Savaged.sectionHeaders);
+                const armorStr = armorResult.content.replace(/^Armor:\s*/i, '').trim();
                 character.armor = [];
                 armorStr.split(', ').forEach(a => {
                     const match = a.trim().match(/^(.+?)\s*\(Armor\s*(\d+)\)$/);
@@ -1781,6 +1809,7 @@ export class Savaged {
                         character.armor!.push({ name: match[1].trim(), value: parseInt(match[2]) });
                     }
                 });
+                lineIndex = armorResult.endIndex;
                 break;
             }
             lineIndex++;
@@ -1792,7 +1821,7 @@ export class Savaged {
             const line = lines[lineIndex];
             if (line.match(/^Edges:\s*(.*)$/i)) {
                 // Use new extraction function to get all edges content
-                const edgesResult = extractSectionContent(lines, lineIndex, sectionHeaders);
+                const edgesResult = extractSectionContent(lines, lineIndex, Savaged.sectionHeaders);
                 const edgesStr = edgesResult.content.replace(/^Edges:\s*/i, '').trim();
                 // Skip if edges are just a dash, em dash, or empty
                 if (edgesStr && edgesStr !== '—' && edgesStr !== '-' && edgesStr !== '–' && edgesStr.trim() !== '') {
@@ -1810,7 +1839,7 @@ export class Savaged {
             const line = lines[lineIndex];
             if (line.match(/^Hindrances:\s*(.*)$/i)) {
                 // Use new extraction function to get all hindrances content
-                const hindrancesResult = extractSectionContent(lines, lineIndex, sectionHeaders);
+                const hindrancesResult = extractSectionContent(lines, lineIndex, Savaged.sectionHeaders);
                 const hindrancesStr = hindrancesResult.content.replace(/^Hindrances:\s*/i, '').trim();
                 if (hindrancesStr && hindrancesStr !== '—' && hindrancesStr !== '-' && hindrancesStr !== '–' && hindrancesStr.trim() !== '') {
                     character.hindrances = splitIgnoringParentheses(hindrancesStr, ', ');
@@ -1827,7 +1856,7 @@ export class Savaged {
             const line = lines[lineIndex];
             if (line.match(/^Gear:/i)) {
                 // Use new extraction function to get all gear content
-                const gearResult = extractSectionContent(lines, lineIndex, sectionHeaders);
+                const gearResult = extractSectionContent(lines, lineIndex, Savaged.sectionHeaders);
                 const gearContent = gearResult.content.replace(/^Gear:\s*/i, '').trim();
                 lineIndex = gearResult.endIndex;
 
@@ -1857,9 +1886,8 @@ export class Savaged {
                             );
 
                             // Check if this looks like a section header that shouldn't be in gear
-                            const isSectionHeader = trimmedItem.match(/^(Edges|Hindrances|Advances|Background|Experience|Bennies):/i) ||
-                                trimmedItem.match(/^(Pace|Parry|Toughness):/i) ||
-                                trimmedItem.match(/^(Strength|Agility|Smarts|Spirit|Vigor):/i);
+                            const isSectionHeader = trimmedItem.match(Savaged.sectionHeadersRegEx ||
+                                trimmedItem.match(/^(Strength|Agility|Smarts|Spirit|Vigor):/i));
 
                             if (isEdgeItem || isSectionHeader) {
                                 // Skip items that are clearly edges or section headers
@@ -1959,8 +1987,8 @@ export class Savaged {
                     // Special handling for damage patterns
                     const isDamagePattern =
                         value.match(/^\d*d\d+[\+\-]?\d*$/i) || // 2d6, d8+2, etc.
-                        value.match(/^(str|dex|agi)\s*[\+\-]?\s*d\d+[\+\-]?\d*/i) || // Str+d6, etc.
-                        value.match(/^(str|dex|agi)$/i); // Just "Str" alone
+                        value.match(/^(str)\s*[\+\-]?\s*d\d+[\+\-]?\d*/i) || // Str+d6, etc.
+                        value.match(/^(str)$/i); // Just "Str" alone
 
                     if (isDamagePattern && (key === 'damage' || key === '')) {
                         detailMap['damage'] = value;
@@ -1976,8 +2004,8 @@ export class Savaged {
                     // Single word parts - could be damage like "2d6" or properties like "AP"
                     const isDamagePattern =
                         part.match(/^\d*d\d+[\+\-]?\d*$/i) || // 2d6, d8+2, etc.
-                        part.match(/^(str|dex|agi)\s*[\+\-]?\s*d\d+[\+\-]?\d*/i) || // Str+d6, etc.
-                        part.match(/^(str|dex|agi)$/i); // Just "Str" alone
+                        part.match(/^(str)\s*[\+\-]?\s*d\d+[\+\-]?\d*/i) || // Str+d6, etc.
+                        part.match(/^(str)$/i); // Just "Str" alone
 
                     if (isDamagePattern) {
                         detailMap['damage'] = part;
@@ -1996,7 +2024,7 @@ export class Savaged {
             // NEW: Handle cases where damage is specified without "Damage:" prefix
             // Look for patterns like "Str+d6" or "2d6" in the details
             if (!detailMap['damage']) {
-                const damagePattern = /(?:^|\s)(str|dex|agi)\s*[\+\-]?\s*d\d+[\+\-]?\d*|(?:^|\s)\d*d\d+[\+\-]?\d*(?:$|\s)/i;
+                const damagePattern = /(?:^|\s)(str)\s*[\+\-]?\s*d\d+[\+\-]?\d*|(?:^|\s)\d*d\d+[\+\-]?\d*(?:$|\s)/i;
                 const damageMatch = detailsStr.match(damagePattern);
                 if (damageMatch) {
                     detailMap['damage'] = damageMatch[0].trim();
@@ -2108,13 +2136,16 @@ export class Savaged {
             return weapon;
         }
 
-        // Languages
+        // Languages - using new extraction function
         lineIndex = 0;
         while (lineIndex < lines.length) {
             const line = lines[lineIndex];
             if (line.match(/^Languages:\s*(.*)$/i)) {
-                const languagesStr = line.replace(/^Languages:\s*/i, '').trim();
+                // Use new extraction function to get all languages content
+                const languagesResult = extractSectionContent(lines, lineIndex, Savaged.sectionHeaders);
+                const languagesStr = languagesResult.content.replace(/^Languages:\s*/i, '').trim();
                 character.languages = languagesStr.split(', ').map(l => l.trim());
+                lineIndex = languagesResult.endIndex;
                 break;
             }
             lineIndex++;
@@ -2273,12 +2304,7 @@ export class Savaged {
             const getAttributeDie = (name: string) => character.attributes.find(t => t.name === name)?.die || 'd4';
 
             // List of known weapon attack names to be more precise
-            const weaponAttackNames = [
-                'bite', 'claw', 'slam', 'strike', 'punch', 'kick', 'gore', 'trample',
-                'crush', 'rend', 'maul', 'rake', 'peck', 'sting', 'lash', 'swipe',
-                'chomp', 'snap', 'slash', 'stab', 'pierce', 'bludgeon', 'tail', 'horn',
-                'tentacle', 'fang', 'talon', 'hoof', 'pincer', 'mandible', 'beak', 'sting or bite', 'bite or sting'
-            ];
+
 
             // Process special abilities in reverse order to avoid index issues when removing
             for (let i = character.specialAbilities.length - 1; i >= 0; i--) {
@@ -2289,7 +2315,7 @@ export class Savaged {
                     let damageStr = match[2].trim();
 
                     // More precise detection: must be a known weapon attack name
-                    const isWeaponAttackName = weaponAttackNames.some(name => weaponName.includes(name));
+                    const isWeaponAttackName = Savaged.weaponAttackNames.some(name => weaponName.includes(name));
                     
                     // Check for clean damage patterns in the immediate text after colon
                     // Fixed: Improved regex to correctly capture "Str+d6" and similar patterns
