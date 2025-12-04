@@ -3,7 +3,7 @@ import { Util } from "./util";
 import { Debug } from "./debug";
 import { playerCache } from "./main";
 
-export function createContextMenu() {
+export function createContextMenu(playerId:string) {
   // Add context menu item
   OBR.contextMenu.create({
     id: `${Util.StatBlockMkey}/open-statblock`,
@@ -13,6 +13,10 @@ export function createContextMenu() {
         label: "Savaged.us Character",
         filter: {
           roles: ["PLAYER", "GM"],
+          every: [
+            { key: "layer", value: "CHARACTER" },
+            { key: "createdUserId", value: `${playerId}`,  },
+          ],
         },
       },
     ],
@@ -25,6 +29,7 @@ export function createContextMenu() {
 
       if (!playerCache.isGm && character.createdUserId != playerCache.id) {
         OBR.notification.show("Access restricted to characters that belong to you.", "WARNING");
+        return;
       }
 
       try {

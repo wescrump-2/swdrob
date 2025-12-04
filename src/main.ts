@@ -554,7 +554,7 @@ async function setPlayer(r: SWDR) {
 OBR.onReady(async () => {
     console.log("OBR.onReady fired");
     await Savaged.checkProxyStatus();
-    createContextMenu();
+    //createContextMenu();
     await initializeExtension();
 
     const unsubscribeonReadyChange = OBR.scene.onReadyChange(async () => {
@@ -935,6 +935,7 @@ async function initializeExtension() {
         playerCache.id = id;
         playerCache.ready = true;
         Debug.log("Savage Dice: Player ready →", name);
+            createContextMenu(playerCache.id);
     } catch (err) {
         console.error("Failed to cache player on ready:", err);
     }
