@@ -531,6 +531,85 @@ export class Savaged {
         }
             const getSkillDie = (name: string) => character.skills.find(t => t.name === name)?.die || 'd4-2';
 
+            // Background - NEW: Add background extraction similar to text parser
+            // Try Pattern 1: Look for "Background" header (h2)
+            const bgH2 = Array.from(doc.querySelectorAll('h2')).find(h2 => h2.textContent?.trim().toLowerCase() === 'background');
+            if (bgH2) {
+                let backgroundText = '';
+                let current: ChildNode | null = bgH2.nextSibling;
+                while (current) {
+                    if (current.nodeType === Node.TEXT_NODE) {
+                        backgroundText += current.textContent?.trim() + ' ';
+                    } else if (current.nodeType === Node.ELEMENT_NODE) {
+                        const el = current as Element;
+                        if (el.tagName === 'BR') {
+                            backgroundText += '\n';
+                        } else if (el.tagName === 'P' || el.tagName === 'DIV') {
+                            backgroundText += el.textContent?.trim() + ' ';
+                        } else if (el.tagName === 'STRONG' || el.tagName === 'H2' || el.tagName === 'H3' || el.tagName === 'UL' || el.tagName === 'OL') {
+                            break; // Stop at section headers or lists
+                        } else {
+                            backgroundText += el.textContent?.trim() + ' ';
+                        }
+                    }
+                    current = current.nextSibling;
+                }
+                if (backgroundText.trim().length > 0) {
+                    character.background = backgroundText.trim();
+                    Debug.log(`Parsed background (h2 pattern): "${character.background}"`);
+                }
+            }
+
+            // Try Pattern 2: Look for "Background:" prefix in text (fallback)
+            if (!character.background) {
+                const bgPrefixMatch = text.match(/Background:\s*([^\n<]*)/i);
+                if (bgPrefixMatch && bgPrefixMatch[1]) {
+                    const bgText = bgPrefixMatch[1].trim();
+                    if (bgText.length > 0) {
+                        character.background = bgText;
+                        Debug.log(`Parsed background (prefix pattern): "${character.background}"`);
+                    }
+                }
+            }
+
+            // Try Pattern 3: Look for background in quick info section after name
+            if (!character.background && h1) {
+                const nextDiv = h1.nextElementSibling;
+                if (nextDiv && nextDiv.tagName === 'DIV') {
+                    const quickText = nextDiv.textContent || '';
+                    const lines = quickText.split('\n');
+                    let backgroundLines: string[] = [];
+                    let foundSectionHeader = false;
+
+                    for (const line of lines) {
+                        const trimmedLine = line.trim();
+                        if (!trimmedLine) continue;
+
+                        // Check if this line is a section header
+                        if (trimmedLine.match(Savaged.sectionHeadersRegEx)) {
+                            foundSectionHeader = true;
+                            break;
+                        }
+
+                        // If we haven't found a section header yet, look for background-like content
+                        if (!foundSectionHeader) {
+                            // Look for lines that might contain background information
+                            if (trimmedLine.length > 10 &&
+                                !trimmedLine.includes(':') &&
+                                !trimmedLine.match(Savaged.rankRegEx) &&
+                                !trimmedLine.match(/^(Rank|Gender|Race|Profession):/i)) {
+                                backgroundLines.push(trimmedLine);
+                            }
+                        }
+                    }
+
+                    if (backgroundLines.length > 0) {
+                        character.background = backgroundLines.join(' ').trim();
+                        Debug.log(`Parsed background (quick info pattern): "${character.background}"`);
+                    }
+                }
+            }
+
             // Attributes
             const attributesMatch = text.match(/<strong>Attributes<\/strong>: ([^<]*)/);
             if (attributesMatch) {
