@@ -85,6 +85,111 @@ function splitIgnoringParentheses(str: string, separator: string): string[] {
     return result;
 }
 
+/**
+ * Extracts all lines for a section into one string separated by spaces.
+ * Each section ends when the next line has the start marker for the next section.
+ * Handles multi-line content and special abilities that may span multiple lines.
+ *
+ * @param lines Array of text lines to process
+ * @param startIndex Starting line index
+ * @param sectionHeaders Array of section header patterns to detect section boundaries
+ * @returns Object containing the extracted section content and the ending line index
+ */
+function extractSectionContent(lines: string[], startIndex: number, sectionHeaders: string[]): { content: string, endIndex: number } {
+    let content = '';
+    let currentIndex = startIndex;
+    const sectionHeaderPatterns = sectionHeaders.map(header => new RegExp(`^${header}:?`, 'i'));
+
+    // Check if current line is a section header
+    const isSectionHeader = (line: string): boolean => {
+        return sectionHeaderPatterns.some(pattern => pattern.test(line));
+    };
+
+    // Start from the given index and collect content until we hit another section header
+    while (currentIndex < lines.length) {
+        const line = lines[currentIndex].trim();
+
+        // If the line is not empty, add it to the content
+        if (line.length > 0) {
+            if (content.length > 0) {
+                content += ' ';
+            }
+            content += line;
+        }
+
+        currentIndex++;
+
+        // After adding the current line, check if the next line is a new section header
+        if (currentIndex < lines.length) {
+            const nextLine = lines[currentIndex].trim();
+            // If we encounter a new section header, stop collecting
+            if (isSectionHeader(nextLine)) {
+                break;
+            }
+        }
+    }
+
+    return {
+        content: content.trim(),
+        endIndex: currentIndex
+    };
+}
+
+/**
+ * Extracts special ability content, handling multi-line abilities.
+ * Each special ability ends when the next line starts with a bullet point or section header.
+ *
+ * @param lines Array of text lines to process
+ * @param startIndex Starting line index
+ * @param sectionHeaders Array of section header patterns to detect section boundaries
+ * @returns Object containing the extracted ability content and the ending line index
+ */
+function extractSpecialAbilityContent(lines: string[], startIndex: number, sectionHeaders: string[]): { content: string, endIndex: number } {
+    let content = '';
+    let currentIndex = startIndex;
+    const sectionHeaderPatterns = sectionHeaders.map(header => new RegExp(`^${header}:?`, 'i'));
+
+    // Check if current line is a section header
+    const isSectionHeader = (line: string): boolean => {
+        return sectionHeaderPatterns.some(pattern => pattern.test(line));
+    };
+
+    // Check if line starts a new ability (bullet point or capital letter with colon)
+    const isNewAbility = (line: string): boolean => {
+        return Boolean(line.match(/^[•\-*]\s/)) ||
+               (Boolean(line.match(/^[A-Z]/)) && line.includes(':'));
+    };
+
+    // Start from the given index and collect content until we hit another ability or section header
+    while (currentIndex < lines.length) {
+        const line = lines[currentIndex].trim();
+
+        // If the line is not empty, add it to the content
+        if (line.length > 0) {
+            if (content.length > 0) {
+                content += ' ';
+            }
+            content += line;
+        }
+
+        currentIndex++;
+
+        // After adding the current line, check if the next line is a new section header or ability
+        if (currentIndex < lines.length) {
+            const nextLine = lines[currentIndex].trim();
+            // If we encounter a new section header or new ability, stop collecting
+            if (isSectionHeader(nextLine) || isNewAbility(nextLine)) {
+                break;
+            }
+        }
+    }
+
+    return {
+        content: content.trim(),
+        endIndex: currentIndex
+    };
+}
+
 function toCamelCase(str: string): string {
     return str
         .toLowerCase()
@@ -1244,14 +1349,25 @@ export class Savaged {
 
         const getSkillDie = (name: string) => character.skills.find(t => t.name === name)?.die || 'd4-2';
 
-        // Attributes - look for them in various formats
+        // Define section headers for extraction functions
+        const sectionHeaders = [
+            "Attributes", "Skills", "Edges", "Hindrances", "Gear",
+            "Special Abilities", "Advances", "Background",
+            "Experience", "Bennies", "Pace", "Parry", "Toughness",
+            "Arcane Background", "Powers", "Weapons", "Armor",
+            "Languages", "Wealth", "Power Points"
+        ];
+
+        // Attributes - using new extraction function
         lineIndex = 0;
         while (lineIndex < lines.length) {
             const line = lines[lineIndex];
 
             // Look for standard format: "Attributes: Agility d6, Smarts d6, Spirit d6, Strength d6, Vigor d6"
             if (line.match(/^Attributes:\s*(.*)$/i)) {
-                const attrsStr = line.replace(/^Attributes:\s*/i, '').trim();
+                // Use new extraction function to get all attribute content
+                const attrsResult = extractSectionContent(lines, lineIndex, sectionHeaders);
+                const attrsStr = attrsResult.content.replace(/^Attributes:\s*/i, '').trim();
                 Debug.log(`Parsing attributes: "${attrsStr}"`);
                 attrsStr.split(', ').forEach(attr => {
                     const [n, d] = attr.split(' ');
@@ -1260,7 +1376,7 @@ export class Savaged {
                         Debug.log(`Parsed attribute: ${n.toLowerCase()} -> ${d}`);
                     }
                 });
-                lineIndex++;
+                lineIndex = attrsResult.endIndex;
             }
             // Look for alternative format where attributes are listed separately
             else if (line.match(/^(Agility|Smarts|Spirit|Strength|Vigor):\s*(.*)$/i)) {
@@ -1324,68 +1440,37 @@ export class Savaged {
             Debug.log(`Final attributes: ${character.attributes.map(a => `${a.name}: ${a.die}`).join(', ')}`);
         }
 
-        // Reset for skills (assuming sequential)
+        // Reset for skills (using new extraction function)
         lineIndex = 0;
-        let skillsStart = false;
         let skillsStr = '';
         while (lineIndex < lines.length) {
             const line = lines[lineIndex];
 
             // Look for Skills: line (start of skills section) - handle both "Skills:" and "Skills" followed by colon on next line
             if (line.match(/^Skills[:]?\s*(.*)$/i)) {
-                skillsStart = true;
-                skillsStr = line.replace(/^Skills[:]?\s*/i, '').trim();
+                // Use new extraction function to get all skills content
+                const skillsResult = extractSectionContent(lines, lineIndex, sectionHeaders);
+                skillsStr = skillsResult.content.replace(/^Skills[:]?\s*/i, '').trim();
                 // Handle case where skills start with ": " (like ": Academics d4, ...")
                 if (skillsStr.startsWith(': ')) {
                     skillsStr = skillsStr.substring(2).trim();
                 }
-                Debug.log(`Found skills start: "${skillsStr}"`);
-                lineIndex++;
-                continue;
+                Debug.log(`Found skills content: "${skillsStr}"`);
+                lineIndex = skillsResult.endIndex;
+                break;
             }
             // Handle the case where "Skills" is on one line and skills start with ":" on the next line
             else if (line.match(/^Skills$/i)) {
-                skillsStart = true;
-                lineIndex++;
-                // Check if next line starts with ": " (skills continuation)
-                if (lineIndex < lines.length && lines[lineIndex].startsWith(': ')) {
-                    skillsStr = lines[lineIndex].substring(2).trim();
-                    Debug.log(`Found skills start (multi-line format): "${skillsStr}"`);
-                    lineIndex++;
+                // Use new extraction function to get all skills content
+                const skillsResult = extractSectionContent(lines, lineIndex, sectionHeaders);
+                skillsStr = skillsResult.content.replace(/^Skills\s*/i, '').trim();
+                // Handle case where skills start with ": " (skills continuation)
+                if (skillsStr.startsWith(': ')) {
+                    skillsStr = skillsStr.substring(2).trim();
                 }
-                continue;
-            }
-
-            // If we're in skills section, collect multi-line skills
-            if (skillsStart) {
-                // Check if this line starts a new section (end of skills)
-                // Also check for lines that contain section headers like "Pace:", "Parry:", etc.
-                if (line.match(/^(Attributes|Description|Weapons|Arcane Background|Powers|Gear|Special Abilities|Advances|Background|Experience|Bennies):?/i) ||
-                    line.match(/(^|\s)(Pace|Parry|Toughness|Edges|Hindrances|Armor|Languages|Wealth|Power Points|Special Abilities|Advances|Background|Experience|Bennies)[:]?/i)) {
-                    Debug.log(`End of skills section found at line: "${line}"`);
-                    break;
-                }
-                // If line is not empty and not a section header, add to skills
-                else if (line.trim().length > 0 && !line.match(/^[:，、]/)) {
-                    skillsStr += ' ' + line.trim();
-                    Debug.log(`Adding to skills: "${line.trim()}"`);
-                }
-                lineIndex++;
-            }
-            // Look for alternative skills format (skills listed without "Skills:" header)
-            // Only match if the line doesn't start with a colon (to avoid false positives)
-            else if (line.match(/(Fighting|Shooting|Athletics|Stealth|Persuasion|Notice|Repair|Taunt|Intimidation|Healing|Survival|Thievery|Gambling|Climbing|Swimming|Riding|Driving|Piloting|Boating|Language|Knowledge|Spellcasting|Faith|Focus|Performance|Psionics|Weird Science|Alchemy|Research|Investigation|Streetwise|Guts|Common Knowledge|Battle|Shooting|Throwing|Fighting|Gambling|Lockpicking|Sleight of Hand|Stealth|Persuasion|Intimidation|Taunt|Performance|Healing|Survival|Tracking|Riding|Driving|Piloting|Boating|Climbing|Swimming|Throwing|Shooting|Fighting|Guts|Common Knowledge|Battle|Arcane|Power Points)\s*[:d]/i) &&
-                !line.match(/^[:，、]/)) {
-                Debug.log(`Found alternative skill format: "${line}"`);
-                // Handle alternative formats like "Fighting: d8" or "Fighting d8"
-                const altSkillMatch = line.match(/^(.+?)\s*[:]?\s*(d\d+\+?\d*)/i);
-                if (altSkillMatch) {
-                    const skillName = altSkillMatch[1].trim();
-                    const skillDie = altSkillMatch[2].trim();
-                    character.skills.push({ name: toCamelCase(skillName), die: skillDie });
-                    Debug.log(`Parsed alternative skill: "${skillName}" -> "${skillDie}"`);
-                }
-                lineIndex++;
+                Debug.log(`Found skills content (multi-line format): "${skillsStr}"`);
+                lineIndex = skillsResult.endIndex;
+                break;
             }
             else {
                 lineIndex++;
@@ -1630,12 +1715,14 @@ export class Savaged {
             lineIndex++;
         }
 
-        // Powers
+        // Powers - using new extraction function
         lineIndex = 0;
         while (lineIndex < lines.length) {
             const line = lines[lineIndex];
             if (line.match(/^Powers:\s*(.*)$/i)) {
-                const powersStr = line.replace(/^Powers:\s*/i, '').trim();
+                // Use new extraction function to get all powers content
+                const powersResult = extractSectionContent(lines, lineIndex, sectionHeaders);
+                const powersStr = powersResult.content.replace(/^Powers:\s*/i, '').trim();
                 character.powers = [];
                 powersStr.split(', ').forEach(power => {
                     const match = power.trim().match(/(.*?) \((.*?) p(\d+)\)/);
@@ -1651,6 +1738,7 @@ export class Savaged {
                     }
                     character.powers!.push({ name, book, page });
                 });
+                lineIndex = powersResult.endIndex;
                 break;
             }
             lineIndex++;
@@ -1746,168 +1834,236 @@ export class Savaged {
             lineIndex++;
         }
 
-        // Edges
+        // Edges - using new extraction function
         lineIndex = 0;
         while (lineIndex < lines.length) {
             const line = lines[lineIndex];
             if (line.match(/^Edges:\s*(.*)$/i)) {
-                const edgesStr = line.replace(/^Edges:\s*/i, '').trim();
+                // Use new extraction function to get all edges content
+                const edgesResult = extractSectionContent(lines, lineIndex, sectionHeaders);
+                const edgesStr = edgesResult.content.replace(/^Edges:\s*/i, '').trim();
                 // Skip if edges are just a dash, em dash, or empty
                 if (edgesStr && edgesStr !== '—' && edgesStr !== '-' && edgesStr !== '–' && edgesStr.trim() !== '') {
                     character.edges = splitIgnoringParentheses(edgesStr, ', ');
                 }
+                lineIndex = edgesResult.endIndex;
                 break;
             }
             lineIndex++;
         }
 
-        // Hindrances
+        // Hindrances - using new extraction function
         lineIndex = 0;
         while (lineIndex < lines.length) {
             const line = lines[lineIndex];
             if (line.match(/^Hindrances:\s*(.*)$/i)) {
-                const hindrancesStr = line.replace(/^Hindrances:\s*/i, '').trim();
+                // Use new extraction function to get all hindrances content
+                const hindrancesResult = extractSectionContent(lines, lineIndex, sectionHeaders);
+                const hindrancesStr = hindrancesResult.content.replace(/^Hindrances:\s*/i, '').trim();
                 if (hindrancesStr && hindrancesStr !== '—' && hindrancesStr !== '-' && hindrancesStr !== '–' && hindrancesStr.trim() !== '') {
                     character.hindrances = splitIgnoringParentheses(hindrancesStr, ', ');
                 }
+                lineIndex = hindrancesResult.endIndex;
                 break;
             }
             lineIndex++;
         }
 
-        // Gear - FIXED: Improved section boundary detection and content filtering
-        let gearStart = false;
-        let gearStr = '';
+        // Gear - using new extraction function
         lineIndex = 0;
         while (lineIndex < lines.length) {
             const line = lines[lineIndex];
             if (line.match(/^Gear:/i)) {
-                gearStart = true;
-                gearStr = line.replace(/^Gear:\s*/i, '').trim();
-                lineIndex++;
-                continue;
-            }
-            if (gearStart) {
-                // Enhanced section boundary detection to stop gear parsing
-                if (line.match(/^(Languages|Wealth|Special Abilities|Edges|Hindrances|Advances|Background|Experience|Bennies):?/i) ||
-                    line.match(/^Special Abilities/i) ||
-                    line.match(/^Advances/i)) {
-                    break;
-                } else {
-                    gearStr += ', ' + line;
+                // Use new extraction function to get all gear content
+                const gearResult = extractSectionContent(lines, lineIndex, sectionHeaders);
+                const gearContent = gearResult.content.replace(/^Gear:\s*/i, '').trim();
+                lineIndex = gearResult.endIndex;
+
+                // NEW: Enhanced gear parsing to extract weapons and other proper sections
+                if (gearContent) {
+                    // Split gear by commas first to process individual items
+                    const potentialGearItems = splitIgnoringParentheses(gearContent, ', ');
+                    character.gear = [];
+
+                    potentialGearItems.forEach(item => {
+                        const trimmedItem = item.trim();
+                        if (!trimmedItem) return;
+
+                        // Check if this looks like a weapon pattern
+                        const weaponFromGear = parseWeaponFromGearItem(trimmedItem, character);
+
+                        if (weaponFromGear) {
+                            // This is a weapon, add to weapons array
+                            if (!character.weapons) character.weapons = [];
+                            character.weapons.push(weaponFromGear);
+                            Debug.log(`Extracted weapon from gear: ${weaponFromGear.name} -> damage: ${weaponFromGear.damage}, range: ${weaponFromGear.range}, ap: ${weaponFromGear.ap}`);
+                        } else {
+                            // Check if this looks like an edge list entry (common edge names)
+                            const commonEdgeNames = ['Level Headed', 'Luck', 'Great Luck', 'Frenzy', 'Dodge', 'Combo', 'Improved', 'Alertness', 'Ambidextrous', 'Arcane', 'Artificer', 'Assassin', 'Berserker', 'Better', 'Quick', 'Marksman', 'Giant', 'McGyver', 'Muscle', 'Nerves', 'Rocket', 'Steely', 'Trademark'];
+                            const isEdgeItem = commonEdgeNames.some(edge =>
+                                trimmedItem.toLowerCase().includes(edge.toLowerCase())
+                            );
+
+                            // Check if this looks like a section header that shouldn't be in gear
+                            const isSectionHeader = trimmedItem.match(/^(Edges|Hindrances|Advances|Background|Experience|Bennies):/i) ||
+                                trimmedItem.match(/^(Pace|Parry|Toughness):/i) ||
+                                trimmedItem.match(/^(Strength|Agility|Smarts|Spirit|Vigor):/i);
+
+                            if (isEdgeItem || isSectionHeader) {
+                                // Skip items that are clearly edges or section headers
+                                Debug.log(`Skipping non-gear item: "${trimmedItem}"`);
+                            } else {
+                                // This appears to be legitimate gear
+                                const containerMatch = trimmedItem.match(/^(.+?)\s*\(Contains:?\s*(.+)\)$/);
+                                if (containerMatch) {
+                                    const container = containerMatch[1].trim();
+                                    const contentsStr = containerMatch[2].replace(/\)$/, '');
+                                    character.gear!.push(container);
+                                    const contents = splitIgnoringParentheses(contentsStr, ', ');
+                                    contents.forEach(c => character.gear!.push(c.trim()));
+                                } else {
+                                    character.gear!.push(trimmedItem);
+                                }
+                            }
+                        }
+                    });
                 }
-                lineIndex++;
+                break;
             } else {
                 lineIndex++;
             }
         }
 
-        // NEW: Enhanced gear parsing to extract weapons and other proper sections
-        if (gearStr) {
-            // Split gear by commas first to process individual items
-            const potentialGearItems = splitIgnoringParentheses(gearStr, ', ');
-            character.gear = [];
-
-            potentialGearItems.forEach(item => {
-                const trimmedItem = item.trim();
-                if (!trimmedItem) return;
-
-                // Check if this looks like a weapon pattern
-                const weaponFromGear = parseWeaponFromGearItem(trimmedItem, character);
-                
-                if (weaponFromGear) {
-                    // This is a weapon, add to weapons array
-                    if (!character.weapons) character.weapons = [];
-                    character.weapons.push(weaponFromGear);
-                    Debug.log(`Extracted weapon from gear: ${weaponFromGear.name} -> damage: ${weaponFromGear.damage}, range: ${weaponFromGear.range}, ap: ${weaponFromGear.ap}`);
-                } else {
-                    // Check if this looks like an edge list entry (common edge names)
-                    const commonEdgeNames = ['Level Headed', 'Luck', 'Great Luck', 'Frenzy', 'Dodge', 'Combo', 'Improved', 'Alertness', 'Ambidextrous', 'Arcane', 'Artificer', 'Assassin', 'Berserker', 'Better', 'Quick', 'Marksman', 'Giant', 'McGyver', 'Muscle', 'Nerves', 'Rocket', 'Steely', 'Trademark'];
-                    const isEdgeItem = commonEdgeNames.some(edge =>
-                        trimmedItem.toLowerCase().includes(edge.toLowerCase())
-                    );
-
-                    // Check if this looks like a section header that shouldn't be in gear
-                    const isSectionHeader = trimmedItem.match(/^(Edges|Hindrances|Advances|Background|Experience|Bennies):/i) ||
-                        trimmedItem.match(/^(Pace|Parry|Toughness):/i) ||
-                        trimmedItem.match(/^(Strength|Agility|Smarts|Spirit|Vigor):/i);
-
-                    if (isEdgeItem || isSectionHeader) {
-                        // Skip items that are clearly edges or section headers
-                        Debug.log(`Skipping non-gear item: "${trimmedItem}"`);
-                    } else {
-                        // This appears to be legitimate gear
-                        const containerMatch = trimmedItem.match(/^(.+?)\s*\(Contains:?\s*(.+)\)$/);
-                        if (containerMatch) {
-                            const container = containerMatch[1].trim();
-                            const contentsStr = containerMatch[2].replace(/\)$/, '');
-                            character.gear!.push(container);
-                            const contents = splitIgnoringParentheses(contentsStr, ', ');
-                            contents.forEach(c => character.gear!.push(c.trim()));
-                        } else {
-                            character.gear!.push(trimmedItem);
-                        }
-                    }
-                }
-            });
-        }
 
         // Helper function to parse weapons from gear items
         function parseWeaponFromGearItem(gearItem: string, character: Character): Weapon | null {
             const trimmedItem = gearItem.trim();
-            
-            // Check if this looks like a weapon pattern - must have parentheses with details
-            const weaponDetailsMatch = trimmedItem.match(/^(.+?)\s*\(([^()]+)\)\s*[.,;!?]*/);
-            if (!weaponDetailsMatch) {
-                return null; // No details in parentheses, probably not a weapon
+
+            // NEW: More flexible weapon pattern matching
+            // Handle cases like:
+            // "spear (Str+d6, Reach 1, Parry+1)"
+            // "bows (Range 12/24/48, Damage 2d6)"
+            // "Masterwork greatsword (Str+d10, AP, 3)"
+            // "longbow (Range 15/30/60, Damage 2d6, AP 1)"
+            // "2x Javelin (Range 3/6/12, Damage Str+d6)"
+
+            // First, try to find the weapon name and details
+            // Look for patterns like "name (details)" or "name(details)"
+            //const weaponPattern = /^(.+?)\s*\((.+)\)\s*$/;
+            const weaponPattern = /^(.*?)\s*\(([^()]+)\)\s*\.?$/;
+            const weaponMatch = trimmedItem.match(weaponPattern);
+
+            let altWeaponMatch = null;
+            if (!weaponMatch) {
+                // Try alternative pattern for weapons without parentheses
+                // Look for weapons with properties separated by commas
+                const altWeaponPattern = /^(.+?)\s*,\s*(.+)$/;
+                altWeaponMatch = trimmedItem.match(altWeaponPattern);
+                if (!altWeaponMatch) {
+                    return null; // Doesn't look like a weapon
+                }
             }
 
-            const weaponName = weaponDetailsMatch[1].trim();
-            const detailsStr = weaponDetailsMatch[2].trim();
+            let weaponName = '';
+            let detailsStr = '';
+
+            if (weaponMatch) {
+                weaponName = weaponMatch[1].trim();
+                detailsStr = weaponMatch[2].trim();
+            } else if (altWeaponMatch) {
+                weaponName = altWeaponMatch[1].trim();
+                detailsStr = altWeaponMatch[2].trim();
+            }
+
+            // Clean up weapon name by removing quantity indicators like "2x"
+            weaponName = weaponName.replace(/^\d+x\s*/i, '').trim();
 
             // Parse the details to extract weapon information
-            const detailParts = detailsStr.split(';').map(part => part.trim());
+            // Split by commas first, then handle semicolons within each part
+            const detailParts = detailsStr.split(',').map(part => part.trim());
             const detailMap: Record<string, string> = {};
 
             detailParts.forEach(part => {
+                // Skip empty parts
+                if (!part || part.trim() === '') return;
+
                 // Handle different detail formats
-                if (part.match(/^[-+]\d+ Parry$/i)) {
+                if (part.match(/^[-+]\d+\s+Parry$/i)) {
+                    // Format: "+1 Parry" or "-1 Parry"
                     const value = part.replace(/parry/i, '').trim();
                     detailMap['parry'] = value;
                 } else if (part.includes(':')) {
-                    // Format: "Range: value" or "Damage: value"
+                    // Format: "Range: 12/24/48" or "Damage: 2d6"
                     const [key, ...valueParts] = part.split(':');
-                    detailMap[key.toLowerCase().trim()] = valueParts.join(':').trim();
+                    const keyLower = key.toLowerCase().trim();
+                    const value = valueParts.join(':').trim();
+                    detailMap[keyLower] = value;
                 } else if (part.includes(' ')) {
-                    // Format: "Str+d6" or "AP 2" or "Reach 1\""
+                    // Format: "Str+d6", "AP 2", "Reach 1", etc.
                     const spaceIndex = part.indexOf(' ');
                     const key = part.substring(0, spaceIndex).toLowerCase();
                     const value = part.substring(spaceIndex + 1).trim();
-                    detailMap[key] = value;
+
+                    // Special handling for damage patterns
+                    const isDamagePattern =
+                        value.match(/^\d*d\d+[\+\-]?\d*$/i) || // 2d6, d8+2, etc.
+                        value.match(/^(str|dex|agi)\s*[\+\-]?\s*d\d+[\+\-]?\d*/i) || // Str+d6, etc.
+                        value.match(/^(str|dex|agi)$/i); // Just "Str" alone
+
+                    if (isDamagePattern && (key === 'damage' || key === '')) {
+                        detailMap['damage'] = value;
+                    } else if (key === 'range' || key === 'reach' || key === 'ap' || key === 'rof') {
+                        detailMap[key] = value;
+                    } else if (value === 'melee' || value === 'ranged') {
+                        detailMap['range'] = value;
+                    } else {
+                        // Handle cases like "AP 1" where key is "AP" and value is "1"
+                        detailMap[key] = value;
+                    }
                 } else {
-                    // Check for damage patterns that don't have "Damage:" prefix
-                    // Patterns like "2d6", "Str+d6", "1d8+1", "Str+d4", etc.
-                    // Handle attribute abbreviations followed by +/- and dice notation
-                    // Also handle patterns like "Str+d4" where there's no space
-                    const isDamagePattern = 
-                        part.match(/(Str)\s*[\+\-]\s*d\d+[\+\-]?\d*/i) || // Str+d4, etc.
-                        part.match(/^\d*d\d+[\+\-]?\d*$/i) || // d4, 2d6, d8+2, etc.
-                        part.match(/(^|\s)(Str)(\s|$)/i); // Just "Str" alone
-                    
+                    // Single word parts - could be damage like "2d6" or properties like "AP"
+                    const isDamagePattern =
+                        part.match(/^\d*d\d+[\+\-]?\d*$/i) || // 2d6, d8+2, etc.
+                        part.match(/^(str|dex|agi)\s*[\+\-]?\s*d\d+[\+\-]?\d*/i) || // Str+d6, etc.
+                        part.match(/^(str|dex|agi)$/i); // Just "Str" alone
+
                     if (isDamagePattern) {
                         detailMap['damage'] = part;
-                        Debug.log(`Detected damage pattern in gear: "${part}"`);
+                    } else if (part.match(/^\d+$/)) {
+                        // Could be AP value or other numeric property
+                        if (!detailMap['ap']) {
+                            detailMap['ap'] = part;
+                        }
                     } else {
-                        // Single word parts like "Throwing" or "Shooting"
+                        // Could be properties like "Throwing", "Shooting", etc.
                         detailMap[part.toLowerCase()] = 'true';
                     }
                 }
             });
 
+            // NEW: Handle cases where damage is specified without "Damage:" prefix
+            // Look for patterns like "Str+d6" or "2d6" in the details
+            if (!detailMap['damage']) {
+                const damagePattern = /(?:^|\s)(str|dex|agi)\s*[\+\-]?\s*d\d+[\+\-]?\d*|(?:^|\s)\d*d\d+[\+\-]?\d*(?:$|\s)/i;
+                const damageMatch = detailsStr.match(damagePattern);
+                if (damageMatch) {
+                    detailMap['damage'] = damageMatch[0].trim();
+                }
+            }
+
+            // NEW: Handle range patterns like "Range 12/24/48" or "12/24/48"
+            if (!detailMap['range'] || detailMap['range'] === 'melee') {
+                const rangePattern = /\b(\d+\/\d+\/\d+)\b/;
+                const rangeMatch = detailsStr.match(rangePattern);
+                if (rangeMatch) {
+                    detailMap['range'] = rangeMatch[0];
+                }
+            }
+
             // Determine if this is actually a weapon by checking for weapon-like details
-            const isWeapon = detailMap['damage'] || 
-                            detailMap['range'] || 
-                            detailMap['ap'] || 
+            const isWeapon = detailMap['damage'] ||
+                            detailMap['range'] ||
+                            detailMap['ap'] ||
                             detailMap['reach'] ||
                             detailMap['parry'] ||
                             detailMap['rof'] ||
@@ -1958,12 +2114,15 @@ export class Savaged {
 
             // Determine attack values based on weapon type and skills
             const getSkillDie = (name: string) => character.skills.find(t => t.name === name)?.die || 'd4-2';
-            
+
             const weaponNameLower = weaponName.toLowerCase();
             const isThrown = ['axe', 'hand axe', 'throwing axe', 'dagger', 'knife', 'net', 'sling', 'spear', 'javelin', 'trident', 'starknife', 'shuriken', 'bolas', 'hammer', 'warhammer', 'rock'].some(tw => weaponNameLower.includes(tw));
             const isOnlyThrown = ['net', 'sling', 'shuriken', 'bolas', 'rock'].some(tw => weaponNameLower.includes(tw));
-            const isMelee = !detailMap['range'] || detailMap['range'].toLowerCase() === 'melee';
-            const isShooting = detailMap['shooting'] === 'true' || (!isMelee && !isThrown);
+
+            // NEW: Better range detection
+            const rangeValue = detailMap['range'] ? detailMap['range'].toLowerCase() : '';
+            const isMelee = !rangeValue || rangeValue === 'melee' || rangeValue === '';
+            const isShooting = !isMelee && !isThrown;
 
             // Special handling for Unarmed weapons
             const isUnarmed = weaponNameLower.includes('unarmed');
@@ -2624,5 +2783,100 @@ export class Savaged {
         console.log('\nTesting Text Parser Pattern 3:');
         const textChar3 = this.parseCharacterFromText(testText3);
         console.log('Description:', textChar3.description);
+    }
+
+    /**
+     * Test function to demonstrate section content extraction
+     */
+    static testSectionExtraction() {
+        // Test data with various section formats
+        const testLines = [
+            "Character Name",
+            "Rank: Veteran, Race: Human",
+            "Attributes: Agility d8, Smarts d6, Spirit d6, Strength d8, Vigor d8",
+            "Skills: Fighting d8, Shooting d6, Notice d6, Stealth d6, Persuasion d4",
+            "Edges: Combat Reflexes, Quick Draw, Two-Fisted",
+            "Hindrances: Mean, Vengeful (Minor)",
+            "Gear: Sword (Damage Str+d8, Parry +1), Leather Armor (Armor 1), Backpack with rope and rations",
+            "Special Abilities",
+            "• Bite: Str+d6 damage, can be used as a natural weapon",
+            "• Night Vision: Ignores attack penalties for Dim and Dark lighting",
+            "• Fleet-Footed: Pace increases by 2 when running",
+            "• Keen Senses: +2 to Notice rolls involving smell or hearing",
+            "Advances: Novice: Improved Combat Reflexes, Seasoned: Improved Quick Draw",
+            "Background: Former soldier turned adventurer",
+            "Experience: 20",
+            "Bennies: 3"
+        ];
+
+        // Common section headers in Savage Worlds
+        const sectionHeaders = [
+            "Attributes", "Skills", "Edges", "Hindrances", "Gear",
+            "Special Abilities", "Advances", "Background",
+            "Experience", "Bennies", "Pace", "Parry", "Toughness",
+            "Arcane Background", "Powers", "Weapons", "Armor",
+            "Languages", "Wealth", "Power Points"
+        ];
+
+        console.log("=== Testing Section Content Extraction ===");
+
+        // Test extracting the Skills section
+        const skillsStart = testLines.findIndex(line => line.startsWith("Skills:"));
+        if (skillsStart !== -1) {
+            const skillsResult = extractSectionContent(testLines, skillsStart, sectionHeaders);
+            console.log(`Skills section content: "${skillsResult.content}"`);
+            console.log(`Skills section ended at line: ${skillsResult.endIndex}`);
+        }
+
+        // Test extracting the Edges section
+        const edgesStart = testLines.findIndex(line => line.startsWith("Edges:"));
+        if (edgesStart !== -1) {
+            const edgesResult = extractSectionContent(testLines, edgesStart, sectionHeaders);
+            console.log(`Edges section content: "${edgesResult.content}"`);
+            console.log(`Edges section ended at line: ${edgesResult.endIndex}`);
+        }
+
+        // Test extracting the Gear section (multi-line)
+        const gearStart = testLines.findIndex(line => line.startsWith("Gear:"));
+        if (gearStart !== -1) {
+            const gearResult = extractSectionContent(testLines, gearStart, sectionHeaders);
+            console.log(`Gear section content: "${gearResult.content}"`);
+            console.log(`Gear section ended at line: ${gearResult.endIndex}`);
+        }
+
+        // Test extracting Special Abilities (multi-line with bullet points)
+        const specialAbilitiesStart = testLines.findIndex(line => line.startsWith("Special Abilities"));
+        if (specialAbilitiesStart !== -1) {
+            console.log("\n=== Testing Special Ability Extraction ===");
+
+            // Start from the first ability after the header
+            let currentIndex = specialAbilitiesStart + 1;
+
+            while (currentIndex < testLines.length) {
+                const line = testLines[currentIndex].trim();
+
+                // Check if this line starts a new ability
+                if (line.match(/^[•\-*]\s/) || (line.match(/^[A-Z]/) && line.includes(':'))) {
+                    const abilityResult = extractSpecialAbilityContent(testLines, currentIndex, sectionHeaders);
+                    console.log(`Special ability content: "${abilityResult.content}"`);
+                    console.log(`Special ability ended at line: ${abilityResult.endIndex}`);
+
+                    // Move to the next ability
+                    currentIndex = abilityResult.endIndex;
+                } else {
+                    currentIndex++;
+                }
+
+                // Stop if we hit a section header
+                const isSectionHeader = sectionHeaders.some(header =>
+                    new RegExp(`^${header}:?`, 'i').test(line)
+                );
+                if (isSectionHeader) {
+                    break;
+                }
+            }
+        }
+
+        console.log("\n=== Extraction Test Complete ===");
     }
 }
