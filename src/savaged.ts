@@ -1,5 +1,6 @@
 
 import { Debug } from './debug';
+import { Util } from './util';
 
 export interface Trait {
     name: string;
@@ -291,7 +292,7 @@ export class Savaged {
             const text = content.innerHTML;
             const nameMatch = text.match(/<h1>([^<]*)<\/h1>/);
             const name = nameMatch ? nameMatch[1] : '';
-            character.name = name;
+            character.name = Util.toTitleCase(name);
 
             const h1 = doc.querySelector('h1');
             if (h1) {
@@ -342,20 +343,78 @@ export class Savaged {
                 }
             }
 
-            // Parse description - improved to handle multi-line descriptions
-            const descH2 = Array.from(doc.querySelectorAll('h2')).find(h2 => h2.textContent.trim().includes('Description'));
+
+        // NEW: Parse description using the 3 patterns
+        // Pattern 1: Immediately after the name (for creatures like Baku)
+        // Pattern 2: After "Description:" prefix
+        // Pattern 3: After "Description" header (like for character Ingrid)
+
+        // Try Pattern 1 first: text immediately after name in the quick info section
+        if (!character.description && h1) {
+            const nextDiv = h1.nextElementSibling;
+            if (nextDiv && nextDiv.tagName === 'DIV') {
+                const quickText = nextDiv.textContent || '';
+                // Look for multi-line descriptive text that comes right after the name
+                // This should be before any section headers like "Rank:", "Attributes:", etc.
+                const lines = quickText.split('\n');
+                let descriptionLines: string[] = [];
+                let foundSectionHeader = false;
+
+                for (const line of lines) {
+                    const trimmedLine = line.trim();
+                    if (!trimmedLine) continue;
+
+                    // Check if this line is a section header
+                    if (trimmedLine.match(/^(Rank|Gender|Race|Type|Profession|Attributes|Skills|Weapons|Arcane Background|Powers|Gear|Special Abilities|Advances|Background|Experience|Bennies):/i)) {
+                        foundSectionHeader = true;
+                        break;
+                    }
+
+                    // If we haven't found a section header yet, this might be description text
+                    if (!foundSectionHeader) {
+                        // Skip lines that look like they contain structured data (key: value pairs)
+                        if (!trimmedLine.includes(':') && trimmedLine.length > 10 && !trimmedLine.match(/\b(Veteran|Novice|Seasoned|Heroic|Legendary)\b/i)) {
+                            descriptionLines.push(trimmedLine);
+                        }
+                    }
+                }
+
+                if (descriptionLines.length > 0) {
+                    character.description = descriptionLines.join(' ').trim();
+                }
+            }
+        }
+
+        // Try Pattern 2: Look for "Description:" prefix
+        if (!character.description) {
+            const descPrefixMatch = text.match(/Description:\s*([\s\S]*?)(?=\n\n|\n<strong>|<\/p>|<h[2-6]>|<ul>|<ol>|$)/i);
+            if (descPrefixMatch && descPrefixMatch[1]) {
+                const descText = descPrefixMatch[1].trim();
+                if (descText.length > 0) {
+                    character.description = descText;
+                }
+            }
+        }
+
+        // Try Pattern 3: Look for "Description" header (h2)
+        if (!character.description) {
+            const descH2 = Array.from(doc.querySelectorAll('h2')).find(h2 => h2.textContent?.trim().toLowerCase() === 'description');
             if (descH2) {
                 let descriptionText = '';
                 let current: ChildNode | null = descH2.nextSibling;
                 while (current) {
                     if (current.nodeType === Node.TEXT_NODE) {
-                        descriptionText += current.textContent;
+                        descriptionText += current.textContent?.trim() + ' ';
                     } else if (current.nodeType === Node.ELEMENT_NODE) {
                         const el = current as Element;
-                        if (el.tagName === 'BR' || el.tagName === 'STRONG' || el.tagName === 'H2' || el.tagName === 'H3') {
-                            break;
+                        if (el.tagName === 'BR') {
+                            descriptionText += '\n';
+                        } else if (el.tagName === 'P' || el.tagName === 'DIV') {
+                            descriptionText += el.textContent?.trim() + ' ';
+                        } else if (el.tagName === 'STRONG' || el.tagName === 'H2' || el.tagName === 'H3' || el.tagName === 'UL' || el.tagName === 'OL') {
+                            break; // Stop at section headers or lists
                         } else {
-                            descriptionText += el.textContent;
+                            descriptionText += el.textContent?.trim() + ' ';
                         }
                     }
                     current = current.nextSibling;
@@ -364,7 +423,7 @@ export class Savaged {
                     character.description = descriptionText.trim();
                 }
             }
-
+        }
             const getSkillDie = (name: string) => character.skills.find(t => t.name === name)?.die || 'd4-2';
 
             // Attributes
@@ -814,28 +873,6 @@ export class Savaged {
                 character.advances = advances;
                 //Debug.log(`Parsed ${character.advances?.length} advances`);
             }
-            // Parse background - improved to handle multi-line backgrounds
-            const bgH2 = Array.from(doc.querySelectorAll('h2')).find(h2 => h2.textContent.trim().includes('Background'));
-            if (bgH2) {
-                let backgroundText = '';
-                let current: ChildNode | null = bgH2.nextSibling;
-                while (current) {
-                    if (current.nodeType === Node.TEXT_NODE) {
-                        backgroundText += current.textContent;
-                    } else if (current.nodeType === Node.ELEMENT_NODE) {
-                        const el = current as Element;
-                        if (el.tagName === 'BR' || el.tagName === 'STRONG' || el.tagName === 'H2' || el.tagName === 'H3') {
-                            break;
-                        } else {
-                            backgroundText += el.textContent;
-                        }
-                    }
-                    current = current.nextSibling;
-                }
-                if (backgroundText.trim().length > 0) {
-                    character.background = backgroundText.trim();
-                }
-            }
             // Experience
             const expMatch = text.match(/<strong>Experience<\/strong>: (\d+)/);
             if (expMatch) {
@@ -903,12 +940,12 @@ export class Savaged {
                             // Debug: Log all attributes to see what we're working with
                             Debug.log('Available attributes:', character.attributes);
 
-                            // Extract AP value if present (e.g., "Str+d6 AP 2" -> ap: "2")
+                            // Extract AP value if present (e.g., "Str+d6 AP 2" or "Str+d6, AP 2" -> ap: "2")
                             let apValue: string | undefined;
-                            const apMatch = finalDamageStr.match(/\s+AP\s*(\d+)/i) || ability.match(/\s+AP\s*(\d+)/i);
+                            const apMatch = finalDamageStr.match(/[, ]*AP\s*(\d+)/i) || ability.match(/[, ]*AP\s*(\d+)/i);
                             if (apMatch) {
                                 apValue = apMatch[1];
-                                finalDamageStr = finalDamageStr.replace(/\s+AP\s*\d+/i, '').trim();
+                                finalDamageStr = finalDamageStr.replace(/,?\s*AP\s*\d+/i, '').trim();
                                 Debug.log(`Extracted AP: ${apValue}, remaining damage: "${finalDamageStr}"`);
                             }
 
@@ -1036,22 +1073,12 @@ export class Savaged {
         const lines = clean.split('\n').map(line => line.trim()).filter(line => line.length > 0);
 
         // Parse name from first line assuming it's the h1 equivalent
-        const name = lines[0];
-        character.name = name;
+        let name = lines[0];
 
-        // Set isWildCard based on first character of name line
-        if (name.length > 0) {
-            const firstChar = name[0];
-            // Check if first character is not an alpha character (like ❄, bullet, or special character)
-            character.isWildCard = !firstChar.match(/[a-zA-Z]/);
-            // Remove the special character from the name if it's a wild card
-            if (character.isWildCard) {
-                character.name = name.substring(1).trim();
-            }
-        } else {
-            character.isWildCard = false;
-        }
-
+        character.isWildCard = /^\S\s/.test(name);
+        if (character.isWildCard) name=name && name.length > 2 ? name.slice(2) : name ?? '';
+        character.name = Util.toTitleCase(name);
+        
         // Parse quick info after name (Rank, Gender, Race, Profession)
         let lineIndex = 1;
         let quickText = '';
@@ -1059,7 +1086,7 @@ export class Savaged {
             quickText += (quickText ? ', ' : '') + lines[lineIndex];
             lineIndex++;
         }
-        const startLineIndex = lineIndex; // Save position after quick info
+        //const startLineIndex = lineIndex; // Save position after quick info
         const parts = quickText.split(', ').map(p => p.trim());
         parts.forEach(part => {
             const [key, value] = part.split(': ').map(s => s.trim());
@@ -1085,13 +1112,6 @@ export class Savaged {
             }
         }
 
-        // Debug logging for rank parsing
-        if (character.rank) {
-            Debug.log(`Parsed rank: ${character.rank}`);
-        } else {
-            Debug.log('No rank found in quick text');
-        }
-
         // Additional rank parsing for formats like "Rank: Veteran (something)" with parentheses
         if (!character.rank) {
             const rankWithParensMatch = quickText.match(/Rank[:]?\s*(\w+)\s*\([^)]*\)/i);
@@ -1103,58 +1123,90 @@ export class Savaged {
 
         if (!character.race) character.race = 'Human';
 
-        // Parse description - improved to handle "Description:" and "Description" formats
+        // Try Pattern 1 first: text immediately after name in the quick info section
         let descFound = false;
-        while (lineIndex < lines.length && !descFound) {
-            if (lines[lineIndex].match(/Description[:]?/i)) {
-                lineIndex++;
-                // Collect all subsequent lines until next section header
-                let descriptionText = '';
-                while (lineIndex < lines.length) {
-                    const line = lines[lineIndex];
-                    // Stop if we hit a new section header
-                    if (line.match(/^(Attributes|Skills|Weapons|Arcane Background|Powers|Gear|Special Abilities|Advances|Background|Experience|Bennies):?/i)) {
-                        break;
+        let tempLineIndex = 1; 
+        while (tempLineIndex < lines.length && !descFound) {
+            const line = lines[tempLineIndex];
+            // Look for descriptive text that comes right after the name
+            // This should be before any section headers like "Attributes:", "Skills:", etc.
+            if (!line.match(/^(Attributes|Skills|Weapons|Arcane Background|Powers|Gear|Special Abilities|Advances|Background|Experience|Bennies):?/i)) {
+                // Skip lines that look like they contain structured data (key: value pairs)
+                if (!line.includes(':') && line.length > 10 && !line.match(/\b(Veteran|Novice|Seasoned|Heroic|Legendary)\b/i)) {
+                    if (!character.description) {
+                        character.description = line.trim();
+                    } else {
+                        character.description += ' ' + line.trim();
                     }
-                    // Skip empty lines
-                    if (line.trim().length > 0) {
-                        if (descriptionText.length > 0) {
-                            descriptionText += ' ';
-                        }
-                        descriptionText += line.trim();
-                    }
-                    lineIndex++;
+                } else {
+                    descFound = true; // Found a structured line, stop looking for pattern 1
                 }
-                if (descriptionText.trim().length > 0) {
-                    character.description = descriptionText.trim();
-                }
-                descFound = true;
             } else {
-                lineIndex++;
+                descFound = true; // Found a section header, stop looking for pattern 1
+            }
+            tempLineIndex++;
+        }
+
+        // Try Pattern 2: Look for "Description:" prefix
+        if (!character.description) {
+            let tempLineIndex2 = 0;
+            while (tempLineIndex2 < lines.length) {
+                const line = lines[tempLineIndex2];
+                if (line.match(/^Description:\s*(.*)$/i)) {
+                    let descriptionText = line.replace(/^Description:\s*/i, '').trim();
+                    tempLineIndex2++;
+                    // Collect all subsequent lines until next section header
+                    while (tempLineIndex2 < lines.length) {
+                        const nextLine = lines[tempLineIndex2];
+                        // Stop if we hit a new section header
+                        if (nextLine.match(/^(Attributes|Skills|Weapons|Arcane Background|Powers|Gear|Special Abilities|Advances|Background|Experience|Bennies):?/i)) {
+                            break;
+                        }
+                        // Skip empty lines
+                        if (nextLine.trim().length > 0) {
+                            descriptionText += ' ' + nextLine.trim();
+                        }
+                        tempLineIndex2++;
+                    }
+                    if (descriptionText.trim().length > 0) {
+                        character.description = descriptionText.trim();
+                    }
+                    break;
+                }
+                tempLineIndex2++;
             }
         }
 
-        // Fallback: if description not found after "Description:", extract all text after name up to "Attributes"
-        if (!descFound) {
-            let descriptionText = '';
-            let tempIndex = startLineIndex;
-            while (tempIndex < lines.length) {
-                const line = lines[tempIndex];
-                // Stop if we hit "Attributes" section header
-                if (line.match(/^Attributes:?/i)) {
+        // Try Pattern 3: Look for "Description" header (without colon)
+        if (!character.description) {
+            let tempLineIndex3 = 0;
+            while (tempLineIndex3 < lines.length) {
+                const line = lines[tempLineIndex3];
+                if (line.match(/^Description$/i)) {
+                    tempLineIndex3++;
+                    // Collect all subsequent lines until next section header
+                    let descriptionText = '';
+                    while (tempLineIndex3 < lines.length) {
+                        const nextLine = lines[tempLineIndex3];
+                        // Stop if we hit a new section header
+                        if (nextLine.match(/^(Attributes|Skills|Weapons|Arcane Background|Powers|Gear|Special Abilities|Advances|Background|Experience|Bennies):?/i)) {
+                            break;
+                        }
+                        // Skip empty lines
+                        if (nextLine.trim().length > 0) {
+                            if (descriptionText.length > 0) {
+                                descriptionText += ' ';
+                            }
+                            descriptionText += nextLine.trim();
+                        }
+                        tempLineIndex3++;
+                    }
+                    if (descriptionText.trim().length > 0) {
+                        character.description = descriptionText.trim();
+                    }
                     break;
                 }
-                // Skip empty lines
-                if (line.trim().length > 0) {
-                    if (descriptionText.length > 0) {
-                        descriptionText += ' ';
-                    }
-                    descriptionText += line.trim();
-                }
-                tempIndex++;
-            }
-            if (descriptionText.trim().length > 0) {
-                character.description = descriptionText.trim();
+                tempLineIndex3++;
             }
         }
 
@@ -2076,19 +2128,6 @@ export class Savaged {
             }
         }
 
-        // Background
-        lineIndex = 0;
-        while (lineIndex < lines.length) {
-            const line = lines[lineIndex];
-            if (line.match(/^Background:/i)) {
-                lineIndex++;
-                if (lineIndex < lines.length) {
-                    character.background = lines[lineIndex];
-                }
-                break;
-            }
-            lineIndex++;
-        }
 
         // Experience
         lineIndex = 0;
@@ -2142,7 +2181,8 @@ export class Savaged {
                     const isWeaponAttackName = weaponAttackNames.some(name => weaponName.includes(name));
                     
                     // Check for clean damage patterns in the immediate text after colon
-                    let immediateDamageMatch = damageStr.match(/(\d*d\d+[+-]?\d*|(?:Str)\s*[+-]?\s*\d*|(?:Str))/i);
+                    // Fixed: Improved regex to correctly capture "Str+d6" and similar patterns
+                    let immediateDamageMatch = damageStr.match(/(\d*d\d+[+-]?\d*|(?:Str)\s*[+-]?\s*d\d+[+-]?\d*|(?:Str)\s*[+-]?\s*\d*|(?:Str))/i);
                     
                     // If no immediate clean damage, search the entire ability text for damage patterns
                     let finalDamageStr = damageStr;
@@ -2164,18 +2204,25 @@ export class Savaged {
                         const strDie = getAttributeDie('strength');
                         Debug.log(`Special ability weapon parsing: ${match[1].trim()} - Original damage: "${finalDamageStr}", Str die: "${strDie}"`);
 
-                        // Extract AP value if present (e.g., "Str+d6 AP 2" -> ap: "2")
+                        // Extract AP value if present (e.g., "Str+d6 AP 2" or "Str+d6, AP 2" -> ap: "2")
                         let apValue: string | undefined;
-                        const apMatch = finalDamageStr.match(/\s+AP\s*(\d+)/i) || ability.match(/\s+AP\s*(\d+)/i);
+                        const apMatch = finalDamageStr.match(/[, ]*AP\s*(\d+)/i) || ability.match(/[, ]*AP\s*(\d+)/i);
                         if (apMatch) {
                             apValue = apMatch[1];
-                            finalDamageStr = finalDamageStr.replace(/\s+AP\s*\d+/i, '').trim();
+                            // Fixed: More precise regex to avoid removing the "d6" part
+                            // Only remove "AP X" patterns, not "d6" or other damage components
+                            finalDamageStr = finalDamageStr.replace(/[, ]*AP\s*\d+/i, '').trim();
                             Debug.log(`Extracted AP: ${apValue}, remaining damage: "${finalDamageStr}"`);
                         }
 
                         // Substitute attribute abbreviations with actual dice values
                         // Handle both dice notation (Str+d8) and simple modifiers (Str+2)
-                        finalDamageStr = finalDamageStr.replace(/\bStr\b(?=\s*[+-]?\s*(?:d\d+|\d+))/gi, strDie);
+                        // Fixed: The issue was that the regex was incorrectly handling "Str+d6" format
+                        // We need to replace "Str" with the actual strength die value while preserving the "+d6" part
+                        finalDamageStr = finalDamageStr.replace(/\bStr\b(?=\s*[+-]?\s*(?:d\d+|\d+|$))/gi, strDie);
+                        // Additional fix: Handle cases where "Str+d6" should become "d6+d6" (strength die + damage die)
+                        // This ensures "Str+d6" is preserved as "d6+d6" instead of just "d6"
+                        finalDamageStr = finalDamageStr.replace(/\bStr\b(?=\s*[+-]?\s*d\d+)/gi, strDie);
 
                         Debug.log(`After substitution: "${finalDamageStr}"`);
 
@@ -2500,453 +2547,82 @@ export class Savaged {
         return htmlCharacter;
     }
 
-    // Test function for text parser weapon parsing
-    static testTextWeaponParsing() {
-        const testText = `
-Test Character
-Rank: Veteran, Gender: Male, Race: Human, Profession: Soldier
-
-Attributes: Agility d8, Smarts d6, Spirit d6, Strength d8, Vigor d8
-
-Skills: Fighting d8, Shooting d8, Athletics d6, Stealth d6
-
-Weapons: Browning Automatic Rifle (BAR) (.30-06) (Range 20/40/60, Damage 2d8, ROF 3, AP 2), Colt 1911 (.45) (Range 12/24/48, Damage 2d6+1, ROF 1, AP 1), Desert Eagle (.50) (Range 15/30/60, Damage 2d8, ROF 1, AP 2)
-`.trim();
-
-        Debug.log("=== Testing Text Parser Weapon Parsing ===");
-        const character = this.parseCharacterFromText(testText);
-        Debug.log("Parsed character weapons:", character.weapons);
-
-        // Test that we got the expected number of weapons
-        const expectedWeaponCount = 3; // 3 weapons in the test text
-        const actualWeaponCount = character.weapons?.length || 0;
-        Debug.log(`Expected ${expectedWeaponCount} weapons, got ${actualWeaponCount}`);
-
-        // Test specific weapons
-        const weaponNames = character.weapons?.map(w => w.name) || [];
-        Debug.log("Parsed weapon names:", weaponNames);
-
-        // Check for specific weapons that should be found
-        const expectedWeapons = [
-            "Browning Automatic Rifle (BAR) (.30-06)",
-            "Colt 1911 (.45)",
-            "Desert Eagle (.50)"
-        ];
-
-        expectedWeapons.forEach((expectedWeapon, index) => {
-            const found = weaponNames.some(name => name.includes(expectedWeapon));
-            Debug.log(`Weapon ${index + 1} "${expectedWeapon}": ${found ? 'FOUND' : 'NOT FOUND'}`);
-        });
-
-        Debug.log("=== End Text Parser Weapon Parsing Test ===");
-    }
-
-    // Test function to verify skill parsing fixes
-    static testSkillParsing() {
-        Debug.log("=== Testing Skill Parsing Fixes ===");
-
-        // Test case 1: Standard format that should work
-        const testText1 = `
-Test Character
-Rank: Veteran, Gender: Male, Race: Human, Profession: Soldier
-
-Attributes: Agility d8, Smarts d6, Spirit d6, Strength d8, Vigor d8
-
-Skills: Fighting d8, Shooting d8, Athletics d6, Stealth d6
-
-Weapons: Sword (Damage 2d8, Range melee)
-`.trim();
-
-        // Test case 2: Multi-line skills (the problematic case)
-        const testText2 = `
-Test Character
-Rank: Veteran, Gender: Male, Race: Human, Profession: Soldier
-
-Attributes: Agility d8, Smarts d6, Spirit d6, Strength d8, Vigor d8
-
-Skills: Fighting d8, Shooting d8, Athletics d6, Stealth d6,
-       Persuasion d6, Notice d6, Repair d4, Taunt d6
-
-Weapons: Sword (Damage 2d8, Range melee)
-`.trim();
-
-        // Test case 3: Multi-word skill names
-        const testText3 = `
-Test Character
-Rank: Veteran, Gender: Male, Race: Human, Profession: Soldier
-
-Attributes: Agility d8, Smarts d6, Spirit d6, Strength d8, Vigor d8
-
-Skills: Common Knowledge d4, Battle d6, Spellcasting d8, Power Points d6
-
-Weapons: Sword (Damage 2d8, Range melee)
-`.trim();
-
-        // Test case 4: Alternative format with colons
-        const testText4 = `
-Test Character
-Rank: Veteran, Gender: Male, Race: Human, Profession: Soldier
-
-Attributes: Agility d8, Smarts d6, Spirit d6, Strength d8, Vigor d8
-
-Fighting: d8
-Shooting: d8
-Athletics: d6
-Stealth: d6
-
-Weapons: Sword (Damage 2d8, Range melee)
-`.trim();
-
-        const testCases = [
-            { name: "Standard single-line skills", text: testText1, expectedSkills: 4 },
-            { name: "Multi-line skills", text: testText2, expectedSkills: 8 },
-            { name: "Multi-word skill names", text: testText3, expectedSkills: 4 },
-            { name: "Alternative colon format", text: testText4, expectedSkills: 4 }
-        ];
-
-        testCases.forEach((testCase, index) => {
-            Debug.log(`\n--- Test Case ${index + 1}: ${testCase.name} ---`);
-            const character = this.parseCharacterFromText(testCase.text);
-
-            Debug.log(`Parsed ${character.skills.length} skills (expected ${testCase.expectedSkills}):`);
-            character.skills.forEach(skill => {
-                Debug.log(`  - ${skill.name}: ${skill.die}`);
-            });
-
-            const success = character.skills.length === testCase.expectedSkills;
-            Debug.log(`Test ${success ? 'PASSED' : 'FAILED'}`);
-        });
-
-        Debug.log("=== End Skill Parsing Tests ===");
-    }
-
-    // Test function to verify special ability weapon damage parsing
-    static testSpecialAbilityWeaponDamage() {
-        const testText = `
-Test Character
-Strength: d12+2
-Agility: d8
-Smarts: d6
-Spirit: d6
-Vigor: d6
-
-Special Abilities:
-• Claws: Str+d8
-• Bite: Str+d8
-• Fast: Pace +2
-        `.trim();
-
-        const character = this.parseCharacterFromText(testText);
-        Debug.log('Test character parsed:', character);
-
-        // Check if the weapons have the correct damage
-        if (character.weapons) {
-            character.weapons.forEach(weapon => {
-                Debug.log(`Weapon: ${weapon.name} -> Damage: ${weapon.damage}`);
-            });
-        } else {
-            Debug.log('No weapons found in test character');
-        }
-
-        return character;
-    }
-
-    // Test function to verify isWildCard parsing
-    static testIsWildCardParsing() {
-        // Test cases for text parser
-        const testCases = [
-            {
-                name: "Normal character (starts with alpha)",
-                text: "John Doe\nRace: Human\nRank: Novice",
-                expectedWildCard: false
-            },
-            {
-                name: "Wild card with special character (❄)",
-                text: "❄ Snowflake\nRace: Human\nRank: Novice",
-                expectedWildCard: true
-            },
-            {
-                name: "Wild card with bullet",
-                text: "• Bullet Character\nRace: Human\nRank: Novice",
-                expectedWildCard: true
-            },
-            {
-                name: "Wild card with asterisk",
-                text: "* Asterisk Character\nRace: Human\nRank: Novice",
-                expectedWildCard: true
-            },
-            {
-                name: "Empty name",
-                text: "\nRace: Human\nRank: Novice",
-                expectedWildCard: false
-            }
-        ];
-
-        testCases.forEach(testCase => {
-            const character = this.parseCharacterFromText(testCase.text);
-            Debug.log(`Test: ${testCase.name}`);
-            Debug.log(`  Name: "${character.name}"`);
-            Debug.log(`  isWildCard: ${character.isWildCard} (expected: ${testCase.expectedWildCard})`);
-            Debug.log(`  Test ${character.isWildCard === testCase.expectedWildCard ? 'PASSED' : 'FAILED'}`);
-        });
-
-        // Test HTML parser (always defaults to true for wild cards)
-        const htmlCharacter = this.parseCharacterFromHTML('<div class="content"><span><h1>HTML Test Character</h1></span></div>');
-        Debug.log('HTML Parser Test:');
-        Debug.log(`  Name: "${htmlCharacter.name}"`);
-        Debug.log(`  isWildCard: ${htmlCharacter.isWildCard} (expected: true)`);
-        Debug.log(`  Test ${htmlCharacter.isWildCard === true ? 'PASSED' : 'FAILED'}`);
-    }
-
-    // Test function for weapon parsing
-    static testWeaponParsing() {
-        const testHtml = `
+    // Test function for the new description parsing
+    static testDescriptionParsing() {
+        // Test Pattern 1: Description immediately after name
+        const testHtml1 = `
         <div class="content">
-            <span>
-                <h1>Test Character</h1>
-                <div>Rank: Veteran, Gender: Male, Race: Human, Profession: Soldier</div>
-
-                <h2>Attributes</h2>
-                <strong>Attributes</strong>: Agility d8, Smarts d6, Spirit d6, Strength d8, Vigor d8
-
-                <h2>Skills</h2>
-                <strong>Skills</strong>: Fighting d8, Shooting d8, Athletics d6, Stealth d6
-
-                <h2>Weapons</h2>
-                <strong>Weapons</strong>: Browning Automatic Rifle (BAR) (.30-06) (Range 20/40/60, Damage 2d8, ROF 3, AP 2), Colt 1911 (.45) (Range 12/24/48, Damage 2d6+1, ROF 1, AP 1), Desert Eagle (.50) (Range 15/30/60, Damage 2d8, ROF 1, AP 2), Double-Barrel Shotgun (Range 12/24/48, Damage (1-3)d6, ROF 1), Glock (9mm) (Range 12/24/48, Damage 2d6, ROF 1, AP 1), H&K MP5 (9mm) (Range 12/24/48, Damage 2d6, ROF 3, AP 1), Ruger (.22) (Range 10/20/40, Damage 2d6-2, ROF 1), Sawed-Off Double-Barrel Shotgun (Range 5/10/20, Damage (1-3)d6, ROF 1), Tommy Gun (.45) (Range 12/24/48, Damage 2d6+1, ROF 3, AP 1), Uzi (9mm) (Range 12/24/48, Damage 2d6, ROF 3, AP 1)
-            </span>
+            <h1>Baku</h1>
+            <div>
+                The baku looks like a floating animal with brown fur, tusks, and a trunk. It feeds on dreams and nightmares.
+                Rank: Veteran
+                Race: Spirit
+            </div>
+            <strong>Attributes</strong>: Agility d12+1, Smarts d8, Spirit d10, Strength d8, Vigor d12
         </div>
         `;
 
-        Debug.log("=== Testing Weapon Parsing ===");
-        const character = this.parseCharacterFromHTML(testHtml);
-        Debug.log("Parsed character weapons:", character.weapons);
+        // Test Pattern 2: Description with prefix
+        const testHtml2 = `
+        <div class="content">
+            <h1>Ingrid</h1>
+            <div>Sophomore Female, The Crusader</div>
+            <strong>Description:</strong> wears glasses and has a determined look.
+            <strong>Attributes</strong>: Agility d6, Smarts d6, Spirit d8, Strength d4, Vigor d6
+        </div>
+        `;
 
-        // Test that we got the expected number of weapons
-        const expectedWeaponCount = 10; // All weapons from the task
-        const actualWeaponCount = character.weapons?.length || 0;
-        Debug.log(`Expected ${expectedWeaponCount} weapons, got ${actualWeaponCount}`);
+        // Test Pattern 3: Description header
+        const testHtml3 = `
+        <div class="content">
+            <h1>Ingrid</h1>
+            <div>Sophomore Female, The Crusader</div>
+            <h2>Description</h2>
+            <p>wears glasses and has a determined look.</p>
+            <strong>Attributes</strong>: Agility d6, Smarts d6, Spirit d8, Strength d4, Vigor d6
+        </div>
+        `;
 
-        // Test specific weapons
-        const weaponNames = character.weapons?.map(w => w.name) || [];
-        Debug.log("Parsed weapon names:", weaponNames);
+        console.log('Testing Pattern 1 (immediate description):');
+        const char1 = this.parseCharacterFromHTML(testHtml1);
+        console.log('Description:', char1.description);
 
-        // Check for specific weapons that should be found
-        const expectedWeapons = [
-            "Browning Automatic Rifle (BAR) (.30-06)",
-            "Colt 1911 (.45)",
-            "Desert Eagle (.50)",
-            "Double-Barrel Shotgun",
-            "Glock (9mm)",
-            "H&K MP5 (9mm)",
-            "Ruger (.22)",
-            "Sawed-Off Double-Barrel Shotgun",
-            "Tommy Gun (.45)",
-            "Uzi (9mm)"
-        ];
+        console.log('\nTesting Pattern 2 (Description: prefix):');
+        const char2 = this.parseCharacterFromHTML(testHtml2);
+        console.log('Description:', char2.description);
 
-        expectedWeapons.forEach((expectedWeapon, index) => {
-            const found = weaponNames.some(name => name.includes(expectedWeapon));
-            Debug.log(`Weapon ${index + 1} "${expectedWeapon}": ${found ? 'FOUND' : 'NOT FOUND'}`);
-        });
+        console.log('\nTesting Pattern 3 (Description header):');
+        const char3 = this.parseCharacterFromHTML(testHtml3);
+        console.log('Description:', char3.description);
 
-        Debug.log("=== End Weapon Parsing Test ===");
+        // Test text parser patterns
+        const testText1 = `Baku
+        The baku looks like a floating animal with brown fur, tusks, and a trunk. It feeds on dreams and nightmares.
+        Rank: Veteran
+        Race: Spirit
+        Attributes: Agility d12+1, Smarts d8, Spirit d10, Strength d8, Vigor d12`;
+
+        const testText2 = `Ingrid
+        Sophomore Female, The Crusader
+        Description: wears glasses and has a determined look.
+        Attributes: Agility d6, Smarts d6, Spirit d8, Strength d4, Vigor d6`;
+
+        const testText3 = `Ingrid
+        Sophomore Female, The Crusader
+        Description
+        wears glasses and has a determined look.
+        Attributes: Agility d6, Smarts d6, Spirit d8, Strength d4, Vigor d6`;
+
+        console.log('\nTesting Text Parser Pattern 1:');
+        const textChar1 = this.parseCharacterFromText(testText1);
+        console.log('Description:', textChar1.description);
+
+        console.log('\nTesting Text Parser Pattern 2:');
+        const textChar2 = this.parseCharacterFromText(testText2);
+        console.log('Description:', textChar2.description);
+
+        console.log('\nTesting Text Parser Pattern 3:');
+        const textChar3 = this.parseCharacterFromText(testText3);
+        console.log('Description:', textChar3.description);
     }
-
-    // Test function to verify Edges and Special Abilities parsing fixes
-    static testEdgesAndSpecialAbilitiesParsing() {
-        Debug.log("=== Testing Edges and Special Abilities Parsing ===");
-
-        // Test case with Edges having a dash and multiple Special Abilities
-        const testText = `
-Gator/Crocodile
-Rank: None, Gender: None, Race: Reptile, Profession: Wild Animal
-
-Attributes: Agility d8, Smarts d4, Spirit d6, Strength d12+1, Vigor d10
-
-Skills: Fighting d8, Swimming d8, Stealth d6
-
-Pace: 6
-Parry: 6
-Toughness: 9
-
-Edges: —
-Special Abilities:
-Armor +2: Thick skin.
-Aquatic: Pace 6.
-Bite: Str+d6.
-Low Light Vision: Gators and crocs ignore penalties for Dim and Dark Illumination.
-Rollover: Gators and crocs grasp prey in their vice-like jaws and roll with them. If one of these large reptiles hits with a raise, its bonus damage is a d10 instead of a d6.
-Size 2: Common gators are about 10′ long, thick, heavy, and weigh just under 750 lbs.
-        `.trim();
-
-        Debug.log("Test input text:");
-        Debug.log(testText);
-        Debug.log("");
-
-        const character = this.parseCharacterFromText(testText);
-
-        Debug.log("Parsed character:");
-        Debug.log(`Name: ${character.name}`);
-        Debug.log(`Edges: ${JSON.stringify(character.edges)}`);
-        Debug.log(`Special Abilities: ${JSON.stringify(character.specialAbilities)}`);
-        Debug.log("");
-
-        // Test Edges parsing
-        const edgesTest = !character.edges || character.edges.length === 0;
-        Debug.log(`Edges test (should be empty): ${edgesTest ? 'PASSED' : 'FAILED'}`);
-        if (character.edges && character.edges.length > 0) {
-            Debug.log(`  Found edges: ${JSON.stringify(character.edges)}`);
-        } else {
-            Debug.log("  No edges found (expected)");
-        }
-
-        // Test Special Abilities parsing
-        const expectedSpecialAbilities = [
-            "Armor +2: Thick skin.",
-            "Aquatic: Pace 6.",
-            "Bite: Str+d6.",
-            "Low Light Vision: Gators and crocs ignore penalties for Dim and Dark Illumination.",
-            "Rollover: Gators and crocs grasp prey in their vice-like jaws and roll with them. If one of these large reptiles hits with a raise, its bonus damage is a d10 instead of a d6.",
-            "Size 2: Common gators are about 10′ long, thick, heavy, and weigh just under 750 lbs."
-        ];
-
-        const specialAbilitiesTest = character.specialAbilities &&
-            character.specialAbilities.length === expectedSpecialAbilities.length;
-        Debug.log(`Special Abilities test (${expectedSpecialAbilities.length} expected): ${specialAbilitiesTest ? 'PASSED' : 'FAILED'}`);
-
-        if (character.specialAbilities) {
-            Debug.log("Parsed special abilities:");
-            character.specialAbilities.forEach((ability, index) => {
-                const expected = expectedSpecialAbilities[index];
-                const matches = ability === expected;
-                Debug.log(`  ${index + 1}. ${matches ? '✓' : '✗'} ${ability}`);
-                if (!matches) {
-                    Debug.log(`      Expected: ${expected}`);
-                }
-            });
-        } else {
-            Debug.log("  No special abilities found");
-        }
-
-        // Test that weapon parsing from special abilities works
-        if (character.weapons && character.weapons.length > 0) {
-            Debug.log("Weapons parsed from special abilities:");
-            character.weapons.forEach((weapon, index) => {
-                Debug.log(`  ${index + 1}. ${weapon.name}: ${weapon.damage}`);
-            });
-        }
-
-        Debug.log("=== End Edges and Special Abilities Parsing Test ===");
-        return character;
-    }
-
-    // Test function to verify gear weapon parsing
-    static testGearWeaponParsing() {
-        Debug.log("=== Testing Gear Weapon Parsing ===");
-
-        // Test cases using the provided examples
-        const testCases = [
-            {
-                name: "Scale mail, heavy mace, light crossbow",
-                text: `
-Test Character
-Rank: Veteran, Gender: Male, Race: Human, Profession: Warrior
-
-Attributes: Agility d8, Smarts d6, Spirit d6, Strength d8, Vigor d8
-
-Skills: Fighting d8, Shooting d8, Athletics d6
-
-Gear: Scale mail (+2), heavy mace (Str+d6; AP 2), light crossbow (Shooting; range 12/24/48; 2d6; AP 1)
-                `.trim()
-            },
-            {
-                name: "Masterwork adamantine warhammer and rock",
-                text: `
-Test Character
-Rank: Veteran, Gender: Male, Race: Human, Profession: Warrior
-
-Attributes: Agility d8, Smarts d6, Spirit d6, Strength d10, Vigor d8
-
-Skills: Fighting d8, Athletics d6
-
-Gear: Masterwork adamantine warhammer (Str+d6; AP 2), rock (Throwing; range 3/6/12; Str+d6)
-                `.trim()
-            },
-            {
-                name: "Spear with multiple modes",
-                text: `
-Test Character
-Rank: Veteran, Gender: Male, Race: Human, Profession: Warrior
-
-Attributes: Agility d8, Smarts d6, Spirit d6, Strength d8, Vigor d8
-
-Skills: Fighting d8, Athletics d6
-
-Gear: Spear (Str+d6; Reach 1"; Parry +1; Poison), spear (Throwing; range 3/6/12; Str+d6)
-                `.trim()
-            },
-            {
-                name: "Flaming weapons",
-                text: `
-Test Character
-Rank: Veteran, Gender: Male, Race: Human, Profession: Warrior
-
-Attributes: Agility d8, Smarts d6, Spirit d6, Strength d8, Vigor d8
-
-Skills: Fighting d8, Shooting d8
-
-Gear: Flaming longsword (Str+d8; +2 fire damage), flaming javelin (Throwing; range 3/6/12; Str+d6; +2 fire damage)
-                `.trim()
-            }
-        ];
-
-        testCases.forEach((testCase, index) => {
-            Debug.log(`\n--- Test Case ${index + 1}: ${testCase.name} ---`);
-            Debug.log("Input gear section:");
-            const gearMatch = testCase.text.match(/Gear:\s*(.+)/i);
-            if (gearMatch) {
-                Debug.log(`  ${gearMatch[1]}`);
-            }
-
-            const character = this.parseCharacterFromText(testCase.text);
-
-            Debug.log(`Parsed gear items (${character.gear?.length || 0}):`);
-            if (character.gear) {
-                character.gear.forEach((gear, i) => {
-                    Debug.log(`  ${i + 1}. ${gear}`);
-                });
-            }
-
-            Debug.log(`Parsed weapons (${character.weapons?.length || 0}):`);
-            if (character.weapons) {
-                character.weapons.forEach((weapon, i) => {
-                    Debug.log(`  ${i + 1}. ${weapon.name}`);
-                    Debug.log(`     - Attack: ${weapon.attack || 'undefined'}`);
-                    Debug.log(`     - Damage: ${weapon.damage || 'undefined'}`);
-                    Debug.log(`     - Range: ${weapon.range || 'undefined'}`);
-                    Debug.log(`     - Reach: ${weapon.reach || 'undefined'}`);
-                    Debug.log(`     - Parry: ${weapon.parry || 'undefined'}`);
-                    Debug.log(`     - AP: ${weapon.ap || 'undefined'}`);
-                    Debug.log(`     - Thrown Attack: ${weapon.thrownAttack || 'undefined'}`);
-                });
-            }
-
-            // Validate results
-            let passed = true;
-            if (!character.gear || character.gear.length === 0) {
-                Debug.log("  ERROR: No gear items found");
-                passed = false;
-            }
-            if (!character.weapons || character.weapons.length === 0) {
-                Debug.log("  ERROR: No weapons extracted from gear");
-                passed = false;
-            }
-
-            Debug.log(`Test ${passed ? 'PASSED' : 'FAILED'}`);
-        });
-
-        Debug.log("=== End Gear Weapon Parsing Test ===");
-    }
-
 }

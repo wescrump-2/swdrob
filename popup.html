@@ -6,16 +6,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Savage Worlds Stat Block</title>
   <link rel="stylesheet" href="/src/styles.css" />
-  <style>
-    .popup-section.hidden {
-      display: none !important;
-    }
-  </style>
   <script type="module" src="/src/popup.ts"></script>
 </head>
 
 <body class="popup-body">
-  <h1 id="title" class="popup-h1" contenteditable="true">Savage Worlds Stat Block</h1>
+  <h1 id="title" class="popup-h1">
+    <span id="wildcard-symbol" class="wildcard-symbol">✪ </span>
+    <span id="statblock-title" class="statblock-title">Savage Worlds Stat Block</span>
+  </h1>
+  <div>
+    <span id="description" class="popup-description"></span>
+    <span id="rank" class="popup-description"></span>
+  </div>
   <form id="statblock-form">
 
     <div class="popup-stats-row">
@@ -24,8 +26,6 @@
       <div class="popup-stat-item"><label class="popup-label">Parry:</label> <span id="parry"
           class="popup-stat-value"></span></div>
       <div class="popup-stat-item"><label class="popup-label">Toughness:</label> <span id="toughness"
-          class="popup-stat-value"></span></div>
-      <div class="popup-stat-item"><label class="popup-label">Rank:</label> <span id="rank"
           class="popup-stat-value"></span></div>
     </div>
 

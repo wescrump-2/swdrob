@@ -42,7 +42,6 @@ OBR.onReady(async () => {
   }
   currentItemId = itemId;
 
-  //const form = document.getElementById("statblock-form") as HTMLFormElement;
   const urlInput = document.getElementById("url-input") as HTMLInputElement;
   const statBlockTextArea = document.getElementById("statblock-text") as HTMLTextAreaElement;
 
@@ -97,30 +96,6 @@ OBR.onReady(async () => {
   populateForm(storedChar);
   addRollHandlers();
 
-  // Debug: Check for inputs without proper labels
-  const allInputs = document.querySelectorAll('input');
-  allInputs.forEach(input => {
-    if (input.id) {
-      const label = document.querySelector(`label[for="${input.id}"]`);
-      if (!label) {
-        Debug.log('Input without explicit label association:', input);
-      }
-    } else {
-      Debug.log('Input without id:', input);
-    }
-  });
-
-  // // Save on change
-  // form.addEventListener("change", async () => {
-  //   const data = extractFormData(saved);
-  //   await OBR.scene.items.updateItems([itemId], (items) => {
-  //     for (const item of items) {
-  //       const existing = item.metadata[Util.StatBlockMkey] as any;
-  //       item.metadata[Util.StatBlockMkey] = { ...existing, character: data, timestamp: Date.now() };
-  //     }
-  //   });
-  // });
-
   // Import from URL
   document.getElementById("import-url")!.onclick = async () => {
     try {
@@ -145,76 +120,90 @@ OBR.onReady(async () => {
     }
   };
 
+  // Parse stat block from text
+  document.getElementById("parse-statblock")!.onclick = async () => {
+    try {
+      const textArea = document.getElementById("statblock-text") as HTMLTextAreaElement;
+      const statBlockText = textArea.value.trim();
+
+      if (!statBlockText) {
+        alert("Please paste stat block text first");
+        return;
+      }
+      Debug.enabled = true;
+      Debug.log("Parsing stat block text:", statBlockText);
+      const parsedCharacter = Savaged.parseCharacterFromText(statBlockText);
+      Debug.log("Parsed character:", parsedCharacter);
+
+      if (!currentItemId) {
+        Debug.error("No current item ID available");
+        alert("No item ID available for saving parsed data");
+        return;
+      }
+
+      // Save character and stat block text to item metadata
+      await OBR.scene.items.updateItems([currentItemId], (items) => {
+        for (const item of items) {
+          const existing = item.metadata[Util.StatBlockMkey] as any;
+          item.metadata[Util.StatBlockMkey] = {
+            ...existing,
+            character: parsedCharacter,
+            statBlockText: statBlockText,
+            timestamp: Date.now()
+          };
+        }
+      });
+
+      // Update the form with parsed data
+      await applyData(currentItemId, parsedCharacter);
+
+      // Scroll to top after loading
+      document.body.scrollTop = 0;
+      document.documentElement.scrollTop = 0;
+
+    } catch (e) {
+      Debug.error("Failed to parse stat block text:", e);
+      alert("Failed to parse stat block text. Please check the format and try again.");
+    }
+  };
+
 });
 
-// Parse stat block from text
-document.getElementById("parse-statblock")!.onclick = async () => {
-  try {
-    const textArea = document.getElementById("statblock-text") as HTMLTextAreaElement;
-    const statBlockText = textArea.value.trim();
-
-    if (!statBlockText) {
-      alert("Please paste stat block text first");
-      return;
-    }
-    Debug.enabled=true;
-    Debug.log("Parsing stat block text:", statBlockText);
-    const parsedCharacter = Savaged.parseCharacterFromText(statBlockText);
-    Debug.log("Parsed character:", parsedCharacter);
-
-    if (!currentItemId) {
-      Debug.error("No current item ID available");
-      alert("No item ID available for saving parsed data");
-      return;
-    }
-
-    // Save character and stat block text to item metadata
-    await OBR.scene.items.updateItems([currentItemId], (items) => {
-      for (const item of items) {
-        const existing = item.metadata[Util.StatBlockMkey] as any;
-        item.metadata[Util.StatBlockMkey] = {
-          ...existing,
-          character: parsedCharacter,
-          statBlockText: statBlockText,
-          timestamp: Date.now()
-        };
-      }
-    });
-
-    // Update the form with parsed data
-    await applyData(currentItemId, parsedCharacter);
-
-    // Scroll to top after loading
-    document.body.scrollTop = 0;
-    document.documentElement.scrollTop = 0;
-
-  } catch (e) {
-    Debug.error("Failed to parse stat block text:", e);
-    alert("Failed to parse stat block text. Please check the format and try again.");
-  }
-};
 
 function populateForm(character: Character) {
+  const defaultname = "Savage Worlds Stat Block"
   // Title - use clean name without special characters
-  const characterName = character.name || "Savage Worlds Stat Block";
-  document.getElementById("title")!.textContent = characterName;
-  document.title = characterName;
+  const characterName = character.name.trim() || defaultname;
+  const titleElement = document.getElementById("statblock-title")!;
 
-  // Add wildcard symbol display element for wild card characters
-  const titleElement = document.getElementById("title");
-  if (titleElement && character.isWildCard) {
-    // Create a separate span for the wildcard symbol
-    const wildcardSymbol = document.createElement("span");
-    wildcardSymbol.textContent = "✪ ";
-    wildcardSymbol.style.marginRight = "5px";
-    wildcardSymbol.style.color = "#FFD700"; // Gold color for visibility
-    wildcardSymbol.style.fontSize = "1.2em";
+  if (characterName && characterName !== "" && characterName !== defaultname) {
+    // If character has a real name, show the character name
+    titleElement.textContent = characterName;
+  } else {
+    titleElement.textContent = defaultname;
+  }
 
-    // Insert the symbol before the title text
-    if (titleElement.firstChild) {
-      titleElement.insertBefore(wildcardSymbol, titleElement.firstChild);
+  // Fill in description element if it exists
+  const descriptionElement = document.getElementById("description");
+  if (descriptionElement) {
+    if (character.description) {
+      descriptionElement.textContent = character.description;
+      descriptionElement.style.display = "block";
     } else {
-      titleElement.appendChild(wildcardSymbol);
+      descriptionElement.style.display = "none";
+    }
+  }
+  if (document.title) {
+    document.title = characterName;
+  }
+
+  // Show/hide wildcard symbol based on character.isWildCard field
+  const wildcardSymbol = document.getElementById("wildcard-symbol");
+  if (wildcardSymbol) {
+    if (character.isWildCard) {
+      wildcardSymbol.style.display = "inline";
+    } else {
+      wildcardSymbol.style.display = "none";
     }
   }
 
@@ -223,7 +212,7 @@ function populateForm(character: Character) {
   attributesDiv.innerHTML = "";
   (character.attributes || [] as Trait[]).forEach((trait: Trait) => {
     const button = document.createElement("button");
-    const displayName = trait.name.charAt(0).toUpperCase() + trait.name.slice(1);
+    const displayName = Util.toTitleCase(trait.name);
     button.textContent = `${displayName} ${trait.die}`;
     button.type = "button";
     button.className = "popup-roll-btn popup-attribute-btn";
@@ -238,7 +227,7 @@ function populateForm(character: Character) {
   skillsDiv.innerHTML = "";
   (character.skills || [] as Trait[]).forEach((trait: Trait) => {
     const button = document.createElement("button");
-    const displayName = trait.name.charAt(0).toUpperCase() + trait.name.slice(1);
+    const displayName = Util.toTitleCase(trait.name);
     button.textContent = `${displayName} ${trait.die}`;
     button.type = "button";
     button.className = "popup-roll-btn popup-skill-btn";
@@ -320,7 +309,7 @@ function populateForm(character: Character) {
   (character.weapons || []).forEach((weapon) => {
     if (weapon.damage) {
       const button = document.createElement("button");
-      button.textContent = `${weapon.name} ${weapon.damage}`;
+      button.textContent = `${Util.toTitleCase(weapon.name)} ${weapon.damage}`;
       button.type = "button";
       button.className = "popup-roll-btn popup-weapon-btn";
       button.dataset.die = weapon.damage;
@@ -335,7 +324,7 @@ function populateForm(character: Character) {
   (character.powers || []).forEach((power) => {
     if (!power || !power.name) return;
     const button = document.createElement("button");
-    const displayText = power.name;
+    const displayText = Util.toTitleCase(power.name);
     button.title = power.book && power.page ? `${power.book} p${power.page}` : '';
     button.textContent = displayText;
     button.type = "button";
@@ -359,13 +348,13 @@ function populateForm(character: Character) {
   if (character.pace !== undefined) (document.getElementById("pace") as HTMLSpanElement).textContent = String(character.pace);
   if (character.parry !== undefined) (document.getElementById("parry") as HTMLSpanElement).textContent = String(character.parry);
   if (character.toughness !== undefined) {
-      const toughnessElement = document.getElementById("toughness") as HTMLSpanElement;
-      // Show toughness with armor value if available, otherwise use original format or just the number
-      if (character.armorValue !== undefined && character.armorValue > 0) {
-          toughnessElement.textContent = `${character.toughness} (${character.armorValue})`;
-      } else {
-          toughnessElement.textContent = String(character.toughness);
-      }
+    const toughnessElement = document.getElementById("toughness") as HTMLSpanElement;
+    // Show toughness with armor value if available, otherwise use original format or just the number
+    if (character.armorValue !== undefined && character.armorValue > 0) {
+      toughnessElement.textContent = `${character.toughness} (${character.armorValue})`;
+    } else {
+      toughnessElement.textContent = String(character.toughness);
+    }
   }
   if (character.rank !== undefined) (document.getElementById("rank") as HTMLSpanElement).textContent = String(character.rank);
 
@@ -467,29 +456,29 @@ function parseWeaponDamage(damageStr: string): { dice: string[], modifier: numbe
   const modifierMatches = damageWithoutModifier.match(/[+-]\d+/g) || [];
 
   if (diceMatches.length > 0) {
-      // If we have both dice and modifiers in the middle (like "d12+6+d8")
-      // Check if we have modifiers and the total count makes sense
-      if (modifierMatches.length > 0) {
-          // Count the actual components by splitting and filtering out empty/duplicate separators
-          const components = damageWithoutModifier.split(/([+-]\d+)|([dD]\d+)/).filter(Boolean);
-          // Filter out standalone +/- signs that aren't part of modifiers
-          const validComponents = components.filter(comp => comp.match(/[dD]\d+/) || comp.match(/[+-]\d+/));
+    // If we have both dice and modifiers in the middle (like "d12+6+d8")
+    // Check if we have modifiers and the total count makes sense
+    if (modifierMatches.length > 0) {
+      // Count the actual components by splitting and filtering out empty/duplicate separators
+      const components = damageWithoutModifier.split(/([+-]\d+)|([dD]\d+)/).filter(Boolean);
+      // Filter out standalone +/- signs that aren't part of modifiers
+      const validComponents = components.filter(comp => comp.match(/[dD]\d+/) || comp.match(/[+-]\d+/));
 
-          if (diceMatches.length + modifierMatches.length === validComponents.length) {
-              Debug.log(`Found complex damage pattern: dice=${JSON.stringify(diceMatches)}, middleModifiers=${JSON.stringify(modifierMatches)}`);
+      if (diceMatches.length + modifierMatches.length === validComponents.length) {
+        Debug.log(`Found complex damage pattern: dice=${JSON.stringify(diceMatches)}, middleModifiers=${JSON.stringify(modifierMatches)}`);
 
-              // Sum all the middle modifiers
-              const middleModifiersSum = modifierMatches.reduce((sum, mod) => sum + parseInt(mod), 0);
-              const totalModifier = finalModifier + middleModifiersSum;
+        // Sum all the middle modifiers
+        const middleModifiersSum = modifierMatches.reduce((sum, mod) => sum + parseInt(mod), 0);
+        const totalModifier = finalModifier + middleModifiersSum;
 
-              Debug.log(`Complex damage parsed: dice=${JSON.stringify(diceMatches)}, totalModifier=${totalModifier}`);
-              return { dice: diceMatches, modifier: totalModifier };
-          }
+        Debug.log(`Complex damage parsed: dice=${JSON.stringify(diceMatches)}, totalModifier=${totalModifier}`);
+        return { dice: diceMatches, modifier: totalModifier };
       }
+    }
 
-      // Simple case with just dice
-      Debug.log(`Found dice matches: ${JSON.stringify(diceMatches)}`);
-      return { dice: diceMatches, modifier: finalModifier };
+    // Simple case with just dice
+    Debug.log(`Found dice matches: ${JSON.stringify(diceMatches)}`);
+    return { dice: diceMatches, modifier: finalModifier };
   }
 
   // Split the remaining string by "+" to get individual dice (fallback for simple cases)
@@ -642,50 +631,10 @@ async function applyData(itemId: string, data: Character): Promise<Character> {
       item.metadata[Util.StatBlockMkey] = { ...existing, character: data, timestamp: Date.now() };
     }
   });
+
   // Re-populate form
   populateForm(data);
   addRollHandlers();
 
-  // Test the weapon damage parsing
-  testWeaponDamageParsing();
   return data;
-}
-
-// Test function to validate weapon damage parsing
-function testWeaponDamageParsing() {
-  Debug.log("=== Testing Weapon Damage Parsing ===");
-
-  // Test case 1: Simple die with modifier
-  const test1 = parseWeaponDamage("d6+2");
-  Debug.log(`Test 1 - "d6+2": dice=${JSON.stringify(test1.dice)}, modifier=${test1.modifier}`);
-
-  // Test case 2: Multiple dice with final modifier
-  const test2 = parseWeaponDamage("d6+d8+2");
-  Debug.log(`Test 2 - "d6+d8+2": dice=${JSON.stringify(test2.dice)}, modifier=${test2.modifier}`);
-
-  // Test case 3: Multiple dice without final modifier
-  const test3 = parseWeaponDamage("d6+d8");
-  Debug.log(`Test 3 - "d6+d8": dice=${JSON.stringify(test3.dice)}, modifier=${test3.modifier}`);
-
-  // Test case 4: Complex case with negative modifier
-  const test4 = parseWeaponDamage("d6+d8-1");
-  Debug.log(`Test 4 - "d6+d8-1": dice=${JSON.stringify(test4.dice)}, modifier=${test4.modifier}`);
-
-  // Test case 5: The specific case that was failing - "d12+6+d8"
-  const test5 = parseWeaponDamage("d12+6+d8");
-  Debug.log(`Test 5 - "d12+6+d8": dice=${JSON.stringify(test5.dice)}, modifier=${test5.modifier}`);
-
-  // Test case 6: Simple die without modifier (like "d6")
-  const test6 = parseWeaponDamage("d6");
-  Debug.log(`Test 6 - "d6": dice=${JSON.stringify(test6.dice)}, modifier=${test6.modifier}`);
-
-  // Test case 7: Quantity notation (like "2d6")
-  const test7 = parseWeaponDamage("2d6");
-  Debug.log(`Test 7 - "2d6": dice=${JSON.stringify(test7.dice)}, modifier=${test7.modifier}`);
-
-  // Test case 8: Quantity notation with modifier (like "2d6+1")
-  const test8 = parseWeaponDamage("2d6+1");
-  Debug.log(`Test 8 - "2d6+1": dice=${JSON.stringify(test8.dice)}, modifier=${test8.modifier}`);
-
-  Debug.log("=== End Weapon Damage Parsing Tests ===");
 }

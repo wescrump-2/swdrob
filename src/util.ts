@@ -6,7 +6,7 @@ export class Util {
     static readonly BUTTON_CLASS = 'btn';
     static readonly ACTIVE_CLASS = 'active';
     static readonly SVG_NAMESPACE = "http://www.w3.org/2000/svg";
-    
+
     static hexToRgb(hex: string): { r: number; g: number; b: number } {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         return result ? {
@@ -403,5 +403,28 @@ export class Util {
         document.body.removeChild(div)
         return computedWidth
     }
+
+    static toTitleCase = (str: string): string => {
+        if (!str) return str;
+
+        const lower = str.toLowerCase();
+        let result = '';
+        let capitalizeNext = true;
+
+        for (let i = 0; i < lower.length; i++) {
+            const char = lower[i];
+            if (char === ' ' || char === '-' || char === '_' || char === '/' || char === '\\') {
+                result += char;
+                capitalizeNext = true;
+            } else if (capitalizeNext) {
+                result += char.toUpperCase();
+                capitalizeNext = false;
+            } else {
+                result += char;
+            }
+        }
+
+        return result;
+    };
 }
 
