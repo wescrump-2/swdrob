@@ -74,14 +74,32 @@ export class Debug {
 
 
 
-	// --- List ALL room metadata keys and their sizes ---
+	// --- List ALL room and scene metadata keys and their sizes ---
 	static async dumpRoomMetadata() {
 		if (!Debug.enabled) return;
-		const meta = await OBR.room.getMetadata();
+		// Check room metadata
+		const roomMeta = await OBR.room.getMetadata();
 		Debug.log("=== ROOM METADATA ===");
-		for (const [key, value] of Object.entries(meta)) {
+		for (const [key, value] of Object.entries(roomMeta)) {
 			const size = Debug.getObjectMemorySize(value);
 			Debug.log(`${key}  →  ${size} bytes`, value);
+		}
+
+		// Check scene metadata if scene is ready
+		try {
+			const isSceneReady = await OBR.scene.isReady();
+			if (isSceneReady) {
+				const sceneMeta = await OBR.scene.getMetadata();
+				Debug.log("=== SCENE METADATA ===");
+				for (const [key, value] of Object.entries(sceneMeta)) {
+					const size = Debug.getObjectMemorySize(value);
+					Debug.log(`${key}  →  ${size} bytes`, value);
+				}
+			} else {
+				Debug.log("Scene not ready, skipping scene metadata dump");
+			}
+		} catch (error) {
+			Debug.log("Failed to check scene metadata:", error);
 		}
 	}
 
@@ -102,64 +120,63 @@ export class Debug {
 	/**
 	 * Improved cleanup: Deletes keys by setting them to null individually (reliable removal).
 	 * Retries on failure and checks total size to avoid 16 kB errors.
+	 * Now handles room metadata only for cleanup purposes.
 	 */
 	static async cleanupDeadExtensionMetadata() {
 		if (!Debug.enabled) return;
 		try {
+			// Check room metadata only
 			const roomMetadata = await OBR.room.getMetadata();
 
 			// Log current size for debugging
-			let currentSize = 0;
+			let currentRoomSize = 0;
 			for (const [value] of Object.entries(roomMetadata)) {
-				currentSize += Debug.getObjectMemorySize(value);
+				currentRoomSize += Debug.getObjectMemorySize(value);
 			}
-			Debug.log(`Current room metadata size: ${currentSize} bytes`);
+			Debug.log(`Current room metadata size: ${currentRoomSize} bytes`);
 
-			if (currentSize > 16000) {  // Close to limit — abort to avoid write failure
+			if (currentRoomSize > 16000) {  // Close to limit — abort to avoid write failure
 				console.warn("Room metadata too large (>15 kB). Manual room reset needed.");
 				return;
 			}
 
-			const keysToDelete: string[] = [];
-			const activeIds: string[] = [
-				"com.battle-system.mark/metadata_marks",
-				"com.battle-system.ticker",
-				"com.wescrump.dice-roller/player/rollHistory",
-				"com.battle-system.chronicle",
-				// Add more prefixes here as needed
+			// List of our legacy room metadata keys to clean up
+			const ourRoomKeys: string[] = [
+				"com.wescrump.dice-roller/rollHistory", // Legacy room key
+				// Add more of our legacy room keys here as needed
 			];
 
-			// Find keys matching active (conflicting) prefixes
-			for (const prefix of activeIds) {
-				const matchingKey = Object.keys(roomMetadata).find(k => k.startsWith(prefix));
-				if (matchingKey) {
-					keysToDelete.push(matchingKey);
+			// Find our keys in room metadata
+			const keysToDelete: string[] = [];
+			for (const key of ourRoomKeys) {
+				if (roomMetadata[key] !== undefined) {
+					keysToDelete.push(key);
 				}
 			}
 
 			if (keysToDelete.length === 0) {
-				Debug.log("No conflicting keys found.");
+				Debug.log("No our room metadata keys found for cleanup.");
 				return;
 			}
 
-			Debug.log(`Found ${keysToDelete.length} conflicting keys:`, keysToDelete);
+			Debug.log(`Found ${keysToDelete.length} our room keys to clean up:`, keysToDelete);
 
-			// Delete each key individually by setting to null (reliable method)
+			// Delete each key individually by setting to undefined (reliable method)
 			let successCount = 0;
 			for (const key of keysToDelete) {
 				try {
 					await OBR.room.setMetadata({ [key]: undefined });
 					successCount++;
-					Debug.log(`Deleted key: ${key}`);
+					Debug.log(`Deleted room key: ${key}`);
 				} catch (deleteErr: unknown) {
-					console.error(`Failed to delete ${key}:`, deleteErr);
+					console.error(`Failed to delete room ${key}:`, deleteErr);
 					// Optional: Retry once after delay
 					setTimeout(async () => {
 						try {
 							await OBR.room.setMetadata({ [key]: undefined });
-							Debug.log(`Retried and deleted: ${key}`);
+							Debug.log(`Retried and deleted room:${key}`);
 						} catch (retryErr) {
-							console.error(`Retry failed for ${key}:`, retryErr);
+							console.error(`Retry failed for room ${key}:`, retryErr);
 						}
 					}, 500);
 				}
@@ -167,40 +184,16 @@ export class Debug {
 
 			Debug.log(`Cleanup complete: ${successCount}/${keysToDelete.length} keys deleted.`);
 
-			// Final size check
-			const newMetadata = await OBR.room.getMetadata();
-			let newSize = 0;
-			for (const [value] of Object.entries(newMetadata)) {
-				newSize += Debug.getObjectMemorySize(value);
+			// Final size check for room
+			const newRoomMetadata = await OBR.room.getMetadata();
+			let newRoomSize = 0;
+			for (const [value] of Object.entries(newRoomMetadata)) {
+				newRoomSize += Debug.getObjectMemorySize(value);
 			}
-			Debug.log(`New room metadata size: ${newSize} bytes (reduced by ${currentSize - newSize} bytes)`);
-
-			// Clean scene item metadata
-			const items = await OBR.scene.items.getItems();
-			const itemsToUpdate: { id: string; metadata: any }[] = [];
-			for (const item of items) {
-				if (item.metadata) {
-					const keysToDelete = Object.keys(item.metadata).filter(key => activeIds.some(prefix => key.startsWith(prefix)));
-					if (keysToDelete.length > 0) {
-						const updatedMetadata = { ...item.metadata };
-						for (const key of keysToDelete) {
-							delete updatedMetadata[key];
-						}
-						itemsToUpdate.push({ id: item.id, metadata: updatedMetadata });
-						Debug.log(`Will clean metadata on item ${item.id}: ${keysToDelete.join(', ')}`);
-					}
-				}
-			}
-			if (itemsToUpdate.length > 0) {
-				const metadataMap = new Map(itemsToUpdate.map(i => [i.id, i.metadata]));
-				await OBR.scene.items.updateItems(Array.from(metadataMap.keys()), (item: any) => ({ metadata: metadataMap.get(item.id)! }));
-				Debug.log(`Cleaned metadata on ${itemsToUpdate.length} scene items.`);
-			} else {
-				Debug.log("No scene items with conflicting metadata found.");
-			}
+			Debug.log(`New room metadata size: ${newRoomSize} bytes (reduced by ${currentRoomSize - newRoomSize} bytes)`);
 
 		} catch (err: unknown) {
-			console.error("Overall cleanup failed (safe to ignore):", err);
+			console.error("Room cleanup failed (safe to ignore):", err);
 		}
 	}
 

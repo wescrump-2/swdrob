@@ -551,6 +551,28 @@ async function setPlayer(r: SWDR) {
     await playerCachePromise;
 }
 
+/**
+ * Immediately removes legacy room metadata when room is ready
+ * This runs separately from the debug cleanup function
+ */
+async function cleanupLegacyRoomMetadata() {
+    try {
+        // Check if there's legacy room metadata to clean up
+        const roomMetadata = await OBR.room.getMetadata();
+        const legacyHistoryKey = Util.DiceHistoryMkey; // "com.wescrump.dice-roller/rollHistory"
+
+        if (roomMetadata[legacyHistoryKey] !== undefined) {
+            Debug.log(`Found legacy room metadata key: ${legacyHistoryKey}, removing it...`);
+            await OBR.room.setMetadata({ [legacyHistoryKey]: undefined });
+            Debug.log(`Successfully removed legacy room metadata key: ${legacyHistoryKey}`);
+        } else {
+            Debug.log(`No legacy room metadata found (${legacyHistoryKey})`);
+        }
+    } catch (error) {
+        console.error("Failed to clean up legacy room metadata:", error);
+    }
+}
+
 OBR.onReady(async () => {
     console.log("OBR.onReady fired");
     await Savaged.checkProxyStatus();
@@ -581,12 +603,13 @@ OBR.onReady(async () => {
     await Debug.dumpRoomMetadata();
     await Debug.findItemMetadataKeys();
     await Debug.cleanupDeadExtensionMetadata();
+    await cleanupLegacyRoomMetadata();
 
-    const unsubscribeonMetadataChange = OBR.room.onMetadataChange(async (metadata) => {
+    const unsubscribeonMetadataChange = OBR.scene.onMetadataChange(async (metadata) => {
         try {
-            await onRoomMetadataChange(metadata);
+            await onSceneMetadataChange(metadata);
         } catch (error) {
-            console.error("Error in metadata change handler:", error);
+            console.error("Error in scene metadata change handler:", error);
         }
     });
 
@@ -608,8 +631,14 @@ let ROLL_HISTORY: SWDR[] = [];
 const DICECOLORS = Util.generateColorCodes();
 let dice_color = 0;
 setDiceColor(dice_color);
-const audio = new Audio("/assets/dice-roll.mp3");
-audio.loop = false;
+
+function playAudio() {
+    const audio = document.getElementById("dice-roll") as HTMLAudioElement
+    audio.loop = false;
+    audio.currentTime = 0;
+    audio?.play();
+}
+
 const DB = new DiceBox({
     assetPath: "assets/",
     origin: "https://unpkg.com/@3d-dice/dice-box@1.1.4/dist/",
@@ -636,7 +665,7 @@ const DB = new DiceBox({
     //discordResponse: null,
     onDieComplete: async (dieResult: DieResult) => {
         if (DB.acing && dieResult.value === sidesNumber(dieResult.sides)) {
-            audio.play();
+            playAudio(); 
             await DB.add(dieResult, { newStartPoint: true });
         }
     },
@@ -834,11 +863,12 @@ function parseDiceString(diceStr: string): { [key: number]: number } {
     return counts;
 }
 
-async function onRoomMetadataChange(metadata: any) {
+async function onSceneMetadataChange(metadata: any) {
     try {
-        if (metadata[Util.DiceHistoryMkey]) {
+        // Check scene metadata for roll history
+        if (metadata[Util.SceneDiceHistoryMkey]) {
             try {
-                const storedHistory = metadata[Util.DiceHistoryMkey] as Uint8Array;
+                const storedHistory = metadata[Util.SceneDiceHistoryMkey] as Uint8Array;
                 ROLL_HISTORY = decompress(storedHistory);
                 const logContainer = document.getElementById('log-entries');
                 if (logContainer) {
@@ -851,9 +881,12 @@ async function onRoomMetadataChange(metadata: any) {
             }
         }
 
-        if (metadata.rollRequest) {
+        // Check for roll requests in scene metadata only
+        const rollRequest = metadata[Util.SceneRollRequestMkey];
+
+        if (rollRequest) {
             try {
-                const { dice, rollType, modifier, playerId, isWildCard } = metadata.rollRequest;
+                const { dice, rollType, modifier, playerId, isWildCard } = rollRequest;
                 const currentPlayerId = await OBR.player.getId();
 
                 if (playerId === currentPlayerId) {
@@ -912,16 +945,19 @@ async function onRoomMetadataChange(metadata: any) {
             } catch (error) {
                 console.error("Failed to process roll request:", error);
             } finally {
-                // Always clear the request to prevent stuck state
+                // Always clear the request from scene metadata to prevent stuck state
                 try {
-                    await OBR.room.setMetadata({ rollRequest: undefined });
+                    const isSceneReady = await OBR.scene.isReady();
+                    if (isSceneReady) {
+                        await OBR.scene.setMetadata({ [Util.SceneRollRequestMkey]: undefined });
+                    }
                 } catch (cleanupError) {
                     console.error("Failed to clean up roll request:", cleanupError);
                 }
             }
         }
     } catch (error) {
-        console.error("Unexpected error in onRoomMetadataChange:", error);
+        console.error("Unexpected error in onSceneMetadataChange:", error);
     }
 }
 
@@ -935,7 +971,7 @@ async function initializeExtension() {
         playerCache.id = id;
         playerCache.ready = true;
         Debug.log("Savage Dice: Player ready →", name);
-            createContextMenu(playerCache.id);
+        createContextMenu(playerCache.id);
     } catch (err) {
         console.error("Failed to cache player on ready:", err);
     }
@@ -962,17 +998,24 @@ async function fetchStorage(): Promise<SWDR[]> {
     }
 
     try {
-        const metadata = await OBR.room.getMetadata();
-        const storedHistory = metadata[Util.DiceHistoryMkey] as Uint8Array | undefined;
-
-        if (!storedHistory) {
-            Debug.log("No saved roll history found");
-            return [];
+        // Wait for scene to be ready
+        while (!await OBR.scene.isReady()) {
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
 
-        return decompress(storedHistory);
+        // Get metadata from scene only (new approach)
+        const sceneMetadata = await OBR.scene.getMetadata();
+        const storedHistory = sceneMetadata[Util.SceneDiceHistoryMkey] as Uint8Array | undefined;
+
+        if (storedHistory) {
+            Debug.log("Found roll history in scene metadata");
+            return decompress(storedHistory);
+        }
+
+        Debug.log("No saved roll history found in scene metadata");
+        return [];
     } catch (error) {
-        console.error("Failed to fetch room metadata:", error);
+        console.error("Failed to fetch scene metadata:", error);
         return [];
     }
 }
@@ -990,10 +1033,19 @@ async function updateStorage(rh: SWDR[]) {
         }
 
         try {
-            await OBR.room.setMetadata({
-                [Util.DiceHistoryMkey]: buff
+            // Wait for scene to be ready
+            const isSceneReady = await OBR.scene.isReady();
+            if (!isSceneReady) {
+                // Scene not ready yet, retry soon
+                setTimeout(save, 100);
+                return;
+            }
+
+            // Use scene metadata only (new approach)
+            await OBR.scene.setMetadata({
+                [Util.SceneDiceHistoryMkey]: buff
             });
-            Debug.log("Roll history saved");
+            Debug.log("Roll history saved to scene metadata");
         } catch (err: unknown) {
             // TypeScript now knows err is unknown → we have to check it safely
             if (err && typeof err === "object" && "message" in err) {
@@ -1266,8 +1318,10 @@ async function rollTheDice() {
     DB.dieLabel = getDieLabel(DB.rollType)
 
     clearCounters();
-    DICE_CONFIGS.forEach(_dc => audio.play());
-    await DB.roll(DICE_CONFIGS, { newStartPoint: true });
+    if (DICE_CONFIGS.length > 0) {
+        playAudio();
+        await DB.roll(DICE_CONFIGS, { newStartPoint: true });
+    }
 }
 function canAce(rollType: string, breaking: boolean): boolean {
     let result = false;
@@ -1328,7 +1382,7 @@ async function rerollTheDice() {
         }
 
         if (LAST_ROLL.rollResult.length) {
-            DICE_CONFIGS.forEach(_dc => audio.play());
+            playAudio();
             await DB.roll(DICE_CONFIGS, { newStartPoint: true });
         }
     }

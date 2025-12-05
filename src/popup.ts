@@ -595,7 +595,23 @@ function addRollHandlers() {
         ...(rollType === 'trait' && { isWildCard })
       };
 
-      await OBR.room.setMetadata({ rollRequest });
+      // Use scene metadata only
+      try {
+        const isSceneReady = await OBR.scene.isReady();
+        if (!isSceneReady) {
+          Debug.log("Scene not ready, waiting for scene to be ready");
+          // Wait for scene to be ready
+          while (!await OBR.scene.isReady()) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+        }
+
+        await OBR.scene.setMetadata({ [Util.SceneRollRequestMkey]: rollRequest });
+        Debug.log("Roll request saved to scene metadata");
+      } catch (error) {
+        console.error("Failed to save roll request to scene metadata:", error);
+        // No fallback to room metadata - only use scene metadata
+      }
     });
   });
 }

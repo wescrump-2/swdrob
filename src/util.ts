@@ -2,6 +2,9 @@ export class Util {
     static ID = "com.wescrump.dice-roller";
     static DiceHistoryMkey = `${Util.ID}/rollHistory`;
     static StatBlockMkey = `${Util.ID}/statblock`;
+    // Scene metadata keys (migrating from room metadata)
+    static SceneDiceHistoryMkey = `${Util.ID}/sceneRollHistory`;
+    static SceneRollRequestMkey = `${Util.ID}/sceneRollRequest`;
 
     static readonly BUTTON_CLASS = 'btn';
     static readonly ACTIVE_CLASS = 'active';
