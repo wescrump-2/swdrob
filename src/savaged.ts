@@ -378,7 +378,7 @@ export class Savaged {
 
     static damagePowers = [
         /// {"name","damage","raise","damage mod"}
-        { name: "minor bolt", damage: "d6+d6", raise: "+d6", mod: "d6+d6+d6" },
+        { name: "minor bolt", damage: "d4+d4", raise: "+d6", mod: "" },
         { name: "bolt", damage: "d6+d6", raise: "+d6", mod: "d6+d6+d6" },
         { name: "blast", damage: "d6+d6", raise: "+d6", mod: "d6+d6+d6" },
         { name: "burst", damage: "d6+d6", raise: "+d6", mod: "d6+d6+d6" },
@@ -418,7 +418,6 @@ export class Savaged {
             const response = await fetch(proxyUrl, options);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const html = await response.text();
-            Debug.enabled = true;
             Debug.log(`Fetched HTML from ${url} via proxy, length: ${html.length}`);
             return this.parseCharacterFromHTML(html);
         } catch (e) {

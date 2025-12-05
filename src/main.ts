@@ -631,12 +631,11 @@ let ROLL_HISTORY: SWDR[] = [];
 const DICECOLORS = Util.generateColorCodes();
 let dice_color = 0;
 setDiceColor(dice_color);
+const audio:HTMLAudioElement = new Audio("/assets/dice-roll.mp3")
 
 function playAudio() {
-    const audio = document.getElementById("dice-roll") as HTMLAudioElement
     audio.loop = false;
-    audio.currentTime = 0;
-    audio?.play();
+    audio.play();
 }
 
 const DB = new DiceBox({

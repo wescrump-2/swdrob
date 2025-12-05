@@ -1,4 +1,4 @@
-import OBR, {Image, isImage} from "@owlbear-rodeo/sdk";
+import OBR, { Image, isImage } from "@owlbear-rodeo/sdk";
 
 export class Debug {
 	private static _enabled = false;
@@ -7,43 +7,43 @@ export class Debug {
 	static get enabled() {
 		return this._enabled;
 	}
-		static set enabled(flag:boolean) {
-		this._enabled=flag;
+	static set enabled(flag: boolean) {
+		this._enabled = flag;
 	}
-    static async   sceneOnChange() {
-    const isReady = await OBR.scene.isReady();
-    if (isReady) {
-        Debug.log("Scene is ready, executing scene-dependent code");
-        const initialItems = await OBR.scene.items.getItems((item): item is Image => item.layer === "CHARACTER" && isImage(item));
-        Debug.updateFromPlayers(initialItems.map(i => i.name))
-        Debug.log(`Scene ready - found ${initialItems.length} character items`);
-    } else {
-        Debug.log("Scene is not ready, skipping scene-dependent code");
-    }
-}
+	static async sceneOnChange() {
+		const isReady = await OBR.scene.isReady();
+		if (isReady) {
+			Debug.log("Scene is ready, executing scene-dependent code");
+			const initialItems = await OBR.scene.items.getItems((item): item is Image => item.layer === "CHARACTER" && isImage(item));
+			Debug.updateFromPlayers(initialItems.map(i => i.name))
+			Debug.log(`Scene ready - found ${initialItems.length} character items`);
+		} else {
+			Debug.log("Scene is not ready, skipping scene-dependent code");
+		}
+	}
 	static updateFromPlayers(names: string[]) {
-	    const hasDebugPlayer = names.some(p =>
-	        p.toLowerCase().includes("debug")
-	    );
-	    if (hasDebugPlayer !== this._enabled) {
-	        this._enabled = hasDebugPlayer;
+		const hasDebugPlayer = names.some(p =>
+			p.toLowerCase().includes("debug")
+		);
+		if (hasDebugPlayer !== this._enabled) {
+			this._enabled = hasDebugPlayer;
 
-	        if (hasDebugPlayer && !this.wasEnabled) {
-	            console.log(
-	                "%cINITIATIVE DEBUG MODE ACTIVATED — 'debug' player in room.'",
-	                "color: lime; background: #000; font-weight: bold; font-size: 16px; padding: 8px 12px; border-radius: 4px;"
-	            );
-	        }
-	        if (!hasDebugPlayer && this.wasEnabled) {
-	            console.log(
-	                "%cINITIATIVE DEBUG MODE DEACTIVATED — no 'debug' player in room.",
-	                "color: red; background: #000; font-weight: bold; font-size: 16px; padding: 8px 12px; border-radius: 4px;"
-	            );
-	        }
-	        this.wasEnabled = hasDebugPlayer;
-	    } else {
-	        console.log(`No change needed - hasDebugPlayer: ${hasDebugPlayer}, _enabled: ${this._enabled}`);
-	    }
+			if (hasDebugPlayer && !this.wasEnabled) {
+				console.log(
+					"%cINITIATIVE DEBUG MODE ACTIVATED — 'debug' player in room.'",
+					"color: lime; background: #000; font-weight: bold; font-size: 16px; padding: 8px 12px; border-radius: 4px;"
+				);
+			}
+			if (!hasDebugPlayer && this.wasEnabled) {
+				console.log(
+					"%cINITIATIVE DEBUG MODE DEACTIVATED — no 'debug' player in room.",
+					"color: red; background: #000; font-weight: bold; font-size: 16px; padding: 8px 12px; border-radius: 4px;"
+				);
+			}
+			this.wasEnabled = hasDebugPlayer;
+		} else {
+			console.log(`No change needed - hasDebugPlayer: ${hasDebugPlayer}, _enabled: ${this._enabled}`);
+		}
 	}
 
 	// Method to manually enable debug mode for testing

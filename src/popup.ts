@@ -130,7 +130,6 @@ OBR.onReady(async () => {
         alert("Please paste stat block text first");
         return;
       }
-      Debug.enabled = true;
       Debug.log("Parsing stat block text:", statBlockText);
       const parsedCharacter = Savaged.parseCharacterFromText(statBlockText);
       Debug.log("Parsed character:", parsedCharacter);
