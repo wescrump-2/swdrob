@@ -26,6 +26,7 @@
   --button-size: 25px;
   --die-size: 40px;
 }
+
 html {
   overflow: hidden;
 }
@@ -57,6 +58,11 @@ hr {
   margin: 0;
   padding: 0;
   overflow: hidden;
+}
+
+.disappeared {
+  position: absolute;
+  left: -9999px;
 }
 
 button {
@@ -104,6 +110,10 @@ button:focus-visible {
     fill: var(--svg-light-color);
   }
 
+  .toggle-image3 path {
+    fill: var(--svg-light-color);
+  }
+
   .custom-radio:hover path,
   .toggle-image:hover path {
     fill: #0056b3;
@@ -115,6 +125,26 @@ button:focus-visible {
 
   .toggle-image2:hover path {
     fill: #b30000;
+  }
+
+  .toggle-image3.light path {
+    fill: #fcfbf3;
+  }
+
+  .toggle-image3.dim path {
+    fill: #61430c;
+  }
+
+  .toggle-image3.dark path {
+    fill: #1f1212;
+  }
+
+  .toggle-image3.pitch path {
+    fill: #000000;
+  }
+
+  .toggle-image3:hover path {
+    fill: #f7fe32;
   }
 
   .inner-line {
@@ -179,6 +209,10 @@ button:focus-visible {
     fill: var(--svg-dark-color);
   }
 
+  .toggle-image3 path {
+    fill: var(--svg-dark-color);
+  }
+
   .custom-radio:hover path,
   .toggle-image:hover path {
     fill: #0056b3;
@@ -190,6 +224,26 @@ button:focus-visible {
 
   .toggle-image2:hover path {
     fill: #b30000;
+  }
+
+  .toggle-image3.light path {
+    fill: #fcfbf3;
+  }
+
+  .toggle-image3.dim path {
+    fill: #61430c;
+  }
+
+  .toggle-image3.dark path {
+    fill: #1f1212;
+  }
+
+  .toggle-image3.pitch path {
+    fill: #000000;
+  }
+
+  .toggle-image3:hover path {
+    fill: #f7fe32;
   }
 
   .inner-line {
@@ -326,9 +380,14 @@ fieldset#dice-tray {
   margin: 0;
   padding: 2px;
   vertical-align: middle;
+  transition: fill 0.3s ease;
 }
 
-.toggle-image2 {
+.toggle-image3 {
+  cursor: pointer;
+  margin: 0;
+  padding: 2px;
+  vertical-align: middle;
   transition: fill 0.3s ease;
 }
 
@@ -561,12 +620,14 @@ h2 {
 .popup-power-damage-btn {
   width: auto;
   margin: 2px;
-  background: #4a148c; /* Deep purple color to differentiate from regular powers */
+  background: #4a148c;
+  /* Deep purple color to differentiate from regular powers */
   border: 1px solid #7b1fa2;
 }
 
 .popup-power-damage-btn:hover {
-  background: #6a1b9a; /* Lighter purple on hover */
+  background: #6a1b9a;
+  /* Lighter purple on hover */
 }
 
 .popup-weapons {
@@ -637,55 +698,55 @@ h2 {
 }
 
 .popup-description {
-    font-size: 0.8em;
-    color: #ccc;
-    font-style: italic;
-    display: none;
-    margin-top: 5px;
-    margin-left: 0;
-    max-width: 100%;
-    white-space: normal;
-    line-height: 1.2;
-    font-weight: normal;
+  font-size: 0.8em;
+  color: #ccc;
+  font-style: italic;
+  display: none;
+  margin-top: 5px;
+  margin-left: 0;
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.2;
+  font-weight: normal;
 }
 
 .popup-section.hidden {
-    display: none !important;
+  display: none !important;
 }
 
 .wildcard-symbol {
-    display: none;
-    margin-right: 5px;
-    color: #FFD700;
-    font-size: 1.2em;
+  display: none;
+  margin-right: 5px;
+  color: #FFD700;
+  font-size: 1.2em;
 }
 
 .popup-title-container {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .popup-title-text {
-    font-size: 1.5em;
-    margin: 0;
-    padding: 0;
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  font-size: 1.5em;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .statblock-title {
-    font-size: 1.25em;
-    margin: 0;
-    padding: 0;
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  font-size: 1.25em;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

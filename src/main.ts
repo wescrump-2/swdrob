@@ -7,17 +7,56 @@ import * as pako from 'pako';
 import { Util } from './util';
 import { Savaged } from './savaged';
 import { Debug } from './debug';
-import { CONST } from "./constants";
+import { CONST, Illumination } from "./constants";
 import './styles.css';
-import buttonsImage from './buttons.svg';
 import { createContextMenu } from "./contextmenu";
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <object id="buttons-svg" width="0" height="0" data="${buttonsImage}" type="image/svg+xml"></object>   
-`
-window.addEventListener("load", () => {
-    const svgButtons = document.getElementById('buttons-svg') as HTMLObjectElement
-    if (svgButtons.contentDocument) {
+// import buttonsImage from './buttons.svg';
+// document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
+//   <object id="buttons-svg" width="0" height="0" data="${buttonsImage}" type="image/svg+xml"></object>   
+// `
+// Function to load SVG and ensure it's loaded before accessing
+function loadSVG(svgObjectId: string, svgPath: string): Promise<Document> {
+    return new Promise((resolve, reject) => {
+        const svgObject = document.getElementById(svgObjectId) as HTMLObjectElement;
+        if (!svgObject) {
+            reject(new Error(`SVG object with id ${svgObjectId} not found`));
+            return;
+        }
+
+        svgObject.addEventListener('load', function () {
+            const svgDoc = svgObject.contentDocument;
+            if (svgDoc) {
+                resolve(svgDoc);
+            } else {
+                reject(new Error('SVG content not loaded'));
+            }
+        });
+
+        svgObject.addEventListener('error', function () {
+            reject(new Error('Failed to load SVG'));
+        });
+
+        svgObject.data = svgPath;
+    });
+}
+
+// Usage
+document.addEventListener('DOMContentLoaded', () => {
+    loadSVG('buttons-svg', 'src/buttons.svg')
+        .then(svgDoc => {
+            initializeButtons(svgDoc);
+            console.log('SVG loaded successfully');
+        })
+        .catch(error => {
+            console.error('Error loading SVG:', error);
+        });
+});
+//window.addEventListener("load", () => 
+function initializeButtons(svgDoc: Document) {
+    //const svgButtons = document.getElementById('buttons-svg') as HTMLObjectElement
+    //if (svgButtons.contentDocument) {
+    if (svgDoc) {
         //Debug.log("Button images loaded");
         //set button images
         Util.setImage('skills', traitdice, '--button-size')
@@ -40,6 +79,7 @@ window.addEventListener("load", () => {
         Util.setImage('bleeding-wound', wound3Toggle, '--button-size')
         Util.setImage('tired-eye', fatigue1Toggle, '--button-size')
         Util.setImage('tired-eye', fatigue2Toggle, '--button-size')
+        Util.setImage('light', illumToggle, '--button-size')
 
         Util.setImage('anticlockwise', resetButton, '--button-size')
         Util.setImage('shatter', colorButton, '--button-size')
@@ -54,7 +94,8 @@ window.addEventListener("load", () => {
     } else {
         console.error("Failed to load SVG buttons")
     }
-})
+}
+//)
 
 const radios = document.querySelectorAll('.custom-radio') as NodeListOf<SVGElement>;
 const traitdice = document.getElementById('traitdice') as unknown as SVGElement;
@@ -82,6 +123,7 @@ const wound3Toggle = document.getElementById('wound3Toggle') as unknown as SVGEl
 const woundRow = document.getElementById('woundRow') as unknown as SVGElement;
 const fatigue1Toggle = document.getElementById('fatigue1Toggle') as unknown as SVGElement;
 const fatigue2Toggle = document.getElementById('fatigue2Toggle') as unknown as SVGElement;
+const illumToggle = document.getElementById('illumToggle') as unknown as SVGElement;
 const fatigueRow = document.getElementById('fatigueRow') as unknown as SVGElement;
 const removeDiceButton = document.getElementById('removeDiceButton') as unknown as SVGElement;
 const rollDiceButton = document.getElementById('rollDiceButton') as unknown as SVGElement;
@@ -116,6 +158,7 @@ setupSvgToggle(wound2Toggle);
 setupSvgToggle(wound3Toggle);
 setupSvgToggle(fatigue1Toggle);
 setupSvgToggle(fatigue2Toggle);
+setupSvgToggle(illumToggle);
 
 
 setupSvgToggle(rollDiceButton);
@@ -195,6 +238,51 @@ function getState(svgElement: SVGElement) {
     return svgElement.classList.contains(Util.ACTIVE_CLASS)
 }
 
+function setValue(svgElement: SVGElement, val: number) {
+    let old = getValue(svgElement);
+    if (val != old) {
+        svgElement.dataset.value = val.toString();
+    }
+}
+function getValue(svgElement: SVGElement) {
+    return parseInt(svgElement.dataset.value || '0');
+}
+
+function cycleIllumination(): void {
+    let currentIllumination = getValue(illumToggle);
+    const il = ['light', 'dim', 'dark', 'pitch'];
+    il.forEach(c => illumToggle.classList.remove(c));
+    let title = "Light";
+    switch (currentIllumination) {
+        case Illumination.Light:
+            currentIllumination = Illumination.Dim;
+            //Util.setImage('dim', illumToggle, '--button-size')
+            title = "Dim, -2"
+            break;
+        case Illumination.Dim:
+            currentIllumination = Illumination.Dark;
+            //Util.setImage('dark', illumToggle, '--button-size')
+            title = "Dark, -4"
+            break;
+        case Illumination.Dark:
+            currentIllumination = Illumination.Pitch;
+            //Util.setImage('pitch', illumToggle, '--button-size')
+            title = "Pitch, -6"
+            break;
+        case Illumination.Pitch:
+            currentIllumination = Illumination.Light;
+            //Util.setImage('light', illumToggle, '--button-size')
+            title = "Light"
+            break;
+    }
+    setValue(illumToggle, currentIllumination);
+    illumToggle.classList.add(il[currentIllumination]);
+    const parentElement = illumToggle.parentElement;
+    if (parentElement) {
+        parentElement.title = title;
+    }
+}
+
 function toggleState(svgElement: SVGElement) {
     let state = !getState(svgElement);
     setState(svgElement, state);
@@ -205,6 +293,7 @@ function setSpinner(input: HTMLInputElement, current: HTMLDivElement, val: strin
     input.value = val;
     current.innerText = val;
 }
+
 function setSelect(input: HTMLSelectElement, val: string) {
     input.value = val;
 }
@@ -224,6 +313,7 @@ function resetToDefaults() {
     setState(wound3Toggle, CONST.DEFAULTS.WOUND_ENABLED);
     setState(fatigue1Toggle, CONST.DEFAULTS.FATIGUE_ENABLED);
     setState(fatigue2Toggle, CONST.DEFAULTS.FATIGUE_ENABLED);
+    setValue(illumToggle, CONST.DEFAULTS.ILLUMN_VALUE);
 
     setRadio(traitdice);
     clearCounters();
@@ -293,6 +383,8 @@ function setupSvgToggle(svgElement: SVGElement) {
             updateCounter(svgElement.nextElementSibling as HTMLElement, 1);
         } else if (svgElement === d100Button) {
             updateCounter(svgElement.nextElementSibling as HTMLElement, 1);
+        } else if (svgElement === illumToggle) {
+            cycleIllumination();
         } else {
             toggleState(svgElement);
             if (svgElement === bonusDamageToggle && getState(bonusDamageToggle)) {
@@ -346,6 +438,7 @@ function showHideControls(selectedRadio: string) {
 
             opposedRollToggle.style.display = show;
             jokerDrawnToggle.style.display = show;
+            illumToggle.style.display = show;
 
             woundRow.style.display = show;
 
@@ -375,6 +468,7 @@ function showHideControls(selectedRadio: string) {
 
             jokerDrawnToggle.style.display = show;
             opposedRollToggle.style.display = hide;
+            illumToggle.style.display = hide;
 
             woundRow.style.display = hide;
 
@@ -402,6 +496,7 @@ function showHideControls(selectedRadio: string) {
 
             opposedRollToggle.style.display = hide;
             jokerDrawnToggle.style.display = hide;
+            illumToggle.style.display = hide;
 
             woundRow.style.display = hide;
             fatigueRow.style.display = hide;
@@ -443,6 +538,7 @@ class SWDR {
     total: number = 0
     onesCount: number = 0
     isJoker: boolean = false
+    illumination: number = CONST.DEFAULTS.ILLUMN_VALUE
     isAdjustment: boolean = false
     isWound: boolean = false
 };
@@ -631,7 +727,7 @@ let ROLL_HISTORY: SWDR[] = [];
 const DICECOLORS = Util.generateColorCodes();
 let dice_color = 0;
 setDiceColor(dice_color);
-const audio:HTMLAudioElement = new Audio("/assets/dice-roll.mp3")
+const audio: HTMLAudioElement = new Audio("/assets/dice-roll.mp3")
 
 function playAudio() {
     audio.loop = false;
@@ -664,7 +760,7 @@ const DB = new DiceBox({
     //discordResponse: null,
     onDieComplete: async (dieResult: DieResult) => {
         if (DB.acing && dieResult.value === sidesNumber(dieResult.sides)) {
-            playAudio(); 
+            playAudio();
             await DB.add(dieResult, { newStartPoint: true });
         }
     },
@@ -704,6 +800,7 @@ const DB = new DiceBox({
             RollCollection.isReroll = DB.isReroll;
             RollCollection.modifier = rollResult[0].modifier;
             RollCollection.isJoker = getState(jokerDrawnToggle) && DB.rollType != CONST.ROLL_TYPES.STANDARD;
+            RollCollection.illumination = DB.rolltype === CONST.ROLL_TYPES.TRAIT ? getValue(illumToggle) : 0;
             RollCollection.isWound = getWoundsModifier(DB.rollType) != 0;
             RollCollection.rollResult = rollResult;
 
@@ -1231,8 +1328,12 @@ function getJokerModifier(rollType: string): number {
     const jokemod: number = getState(jokerDrawnToggle) && rollType != CONST.ROLL_TYPES.STANDARD ? 2 : 0;
     return jokemod;
 }
+function getIllumModifier(rollType: string): number {
+    const illummod: number = rollType === CONST.ROLL_TYPES.TRAIT ? getValue(illumToggle) : 0;
+    return (illummod * -2);
+}
 function getTotalModifier(rollType: string): number {
-    return getModifier() + getJokerModifier(rollType) + getWoundsModifier(rollType)
+    return getModifier() + getJokerModifier(rollType) + getWoundsModifier(rollType) + getIllumModifier(rollType)
 }
 function isWildDieActive(): boolean {
     return getRollType() === CONST.ROLL_TYPES.TRAIT && getState(wildDieToggle)

@@ -1,4 +1,9 @@
-
+export enum Illumination {
+	Light=0,
+	Dim=1,
+	Dark=2,
+	Pitch=3
+}
 export const CONST = {
 	ROLL_TYPES: {
 		TRAIT: 'trait',
@@ -49,6 +54,7 @@ export const CONST = {
 		JOKER_DRAWN_ENABLED: false,
 		WOUND_ENABLED: false,
 		FATIGUE_ENABLED: false,
+		ILLUMN_VALUE: Illumination.Light,
 		DICE_MODE: "trait"
 	}
 };

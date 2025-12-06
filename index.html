@@ -35,7 +35,6 @@
             </div>
           </div>
         </div>
-
         <div id="targetNumberRow" class="row" title="Reset Target Number to default.">
           <div class="sliderrow">
             <svg id="targetNumberButton" class="toggle-image"></svg>
@@ -46,7 +45,6 @@
             </div>
           </div>
         </div>
-
         <div id="wildDieRow" class="row">
           <svg id="wildDieToggle" class="toggle-image active"> </svg>
           <select id="wildDieType" name="wildDieType" title="Wild Die Type.">
@@ -57,7 +55,6 @@
             <option value="d12">d12</option>
           </select>
         </div>
-
         <div class="row">
           <span class="svgbox" title="Reapply modifier settings to the previous roll results.">
             <svg id="adjustButton" class="toggle-image">
@@ -67,7 +64,6 @@
             <svg id="jokerDrawnToggle" class="toggle-image">
             </svg>
           </span>
-
           <span class="svgbox" title="Opposed mode, Target Number set to the previous roll results.">
             <svg id="opposedRollToggle" class="toggle-image">
             </svg>
@@ -96,6 +92,10 @@
           </span>
           <span class="svgbox" title="Fatigue, -1 on Trait rolls.">
             <svg id="fatigue2Toggle" class="toggle-image2">
+            </svg>
+          </span>
+          <span class="svgbox" title="Light">
+            <svg id="illumToggle" class="toggle-image3 light">
             </svg>
           </span>
         </div>
@@ -193,6 +193,7 @@
 
   </div>
   <div id="app"></div>
+  <object id="buttons-svg" type="image/svg+xml" data="/src/buttons.svg" width="0" height="0" class="disappeared"></object>
 </body>
 
 </html>
