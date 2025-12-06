@@ -38,7 +38,7 @@ function loadSVG(svgObjectId: string, svgPath: string): Promise<Document> {
 
 // Usage
 document.addEventListener('DOMContentLoaded', () => {
-    loadSVG('buttons-svg', 'src/buttons.svg')
+    loadSVG('buttons-svg', '/buttons.svg')
         .then(svgDoc => {
             initializeButtons(svgDoc);
             console.log('SVG loaded successfully');
