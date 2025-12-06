@@ -4,6 +4,13 @@ export enum Illumination {
 	Dark=2,
 	Pitch=3
 }
+
+export enum MultiAction {
+	One=0,
+	Two=1,
+	Three=2
+}
+
 export const CONST = {
 	ROLL_TYPES: {
 		TRAIT: 'trait',
@@ -55,6 +62,9 @@ export const CONST = {
 		WOUND_ENABLED: false,
 		FATIGUE_ENABLED: false,
 		ILLUMN_VALUE: Illumination.Light,
-		DICE_MODE: "trait"
+		DICE_MODE: "trait",
+		 DISTRACTED_ENABLED: false,
+		 MULTI_VALUE: MultiAction.One,
+		 WILD_ATTACK_ENABLED: false,
 	}
 };

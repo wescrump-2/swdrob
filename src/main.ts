@@ -7,15 +7,10 @@ import * as pako from 'pako';
 import { Util } from './util';
 import { Savaged } from './savaged';
 import { Debug } from './debug';
-import { CONST, Illumination } from "./constants";
+import { CONST, Illumination, MultiAction } from "./constants";
 import './styles.css';
 import { createContextMenu } from "./contextmenu";
 
-// import buttonsImage from './buttons.svg';
-// document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-//   <object id="buttons-svg" width="0" height="0" data="${buttonsImage}" type="image/svg+xml"></object>   
-// `
-// Function to load SVG and ensure it's loaded before accessing
 function loadSVG(svgObjectId: string, svgPath: string): Promise<Document> {
     return new Promise((resolve, reject) => {
         const svgObject = document.getElementById(svgObjectId) as HTMLObjectElement;
@@ -52,12 +47,9 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error loading SVG:', error);
         });
 });
-//window.addEventListener("load", () => 
+
 function initializeButtons(svgDoc: Document) {
-    //const svgButtons = document.getElementById('buttons-svg') as HTMLObjectElement
-    //if (svgButtons.contentDocument) {
     if (svgDoc) {
-        //Debug.log("Button images loaded");
         //set button images
         Util.setImage('skills', traitdice, '--button-size')
         Util.setImage('punch', damagedice, '--button-size')
@@ -80,6 +72,9 @@ function initializeButtons(svgDoc: Document) {
         Util.setImage('tired-eye', fatigue1Toggle, '--button-size')
         Util.setImage('tired-eye', fatigue2Toggle, '--button-size')
         Util.setImage('light', illumToggle, '--button-size')
+        Util.setImage('distracted', distractedToggle, '--button-size')
+        Util.setImage('multi1', multiToggle, '--button-size')
+        Util.setImage('wildattack', wildAttackToggle, '--button-size')
 
         Util.setImage('anticlockwise', resetButton, '--button-size')
         Util.setImage('shatter', colorButton, '--button-size')
@@ -114,17 +109,25 @@ const wildDieRow = document.getElementById('wildDieRow') as HTMLDivElement;
 const bonusDamageToggle = document.getElementById('bonusDamageToggle') as unknown as SVGElement;
 const breakingObjectsToggle = document.getElementById('breakingObjectsToggle') as unknown as SVGElement;
 const bonusRow = document.getElementById('bonusRow') as unknown as SVGElement;
+
 const opposedRollToggle = document.getElementById('opposedRollToggle') as unknown as SVGElement;
 const jokerDrawnToggle = document.getElementById('jokerDrawnToggle') as unknown as SVGElement;
 const adjustButton = document.getElementById('adjustButton') as unknown as SVGElement;
+
 const wound1Toggle = document.getElementById('wound1Toggle') as unknown as SVGElement;
 const wound2Toggle = document.getElementById('wound2Toggle') as unknown as SVGElement;
 const wound3Toggle = document.getElementById('wound3Toggle') as unknown as SVGElement;
 const woundRow = document.getElementById('woundRow') as unknown as SVGElement;
+
 const fatigue1Toggle = document.getElementById('fatigue1Toggle') as unknown as SVGElement;
 const fatigue2Toggle = document.getElementById('fatigue2Toggle') as unknown as SVGElement;
 const illumToggle = document.getElementById('illumToggle') as unknown as SVGElement;
 const fatigueRow = document.getElementById('fatigueRow') as unknown as SVGElement;
+
+const distractedToggle = document.getElementById('distractedToggle') as unknown as SVGElement;
+const multiToggle = document.getElementById('multiToggle') as unknown as SVGElement;
+const wildAttackToggle = document.getElementById('wildAttackToggle') as unknown as SVGElement;
+
 const removeDiceButton = document.getElementById('removeDiceButton') as unknown as SVGElement;
 const rollDiceButton = document.getElementById('rollDiceButton') as unknown as SVGElement;
 const rerollDiceButton = document.getElementById('rerollDiceButton') as unknown as SVGElement;
@@ -152,21 +155,26 @@ setupSvgToggle(opposedRollToggle);
 setupSvgToggle(jokerDrawnToggle);
 setupSvgToggle(adjustButton);
 
-
 setupSvgToggle(wound1Toggle);
 setupSvgToggle(wound2Toggle);
 setupSvgToggle(wound3Toggle);
+
 setupSvgToggle(fatigue1Toggle);
 setupSvgToggle(fatigue2Toggle);
 setupSvgToggle(illumToggle);
 
+setupSvgToggle(distractedToggle);
+setupSvgToggle(multiToggle);
+setupSvgToggle(wildAttackToggle);
 
 setupSvgToggle(rollDiceButton);
 setupSvgToggle(rerollDiceButton);
 setupSvgToggle(removeDiceButton);
+
 setupSvgToggle(resetButton);
 setupSvgToggle(colorButton);
 setupSvgToggle(clearButton);
+
 setupSvgToggle(d4Button);
 setupSvgToggle(d6Button);
 setupSvgToggle(d8Button);
@@ -234,6 +242,7 @@ function setState(svgElement: SVGElement, state: boolean) {
         svgElement.classList.remove(Util.ACTIVE_CLASS);
     }
 }
+
 function getState(svgElement: SVGElement) {
     return svgElement.classList.contains(Util.ACTIVE_CLASS)
 }
@@ -248,31 +257,27 @@ function getValue(svgElement: SVGElement) {
     return parseInt(svgElement.dataset.value || '0');
 }
 
-function cycleIllumination(): void {
-    let currentIllumination = getValue(illumToggle);
+function cycleIllumination(reset: boolean): void {
+    let currentIllumination = reset ? Illumination.Pitch :getValue(illumToggle);
     const il = ['light', 'dim', 'dark', 'pitch'];
     il.forEach(c => illumToggle.classList.remove(c));
     let title = "Light";
     switch (currentIllumination) {
         case Illumination.Light:
             currentIllumination = Illumination.Dim;
-            //Util.setImage('dim', illumToggle, '--button-size')
             title = "Dim, -2"
             break;
         case Illumination.Dim:
             currentIllumination = Illumination.Dark;
-            //Util.setImage('dark', illumToggle, '--button-size')
             title = "Dark, -4"
             break;
         case Illumination.Dark:
             currentIllumination = Illumination.Pitch;
-            //Util.setImage('pitch', illumToggle, '--button-size')
-            title = "Pitch, -6"
+            title = "Pitch Dark, -6"
             break;
         case Illumination.Pitch:
             currentIllumination = Illumination.Light;
-            //Util.setImage('light', illumToggle, '--button-size')
-            title = "Light"
+            title = "Lighted"
             break;
     }
     setValue(illumToggle, currentIllumination);
@@ -280,6 +285,30 @@ function cycleIllumination(): void {
     const parentElement = illumToggle.parentElement;
     if (parentElement) {
         parentElement.title = title;
+    }
+}
+
+function cycleMultiAction(reset:boolean): void {
+    let currentMultiAction = reset ? MultiAction.Three : getValue(multiToggle);
+    switch (currentMultiAction) {
+        case MultiAction.One:
+            currentMultiAction = MultiAction.Two
+            Util.setImage('multi2', multiToggle, '--button-size')
+            break;
+        case MultiAction.Two:
+            currentMultiAction = MultiAction.Three;
+            Util.setImage('multi3', multiToggle, '--button-size')
+            break;
+        case MultiAction.Three:
+            currentMultiAction = MultiAction.One;
+            Util.setImage('multi1', multiToggle, '--button-size')
+            break;
+    }
+    setValue(multiToggle, currentMultiAction);
+    if (currentMultiAction === MultiAction.One) {
+        multiToggle.classList.remove(Util.ACTIVE_CLASS)
+    } else {
+        multiToggle.classList.add(Util.ACTIVE_CLASS)
     }
 }
 
@@ -311,9 +340,14 @@ function resetToDefaults() {
     setState(wound1Toggle, CONST.DEFAULTS.WOUND_ENABLED);
     setState(wound2Toggle, CONST.DEFAULTS.WOUND_ENABLED);
     setState(wound3Toggle, CONST.DEFAULTS.WOUND_ENABLED);
+
     setState(fatigue1Toggle, CONST.DEFAULTS.FATIGUE_ENABLED);
     setState(fatigue2Toggle, CONST.DEFAULTS.FATIGUE_ENABLED);
-    setValue(illumToggle, CONST.DEFAULTS.ILLUMN_VALUE);
+    cycleIllumination(true);
+
+    setState(distractedToggle, CONST.DEFAULTS.DISTRACTED_ENABLED);
+    cycleMultiAction(true);
+    setState(wildAttackToggle, CONST.DEFAULTS.WILD_ATTACK_ENABLED);
 
     setRadio(traitdice);
     clearCounters();
@@ -384,7 +418,9 @@ function setupSvgToggle(svgElement: SVGElement) {
         } else if (svgElement === d100Button) {
             updateCounter(svgElement.nextElementSibling as HTMLElement, 1);
         } else if (svgElement === illumToggle) {
-            cycleIllumination();
+            cycleIllumination(false);
+        } else if (svgElement === multiToggle) {
+            cycleMultiAction(false);
         } else {
             toggleState(svgElement);
             if (svgElement === bonusDamageToggle && getState(bonusDamageToggle)) {
@@ -436,15 +472,20 @@ function showHideControls(selectedRadio: string) {
 
             wildDieRow.style.display = show;
 
-            opposedRollToggle.style.display = show;
-            jokerDrawnToggle.style.display = show;
-            illumToggle.style.display = show;
+            opposedRollToggle.parentElement!.style.display = show;
+            jokerDrawnToggle.parentElement!.style.display = show;
+            illumToggle.parentElement!.style.display = show;
 
             woundRow.style.display = show;
 
             fatigueRow.style.display = show;
 
-            bonusRow.style.display = hide;
+            bonusRow.style.display = show;
+            bonusDamageToggle.parentElement!.style.display = hide
+            breakingObjectsToggle.parentElement!.style.display = hide;
+            distractedToggle.parentElement!.style.display = show;
+            multiToggle.parentElement!.style.display = show;
+            wildAttackToggle.parentElement!.style.display = show;
 
             d4Button.parentElement!.style.display = show;
             d6Button.parentElement!.style.display = show;
@@ -459,20 +500,23 @@ function showHideControls(selectedRadio: string) {
             modifierButton.style.display = show;
             modifierSpinner.style.display = show;
             modifierCurrent.style.display = show;
-
             targetNumberRow.style.display = show;
-
             wildDieRow.style.display = hide;
 
-            bonusRow.style.display = show;
-
-            jokerDrawnToggle.style.display = show;
-            opposedRollToggle.style.display = hide;
-            illumToggle.style.display = hide;
+            jokerDrawnToggle.parentElement!.style.display = show;
+            opposedRollToggle.parentElement!.style.display = hide;
+            illumToggle.parentElement!.style.display = hide;
 
             woundRow.style.display = hide;
 
             fatigueRow.style.display = hide;
+
+            bonusRow.style.display = show;
+            bonusDamageToggle.parentElement!.style.display = show
+            breakingObjectsToggle.parentElement!.style.display = show;
+            distractedToggle.parentElement!.style.display = hide;
+            multiToggle.parentElement!.style.display = hide;
+            wildAttackToggle.parentElement!.style.display = show;
 
             d4Button.parentElement!.style.display = show;
             d6Button.parentElement!.style.display = show;
@@ -492,14 +536,19 @@ function showHideControls(selectedRadio: string) {
 
             wildDieRow.style.display = hide;
 
-            bonusRow.style.display = hide;
-
-            opposedRollToggle.style.display = hide;
-            jokerDrawnToggle.style.display = hide;
-            illumToggle.style.display = hide;
+            opposedRollToggle.parentElement!.style.display = hide;
+            jokerDrawnToggle.parentElement!.style.display = hide;
+            illumToggle.parentElement!.style.display = hide;
 
             woundRow.style.display = hide;
             fatigueRow.style.display = hide;
+
+            bonusRow.style.display = hide;
+            bonusDamageToggle.parentElement!.style.display = hide
+            breakingObjectsToggle.parentElement!.style.display = hide;
+            distractedToggle.parentElement!.style.display = hide;
+            multiToggle.parentElement!.style.display = hide;
+            wildAttackToggle.parentElement!.style.display = show;
 
             d4Button.parentElement!.style.display = show;
             d6Button.parentElement!.style.display = show;
@@ -1332,9 +1381,23 @@ function getIllumModifier(rollType: string): number {
     const illummod: number = rollType === CONST.ROLL_TYPES.TRAIT ? getValue(illumToggle) : 0;
     return (illummod * -2);
 }
+function getMultiModifier(rollType: string): number {
+    const multimod: number = rollType === CONST.ROLL_TYPES.TRAIT ? getValue(multiToggle) : 0;
+    return (multimod * -2);
+}
+function getDistractedModifier(rollType: string): number {
+    const distractedmod: number = rollType === CONST.ROLL_TYPES.TRAIT && getState(distractedToggle) ? -2 : 0;
+    return distractedmod;
+}
+function getWildAttackModifier(rollType: string): number {
+    const wildmod: number = rollType != CONST.ROLL_TYPES.STANDARD && getState(wildAttackToggle) ? 2 : 0;
+    return wildmod;
+}
 function getTotalModifier(rollType: string): number {
     return getModifier() + getJokerModifier(rollType) + getWoundsModifier(rollType) + getIllumModifier(rollType)
+        + getMultiModifier(rollType) + getDistractedModifier(rollType) + getWildAttackModifier(rollType)
 }
+
 function isWildDieActive(): boolean {
     return getRollType() === CONST.ROLL_TYPES.TRAIT && getState(wildDieToggle)
 }

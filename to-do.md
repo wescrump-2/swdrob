@@ -1,30 +1,34 @@
 # To-Do List
 
 - Environment
-  - **** Add illumination toggles for light, dim, dark, and pitch
+  - [complete] Add illumination toggles for light, dim, dark, and pitch
     - +0 Light: normal illumination
     - −2 Dim: Twilight, light fog, night with a full moon.
     - −4 Dark: Typical night conditions with some ambient light from stars, a clouded or partial moon, emergency lights in an office building, a few flickering torches in a large space, etc. Targets aren't visible outside of 10″.
     - −6 Pitch: Complete and total darkness (or the target is hidden or invisible). Powers that require sight may not be possible.
   
 - Attacker conditions
-  - *** -2 distracted: -2 to all trait, trait mode only
+  - [complete] -2 distracted: -2 to all trait, trait mode only
   - - -2 unstable platform, -2 to ranged (not melee), trait mode only
   - XXX-2 prone: -2 fighting
 
 - Attacher options
-  - *** +2 wild attack: +2 to melee (not ranged), +2 to damage (on both trait and damage mode)
-  - *** -2/-4 multi-actions: -2 for 2 actions, -4 for 3 actions, limit 3
+  - [complete] +2 wild attack: +2 to melee (not ranged), +2 to damage (on both trait and damage mode)
+  - [complete] -2/-4 multi-actions: -2 for 2 actions, -4 for 3 actions, limit 3
   - ** -2/-4 called shot: -2 limb, -4 head/vitals, -6 small
   - XXX-2 offhand: -2 on attack
 
 - Target conditions
   - ** -2/-4/-6/-8 cover: -2 light, -4 medium, -6 heavy, -8 near total
   - ** +2 vulnerable: target is vulnerable
-  - - +4 drop: attacker has the drop on target
+  - ** +4 drop: attacker has the drop on target
   - XXX-2 unarmed: melee only
   - XXX-4 prone: range attack target is prone, -4 medium cover if >= 3" away; melee, +0 but target gets -2 parry
   - XXX+1-4 gang up: based on adjacent characters
+
+cover,multi,distracted
+vulnerable
+wild, drop, called
 
 - Allow GM to set a particular player's target number and modifier values
 
