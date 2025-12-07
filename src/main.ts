@@ -103,12 +103,12 @@ const targetNumberRow = document.getElementById('targetNumberRow') as HTMLDivEle
 const modifierButton = document.getElementById('modifierButton') as unknown as SVGElement;
 const modifierSpinner = document.getElementById('modifier') as HTMLInputElement;
 const modifierCurrent = document.getElementById('curmodifier') as HTMLDivElement;
+const modifierRow =document.getElementById('modifierRow') as HTMLDivElement;
 const wildDieToggle = document.getElementById('wildDieToggle') as unknown as SVGElement;
 const wildDieType = document.getElementById('wildDieType') as unknown as HTMLSelectElement;
 const wildDieRow = document.getElementById('wildDieRow') as HTMLDivElement;
 const bonusDamageToggle = document.getElementById('bonusDamageToggle') as unknown as SVGElement;
 const breakingObjectsToggle = document.getElementById('breakingObjectsToggle') as unknown as SVGElement;
-const bonusRow = document.getElementById('bonusRow') as unknown as SVGElement;
 
 const opposedRollToggle = document.getElementById('opposedRollToggle') as unknown as SVGElement;
 const jokerDrawnToggle = document.getElementById('jokerDrawnToggle') as unknown as SVGElement;
@@ -117,12 +117,10 @@ const adjustButton = document.getElementById('adjustButton') as unknown as SVGEl
 const wound1Toggle = document.getElementById('wound1Toggle') as unknown as SVGElement;
 const wound2Toggle = document.getElementById('wound2Toggle') as unknown as SVGElement;
 const wound3Toggle = document.getElementById('wound3Toggle') as unknown as SVGElement;
-const woundRow = document.getElementById('woundRow') as unknown as SVGElement;
 
 const fatigue1Toggle = document.getElementById('fatigue1Toggle') as unknown as SVGElement;
 const fatigue2Toggle = document.getElementById('fatigue2Toggle') as unknown as SVGElement;
 const illumToggle = document.getElementById('illumToggle') as unknown as SVGElement;
-const fatigueRow = document.getElementById('fatigueRow') as unknown as SVGElement;
 
 const distractedToggle = document.getElementById('distractedToggle') as unknown as SVGElement;
 const multiToggle = document.getElementById('multiToggle') as unknown as SVGElement;
@@ -258,7 +256,7 @@ function getValue(svgElement: SVGElement) {
 }
 
 function cycleIllumination(reset: boolean): void {
-    let currentIllumination = reset ? Illumination.Pitch :getValue(illumToggle);
+    let currentIllumination = reset ? Illumination.Pitch : getValue(illumToggle);
     const il = ['light', 'dim', 'dark', 'pitch'];
     il.forEach(c => illumToggle.classList.remove(c));
     let title = "Light";
@@ -288,7 +286,7 @@ function cycleIllumination(reset: boolean): void {
     }
 }
 
-function cycleMultiAction(reset:boolean): void {
+function cycleMultiAction(reset: boolean): void {
     let currentMultiAction = reset ? MultiAction.Three : getValue(multiToggle);
     switch (currentMultiAction) {
         case MultiAction.One:
@@ -464,23 +462,23 @@ function showHideControls(selectedRadio: string) {
     let hide = 'none'
     switch (true) {
         case selectedRadio === CONST.ROLL_TYPES.TRAIT: {
-            modifierButton.style.display = show;
-            modifierSpinner.style.display = show;
-            modifierButton.style.display = show;
-
+            modifierRow.style.display = show;
             targetNumberRow.style.display = show;
-
             wildDieRow.style.display = show;
 
-            opposedRollToggle.parentElement!.style.display = show;
+            adjustButton.parentElement!.style.display = show;
             jokerDrawnToggle.parentElement!.style.display = show;
+            opposedRollToggle.parentElement!.style.display = show;
+
+
+            wound1Toggle.parentElement!.style.display = show;
+            wound2Toggle.parentElement!.style.display = show;
+            wound3Toggle.parentElement!.style.display = show;
+
+            fatigue1Toggle.parentElement!.style.display = show;
+            fatigue2Toggle.parentElement!.style.display = show;
             illumToggle.parentElement!.style.display = show;
 
-            woundRow.style.display = show;
-
-            fatigueRow.style.display = show;
-
-            bonusRow.style.display = show;
             bonusDamageToggle.parentElement!.style.display = hide
             breakingObjectsToggle.parentElement!.style.display = hide;
             distractedToggle.parentElement!.style.display = show;
@@ -497,21 +495,22 @@ function showHideControls(selectedRadio: string) {
             break;
         }
         case selectedRadio === CONST.ROLL_TYPES.DAMAGE: {
-            modifierButton.style.display = show;
-            modifierSpinner.style.display = show;
-            modifierCurrent.style.display = show;
+            modifierRow.style.display = show;
             targetNumberRow.style.display = show;
             wildDieRow.style.display = hide;
 
+            adjustButton.parentElement!.style.display = show;
             jokerDrawnToggle.parentElement!.style.display = show;
             opposedRollToggle.parentElement!.style.display = hide;
+
+            wound1Toggle.parentElement!.style.display = hide;
+            wound2Toggle.parentElement!.style.display = hide;
+            wound3Toggle.parentElement!.style.display = hide;
+
+            fatigue1Toggle.parentElement!.style.display = hide;
+            fatigue2Toggle.parentElement!.style.display = hide;
             illumToggle.parentElement!.style.display = hide;
 
-            woundRow.style.display = hide;
-
-            fatigueRow.style.display = hide;
-
-            bonusRow.style.display = show;
             bonusDamageToggle.parentElement!.style.display = show
             breakingObjectsToggle.parentElement!.style.display = show;
             distractedToggle.parentElement!.style.display = hide;
@@ -528,27 +527,27 @@ function showHideControls(selectedRadio: string) {
             break;
         }
         case selectedRadio === CONST.ROLL_TYPES.STANDARD: {
-            modifierButton.style.display = show;
-            modifierSpinner.style.display = show;
-            modifierCurrent.style.display = show;
-
+            modifierRow.style.display = show;
             targetNumberRow.style.display = hide;
-
             wildDieRow.style.display = hide;
 
-            opposedRollToggle.parentElement!.style.display = hide;
+            adjustButton.parentElement!.style.display = show;
             jokerDrawnToggle.parentElement!.style.display = hide;
+            opposedRollToggle.parentElement!.style.display = hide;
+
+            wound1Toggle.parentElement!.style.display = hide;
+            wound2Toggle.parentElement!.style.display = hide;
+            wound3Toggle.parentElement!.style.display = hide;
+
+            fatigue1Toggle.parentElement!.style.display = hide;
+            fatigue2Toggle.parentElement!.style.display = hide;
             illumToggle.parentElement!.style.display = hide;
 
-            woundRow.style.display = hide;
-            fatigueRow.style.display = hide;
-
-            bonusRow.style.display = hide;
             bonusDamageToggle.parentElement!.style.display = hide
             breakingObjectsToggle.parentElement!.style.display = hide;
             distractedToggle.parentElement!.style.display = hide;
             multiToggle.parentElement!.style.display = hide;
-            wildAttackToggle.parentElement!.style.display = show;
+            wildAttackToggle.parentElement!.style.display = hide;
 
             d4Button.parentElement!.style.display = show;
             d6Button.parentElement!.style.display = show;

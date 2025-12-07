@@ -15,20 +15,47 @@
 - Attacher options
   - [complete] +2 wild attack: +2 to melee (not ranged), +2 to damage (on both trait and damage mode)
   - [complete] -2/-4 multi-actions: -2 for 2 actions, -4 for 3 actions, limit 3
-  - ** -2/-4 called shot: -2 limb, -4 head/vitals, -6 small
+  - x** -2/-4 called shot: -2 limb, -4 head/vitals, -6 small
   - XXX-2 offhand: -2 on attack
 
 - Target conditions
-  - ** -2/-4/-6/-8 cover: -2 light, -4 medium, -6 heavy, -8 near total
-  - ** +2 vulnerable: target is vulnerable
-  - ** +4 drop: attacker has the drop on target
+  - x** -2/-4/-6/-8 cover: -2 light, -4 medium, -6 heavy, -8 near total
+  - x** +2 vulnerable: target is vulnerable
+  - x** +4 drop: attacker has the drop on target
+  - x** 0/-2/-4/-8: range penalties, short medium long extreme
   - XXX-2 unarmed: melee only
   - XXX-4 prone: range attack target is prone, -4 medium cover if >= 3" away; melee, +0 but target gets -2 parry
   - XXX+1-4 gang up: based on adjacent characters
 
 cover,multi,distracted
 vulnerable
-wild, drop, called
+wild, drop, called shots
+
+- called shots
+  - HAND (−4): Target may be Disarmed, see
+page 100.
+  - HEAD OR VITALS (−4): Hitting the head
+or vital organs of living creatures adds +4
+damage to the attacker’s total.
+The penalty is −5 if attempting to target
+the face of someone wearing an open-
+faced helmet (thus bypassing the helmet’s
+Armor).
+  - ITEM (?): Use the dimensions on the Scale
+table for items. Targeting something the
+size of a pistol, for example, is −4; a 3' long
+sword is −2.
+  - LIMBS (−2): Hitting a limb has no additional
+special effect since it’s already accounted
+for by Wound and Pace penalties (see
+Wounds, page 95).
+  - UNARMORED AREA (?): The attack targets
+the unprotected area of a target otherwise
+covered in Armor. The penalty depends on
+the Scale of the area. The eyeslit of a helmet
+is Tiny (−6), for example, while the flesh
+beneath the missing scale of a Huge dragon
+might be Very Small (−4).
 
 - Allow GM to set a particular player's target number and modifier values
 
