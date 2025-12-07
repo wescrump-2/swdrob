@@ -72,9 +72,6 @@ export class Debug {
 		}
 	}
 
-
-
-	// --- List ALL room and scene metadata keys and their sizes ---
 	static async dumpRoomMetadata() {
 		if (!Debug.enabled) return;
 		// Check room metadata
@@ -85,7 +82,6 @@ export class Debug {
 			Debug.log(`${key}  →  ${size} bytes`, value);
 		}
 
-		// Check scene metadata if scene is ready
 		try {
 			const isSceneReady = await OBR.scene.isReady();
 			if (isSceneReady) {
@@ -117,11 +113,6 @@ export class Debug {
 		Debug.log(Array.from(keys).sort());
 	}
 
-	/**
-	 * Improved cleanup: Deletes keys by setting them to null individually (reliable removal).
-	 * Retries on failure and checks total size to avoid 16 kB errors.
-	 * Now handles room metadata only for cleanup purposes.
-	 */
 	static async cleanupDeadExtensionMetadata() {
 		if (!Debug.enabled) return;
 		try {
@@ -197,9 +188,6 @@ export class Debug {
 		}
 	}
 
-	/**
-	 * Approximate the memory size of an object in bytes with circular reference protection.
-	 */
 	static getObjectMemorySize(obj: any, seen: WeakSet<object> = new WeakSet()): number {
 		// Handle circular references
 		if (obj && typeof obj === 'object') {
@@ -223,7 +211,7 @@ export class Debug {
 		} else if (obj === null || obj === undefined) {
 			return 0;
 		} else if (Array.isArray(obj)) {
-			let size = 16; // array overhead
+			let size = 16;
 			for (const item of obj) {
 				size += Debug.getObjectMemorySize(item, seen);
 			}
@@ -240,4 +228,4 @@ export class Debug {
 		}
 		return 0;
 	}
-}// end Debug
+}

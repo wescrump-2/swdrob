@@ -1,4 +1,3 @@
-// Using @ts-ignore to bypass TypeScript's type checking for this line
 // @ts-ignore
 import DiceBox from "https://unpkg.com/@3d-dice/dice-box@1.1.4/dist/dice-box.es.min.js";
 import OBR from "@owlbear-rodeo/sdk";
@@ -7,7 +6,7 @@ import * as pako from 'pako';
 import { Util } from './util';
 import { Savaged } from './savaged';
 import { Debug } from './debug';
-import { CONST, Illumination, MultiAction } from "./constants";
+import { CalledShot, CONST, Cover, GangUp, getEnumKeys, Illumination, MultiAction, Range } from "./constants";
 import './styles.css';
 import { createContextMenu } from "./contextmenu";
 
@@ -73,8 +72,15 @@ function initializeButtons(svgDoc: Document) {
         Util.setImage('tired-eye', fatigue2Toggle, '--button-size')
         Util.setImage('light', illumToggle, '--button-size')
         Util.setImage('distracted', distractedToggle, '--button-size')
-        Util.setImage('multi1', multiToggle, '--button-size')
-        Util.setImage('wildattack', wildAttackToggle, '--button-size')
+        Util.setImage('one_action', multiToggle, '--button-size')
+        Util.setImage('wild_attack', wildAttackToggle, '--button-size')
+
+        Util.setImage('called_shot', calledShotToggle, '--button-size')
+        Util.setImage('no_cover', coverToggle, '--button-size')
+        Util.setImage('short_range', rangeToggle, '--button-size')
+        Util.setImage('the_drop', theDropToggle, '--button-size')
+        Util.setImage('vulnerable', vulnerableToggle, '--button-size')
+        Util.setImage('gang_up', gangUpToggle, '--button-size')
 
         Util.setImage('anticlockwise', resetButton, '--button-size')
         Util.setImage('shatter', colorButton, '--button-size')
@@ -90,7 +96,6 @@ function initializeButtons(svgDoc: Document) {
         console.error("Failed to load SVG buttons")
     }
 }
-//)
 
 const radios = document.querySelectorAll('.custom-radio') as NodeListOf<SVGElement>;
 const traitdice = document.getElementById('traitdice') as unknown as SVGElement;
@@ -103,7 +108,7 @@ const targetNumberRow = document.getElementById('targetNumberRow') as HTMLDivEle
 const modifierButton = document.getElementById('modifierButton') as unknown as SVGElement;
 const modifierSpinner = document.getElementById('modifier') as HTMLInputElement;
 const modifierCurrent = document.getElementById('curmodifier') as HTMLDivElement;
-const modifierRow =document.getElementById('modifierRow') as HTMLDivElement;
+const modifierRow = document.getElementById('modifierRow') as HTMLDivElement;
 const wildDieToggle = document.getElementById('wildDieToggle') as unknown as SVGElement;
 const wildDieType = document.getElementById('wildDieType') as unknown as HTMLSelectElement;
 const wildDieRow = document.getElementById('wildDieRow') as HTMLDivElement;
@@ -125,6 +130,13 @@ const illumToggle = document.getElementById('illumToggle') as unknown as SVGElem
 const distractedToggle = document.getElementById('distractedToggle') as unknown as SVGElement;
 const multiToggle = document.getElementById('multiToggle') as unknown as SVGElement;
 const wildAttackToggle = document.getElementById('wildAttackToggle') as unknown as SVGElement;
+
+const calledShotToggle = document.getElementById('calledShotToggle') as unknown as SVGElement;
+const coverToggle = document.getElementById('coverToggle') as unknown as SVGElement;
+const rangeToggle = document.getElementById('rangeToggle') as unknown as SVGElement;
+const theDropToggle = document.getElementById('theDropToggle') as unknown as SVGElement;
+const vulnerableToggle = document.getElementById('vulnerableToggle') as unknown as SVGElement;
+const gangUpToggle = document.getElementById('gangUpToggle') as unknown as SVGElement;
 
 const removeDiceButton = document.getElementById('removeDiceButton') as unknown as SVGElement;
 const rollDiceButton = document.getElementById('rollDiceButton') as unknown as SVGElement;
@@ -165,6 +177,13 @@ setupSvgToggle(distractedToggle);
 setupSvgToggle(multiToggle);
 setupSvgToggle(wildAttackToggle);
 
+setupSvgToggle(calledShotToggle);
+setupSvgToggle(coverToggle);
+setupSvgToggle(rangeToggle);
+setupSvgToggle(theDropToggle);
+setupSvgToggle(vulnerableToggle);
+setupSvgToggle(gangUpToggle);
+
 setupSvgToggle(rollDiceButton);
 setupSvgToggle(rerollDiceButton);
 setupSvgToggle(removeDiceButton);
@@ -182,13 +201,9 @@ setupSvgToggle(d20Button);
 setupSvgToggle(d100Button);
 setupCounters();
 
-// initialize
 resetToDefaults();
-
-// Initial log
 Debug.log('Savage Dice for Owlbear is online and fully operational.')
 
-// Radio button 
 function setupRadio(): void {
     radios.forEach(radio => {
         radio.addEventListener('click', function () {
@@ -198,7 +213,6 @@ function setupRadio(): void {
 }
 
 function setupSliders(): void {
-    // TARGET NUMBER – perfect sync
     const updateTargetDisplay = () => {
         const val = targetNumberSpinner.valueAsNumber || CONST.DEFAULTS.TARGET_NUMBER;
         targetCurrent.textContent = val.toString();
@@ -208,7 +222,6 @@ function setupSliders(): void {
     targetNumberSpinner.addEventListener('input', updateTargetDisplay);
     targetNumberSpinner.addEventListener('change', updateTargetDisplay);
 
-    // MODIFIER – perfect sync
     const updateModifierDisplay = () => {
         const val = parseInt(modifierSpinner.value) || CONST.DEFAULTS.MODIFIER;
         modifierCurrent.textContent = val > CONST.DEFAULTS.MODIFIER ? `+${val}` : val.toString();
@@ -218,7 +231,6 @@ function setupSliders(): void {
     modifierSpinner.addEventListener('input', updateModifierDisplay);
     modifierSpinner.addEventListener('change', updateModifierDisplay);
 
-    // Optional: initial sync
     updateTargetDisplay();
     updateModifierDisplay();
 }
@@ -255,58 +267,28 @@ function getValue(svgElement: SVGElement) {
     return parseInt(svgElement.dataset.value || '0');
 }
 
-function cycleIllumination(reset: boolean): void {
-    let currentIllumination = reset ? Illumination.Pitch : getValue(illumToggle);
-    const il = ['light', 'dim', 'dark', 'pitch'];
-    il.forEach(c => illumToggle.classList.remove(c));
-    let title = "Light";
-    switch (currentIllumination) {
-        case Illumination.Light:
-            currentIllumination = Illumination.Dim;
-            title = "Dim, -2"
-            break;
-        case Illumination.Dim:
-            currentIllumination = Illumination.Dark;
-            title = "Dark, -4"
-            break;
-        case Illumination.Dark:
-            currentIllumination = Illumination.Pitch;
-            title = "Pitch Dark, -6"
-            break;
-        case Illumination.Pitch:
-            currentIllumination = Illumination.Light;
-            title = "Lighted"
-            break;
-    }
-    setValue(illumToggle, currentIllumination);
-    illumToggle.classList.add(il[currentIllumination]);
-    const parentElement = illumToggle.parentElement;
-    if (parentElement) {
-        parentElement.title = title;
-    }
-}
-
-function cycleMultiAction(reset: boolean): void {
-    let currentMultiAction = reset ? MultiAction.Three : getValue(multiToggle);
-    switch (currentMultiAction) {
-        case MultiAction.One:
-            currentMultiAction = MultiAction.Two
-            Util.setImage('multi2', multiToggle, '--button-size')
-            break;
-        case MultiAction.Two:
-            currentMultiAction = MultiAction.Three;
-            Util.setImage('multi3', multiToggle, '--button-size')
-            break;
-        case MultiAction.Three:
-            currentMultiAction = MultiAction.One;
-            Util.setImage('multi1', multiToggle, '--button-size')
-            break;
-    }
-    setValue(multiToggle, currentMultiAction);
-    if (currentMultiAction === MultiAction.One) {
-        multiToggle.classList.remove(Util.ACTIVE_CLASS)
+function cycleEnum<T extends object>(enumObject: T, toggle: SVGElement, useActive: boolean, reset: boolean): void {
+    const classes = getEnumKeys(enumObject);
+    let current = getValue(toggle) + 1;
+    if (current > classes.length - 1 || reset) current = 0;
+    let title = classes[current].toString();
+    if (useActive) {
+        if (current === 0) {
+            toggle.classList.remove(Util.ACTIVE_CLASS);
+        } else {
+            toggle.classList.add(Util.ACTIVE_CLASS);
+        }
+        Util.setImage(title.toLowerCase(), toggle, '--button-size')
     } else {
-        multiToggle.classList.add(Util.ACTIVE_CLASS)
+        classes.forEach(c => toggle.classList.remove(c.toString().toLowerCase()));
+        toggle.classList.add(title.toLowerCase());
+    }
+
+    setValue(toggle, current);
+
+    const parentElement = toggle.parentElement;
+    if (parentElement) {
+        parentElement.title = title.replace("_", " ");
     }
 }
 
@@ -315,7 +297,6 @@ function toggleState(svgElement: SVGElement) {
     setState(svgElement, state);
 }
 
-// Reset functionality for spinners
 function setSpinner(input: HTMLInputElement, current: HTMLDivElement, val: string) {
     input.value = val;
     current.innerText = val;
@@ -324,7 +305,7 @@ function setSpinner(input: HTMLInputElement, current: HTMLDivElement, val: strin
 function setSelect(input: HTMLSelectElement, val: string) {
     input.value = val;
 }
-// Reset functionality for all controls
+
 function resetToDefaults() {
     setSpinner(targetNumberSpinner, targetCurrent, CONST.DEFAULTS.TARGET_NUMBER);
     setSpinner(modifierSpinner, modifierCurrent, CONST.DEFAULTS.MODIFIER);
@@ -341,17 +322,21 @@ function resetToDefaults() {
 
     setState(fatigue1Toggle, CONST.DEFAULTS.FATIGUE_ENABLED);
     setState(fatigue2Toggle, CONST.DEFAULTS.FATIGUE_ENABLED);
-    cycleIllumination(true);
-
+    cycleEnum(Illumination, illumToggle, false, true)
     setState(distractedToggle, CONST.DEFAULTS.DISTRACTED_ENABLED);
-    cycleMultiAction(true);
+    cycleEnum(MultiAction, multiToggle, true, true)
     setState(wildAttackToggle, CONST.DEFAULTS.WILD_ATTACK_ENABLED);
+    cycleEnum(CalledShot, calledShotToggle, true, true);
+    cycleEnum(Cover, coverToggle, true, true);
+    cycleEnum(Range, rangeToggle, true, true);
+    setState(theDropToggle, CONST.DEFAULTS.THE_DROP_ENABLED);
+    setState(vulnerableToggle, CONST.DEFAULTS.VULNERABLE_ENABLED);
+    cycleEnum(GangUp, gangUpToggle, true, true);
 
     setRadio(traitdice);
     clearCounters();
 }
 
-// reset for counters
 function clearCounters() {
     for (let sp of document.querySelectorAll<HTMLElement>('.counter')) {
         updateCounter(sp, -getCounter(sp))
@@ -376,7 +361,6 @@ function setRadio(svg: SVGElement) {
     showHideControls(selectedRadio);
 }
 
-// Toggle click handler
 function setupSvgToggle(svgElement: SVGElement) {
     svgElement.addEventListener('click', function (): void {
         if (svgElement === targetNumberButton) {
@@ -416,9 +400,17 @@ function setupSvgToggle(svgElement: SVGElement) {
         } else if (svgElement === d100Button) {
             updateCounter(svgElement.nextElementSibling as HTMLElement, 1);
         } else if (svgElement === illumToggle) {
-            cycleIllumination(false);
+            cycleEnum(Illumination, illumToggle, false, false);
         } else if (svgElement === multiToggle) {
-            cycleMultiAction(false);
+            cycleEnum(MultiAction, multiToggle, true, false);
+        } else if (svgElement === calledShotToggle) {
+            cycleEnum(CalledShot, calledShotToggle, true, false);
+        } else if (svgElement === coverToggle) {
+            cycleEnum(Cover, coverToggle, true, false);
+        } else if (svgElement === rangeToggle) {
+            cycleEnum(Range, rangeToggle, true, false);
+         } else if (svgElement === gangUpToggle) {
+            cycleEnum(GangUp, gangUpToggle, true, false);   
         } else {
             toggleState(svgElement);
             if (svgElement === bonusDamageToggle && getState(bonusDamageToggle)) {
@@ -438,10 +430,12 @@ function setupCounters(): void {
         });
     }
 }
+
 function updateCounter(target: HTMLElement, updateAmount: number): void {
     let count = Math.max(0, getCounter(target) + updateAmount);
     target.textContent = (count != 0) ? count.toString() : '';
 }
+
 function getCounter(target: HTMLElement): number {
     let count = parseInt(target.textContent || '0', 10);
     return Math.max(0, count);
@@ -485,6 +479,13 @@ function showHideControls(selectedRadio: string) {
             multiToggle.parentElement!.style.display = show;
             wildAttackToggle.parentElement!.style.display = show;
 
+            calledShotToggle.parentElement!.style.display = show;
+            coverToggle.parentElement!.style.display = show;
+            rangeToggle.parentElement!.style.display = show;
+            theDropToggle.parentElement!.style.display = show;
+            vulnerableToggle.parentElement!.style.display = show;
+            gangUpToggle.parentElement!.style.display = show;
+
             d4Button.parentElement!.style.display = show;
             d6Button.parentElement!.style.display = show;
             d8Button.parentElement!.style.display = show;
@@ -517,6 +518,13 @@ function showHideControls(selectedRadio: string) {
             multiToggle.parentElement!.style.display = hide;
             wildAttackToggle.parentElement!.style.display = show;
 
+            calledShotToggle.parentElement!.style.display = show;
+            coverToggle.parentElement!.style.display = hide;
+            rangeToggle.parentElement!.style.display = hide;
+            theDropToggle.parentElement!.style.display = show;
+            vulnerableToggle.parentElement!.style.display = hide;
+            gangUpToggle.parentElement!.style.display = hide;
+
             d4Button.parentElement!.style.display = show;
             d6Button.parentElement!.style.display = show;
             d8Button.parentElement!.style.display = show;
@@ -548,6 +556,13 @@ function showHideControls(selectedRadio: string) {
             distractedToggle.parentElement!.style.display = hide;
             multiToggle.parentElement!.style.display = hide;
             wildAttackToggle.parentElement!.style.display = hide;
+
+            calledShotToggle.parentElement!.style.display = hide;
+            coverToggle.parentElement!.style.display = hide;
+            rangeToggle.parentElement!.style.display = hide;
+            theDropToggle.parentElement!.style.display = hide;
+            vulnerableToggle.parentElement!.style.display = hide;
+            gangUpToggle.parentElement!.style.display = hide;
 
             d4Button.parentElement!.style.display = show;
             d6Button.parentElement!.style.display = show;
@@ -626,19 +641,15 @@ export let playerCache = {
     ready: false
 };
 
-
 async function setPlayer(r: SWDR) {
-    // If already cached, use instantly
     if (playerCache.ready) {
         r.playerName = playerCache.name;
         r.playerId = playerCache.id;
         return;
     }
 
-    // If initialization is already in progress, wait for it to complete
     if (playerCachePromise) {
         await playerCachePromise;
-        // After waiting, check again if we're ready
         if (playerCache.ready) {
             r.playerName = playerCache.name;
             r.playerId = playerCache.id;
@@ -646,10 +657,8 @@ async function setPlayer(r: SWDR) {
         }
     }
 
-    // Create a new promise for this initialization attempt
     playerCachePromise = (async () => {
         try {
-            // Wait until OBR signals it's ready
             if (!OBR.isReady) {
                 await new Promise<void>((resolve) => {
                     const handler = () => {
@@ -660,50 +669,39 @@ async function setPlayer(r: SWDR) {
                 });
             }
 
-            // Now safe to get player info
             const [name, id, role] = await Promise.all([
                 OBR.player.getName(),
                 OBR.player.getId(),
                 OBR.player.getRole()
             ]);
 
-            // Update cache atomically
             playerCache.name = name;
             playerCache.id = id;
             playerCache.isGm = role === 'GM';
             playerCache.ready = true;
 
-            // Update the request object
             r.playerName = name;
             r.playerId = id;
 
         } catch (err) {
             console.error("Failed to get player:", err);
-            // Set error state
             playerCache.name = "GM";
             playerCache.id = "error";
-            playerCache.ready = true; // Mark as ready even on error to prevent retry loops
-
+            playerCache.ready = true; 
             r.playerName = "GM";
             r.playerId = "error";
         } finally {
-            playerCachePromise = null; // Reset the promise
+            playerCachePromise = null;
         }
     })();
 
-    // Wait for the initialization to complete
     await playerCachePromise;
 }
 
-/**
- * Immediately removes legacy room metadata when room is ready
- * This runs separately from the debug cleanup function
- */
 async function cleanupLegacyRoomMetadata() {
     try {
-        // Check if there's legacy room metadata to clean up
         const roomMetadata = await OBR.room.getMetadata();
-        const legacyHistoryKey = Util.DiceHistoryMkey; // "com.wescrump.dice-roller/rollHistory"
+        const legacyHistoryKey = Util.DiceHistoryMkey;
 
         if (roomMetadata[legacyHistoryKey] !== undefined) {
             Debug.log(`Found legacy room metadata key: ${legacyHistoryKey}, removing it...`);
@@ -730,6 +728,7 @@ OBR.onReady(async () => {
             console.error("Error in scene ready change handler:", error);
         }
     });
+
     const unsubscribeItemsOnChange = OBR.scene.items.onChange(async () => {
         try {
             await Debug.sceneOnChange();
@@ -767,7 +766,6 @@ OBR.onReady(async () => {
         }
     });
 });
-
 
 let RollCollection: SWDR = new SWDR();
 const MAX_HISTORY: number = 16;
@@ -824,8 +822,6 @@ const DB = new DiceBox({
         LOG_ENTRY_WRAPPER_ELEMENT.dataset.targetnumber = RollCollection.targetNumber.toString()
         LOG_ENTRY_WRAPPER_ELEMENT.dataset.pid = RollCollection.playerId
 
-
-        // Continue only if every roll has been resolved.
         const ROLL_IS_COMPLETE = rollResult.every(rr => rr.rolls?.every(dr => dr.value));
 
         if (ROLL_IS_COMPLETE) {
@@ -919,7 +915,6 @@ async function buildOutputHTML(rCollection: SWDR, rType: string, rResult: RollRe
             descriptionString = calculateRaises(rCollection.total, rCollection.targetNumber);
         }
 
-        // Build output HTML
         let rollDetails = '';
 
         if (IS_MULTIPLE_TRAIT_DICE) {
@@ -1368,33 +1363,87 @@ RESIZE_OBSERVER.observe(document.querySelector('.dice-roller')!, { box: "border-
 function getModifier(): number {
     return modifierSpinner.valueAsNumber
 }
+
 function getWoundsModifier(rollType: string): number {
-    const woundsmod: number = rollType === CONST.ROLL_TYPES.TRAIT ? (getState(wound1Toggle) ? -1 : 0) + (getState(wound2Toggle) ? -1 : 0) + (getState(wound3Toggle) ? -1 : 0) + (getState(fatigue1Toggle) ? -1 : 0) + (getState(fatigue2Toggle) ? -1 : 0) : 0;
-    return woundsmod;
+    const mod: number = rollType === CONST.ROLL_TYPES.TRAIT ? (getState(wound1Toggle) ? -1 : 0) + (getState(wound2Toggle) ? -1 : 0) + (getState(wound3Toggle) ? -1 : 0) + (getState(fatigue1Toggle) ? -1 : 0) + (getState(fatigue2Toggle) ? -1 : 0) : 0;
+    return mod;
 }
+
 function getJokerModifier(rollType: string): number {
     const jokemod: number = getState(jokerDrawnToggle) && rollType != CONST.ROLL_TYPES.STANDARD ? 2 : 0;
     return jokemod;
 }
+
 function getIllumModifier(rollType: string): number {
     const illummod: number = rollType === CONST.ROLL_TYPES.TRAIT ? getValue(illumToggle) : 0;
     return (illummod * -2);
 }
+
 function getMultiModifier(rollType: string): number {
-    const multimod: number = rollType === CONST.ROLL_TYPES.TRAIT ? getValue(multiToggle) : 0;
-    return (multimod * -2);
+    const mod: number = rollType === CONST.ROLL_TYPES.TRAIT ? getValue(multiToggle) : 0;
+    return (mod * -2);
 }
+
 function getDistractedModifier(rollType: string): number {
-    const distractedmod: number = rollType === CONST.ROLL_TYPES.TRAIT && getState(distractedToggle) ? -2 : 0;
-    return distractedmod;
+    const mod: number = rollType === CONST.ROLL_TYPES.TRAIT && getState(distractedToggle) ? -2 : 0;
+    return mod;
 }
+
 function getWildAttackModifier(rollType: string): number {
-    const wildmod: number = rollType != CONST.ROLL_TYPES.STANDARD && getState(wildAttackToggle) ? 2 : 0;
-    return wildmod;
+    const mod: number = rollType != CONST.ROLL_TYPES.STANDARD && getState(wildAttackToggle) ? 2 : 0;
+    return mod;
 }
+
+function getTheDropModifier(rollType: string): number {
+    const mod: number = rollType != CONST.ROLL_TYPES.STANDARD && getState(theDropToggle) ? 4 : 0;
+    return mod;
+}
+
+function getVulnerableModifier(rollType: string): number {
+    const mod: number = rollType != CONST.ROLL_TYPES.STANDARD && getState(vulnerableToggle) ? 2 : 0;
+    return mod;
+}
+
+function getGangUpModifier(rollType: string): number {
+    const mod: number = rollType === CONST.ROLL_TYPES.TRAIT ? getValue(gangUpToggle): 0;
+    return mod;
+}
+
+function getCalledShotModifier(rollType: string): number {
+    // can't call shots on a door
+    if (getState(breakingObjectsToggle)) return 0;
+    const val: number = getValue(calledShotToggle);
+    let result: number = 0;
+    if (rollType === CONST.ROLL_TYPES.TRAIT) {
+
+    } else if (rollType === CONST.ROLL_TYPES.DAMAGE) {
+        if (val === CalledShot.Head) result = 4;
+    }
+    return result;
+}
+function getCoverModifier(rollType: string): number {
+    const val: number = rollType === CONST.ROLL_TYPES.TRAIT ? getValue(coverToggle) : 0;
+    return val * -2;
+}
+function getRangeModifier(rollType: string): number {
+    const val: number = rollType === CONST.ROLL_TYPES.TRAIT ? getValue(rangeToggle) : 0;
+    return val === Range.Extreme_Range ? -8 : val * -2;
+}
+
 function getTotalModifier(rollType: string): number {
-    return getModifier() + getJokerModifier(rollType) + getWoundsModifier(rollType) + getIllumModifier(rollType)
-        + getMultiModifier(rollType) + getDistractedModifier(rollType) + getWildAttackModifier(rollType)
+    return getModifier()
+        + getJokerModifier(rollType)
+        + getWoundsModifier(rollType)
+        + getIllumModifier(rollType)
+        + getMultiModifier(rollType)
+        + getDistractedModifier(rollType)
+        + getWildAttackModifier(rollType)
+        + getCalledShotModifier(rollType)
+        + getCoverModifier(rollType)
+        + getRangeModifier(rollType)
+        + getTheDropModifier(rollType)
+        + getVulnerableModifier(rollType)
+        + getGangUpModifier(rollType)
 }
 
 function isWildDieActive(): boolean {

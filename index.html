@@ -25,7 +25,7 @@
             </svg></span>
         </div>
         <hr />
-        <div class="modifierRow" title="Reset Modifier to zero.">
+        <div id="modifierRow" class="row" title="Reset Modifier to zero.">
           <div class="sliderrow">
             <svg id="modifierButton" class="toggle-image"></svg>
             <div class="slider-container">
@@ -68,24 +68,24 @@
             <svg id="opposedRollToggle" class="toggle-image">
             </svg>
           </span>
-          <span class="svgbox" title="Wound, -1 on Trait rolls.">
+          <span class="svgbox" title="Wound">
             <svg id="wound1Toggle" class="toggle-image2">
             </svg>
           </span>
-          <span class="svgbox" title="Wound, -1 on Trait rolls.">
+          <span class="svgbox" title="Wound">
             <svg id="wound2Toggle" class="toggle-image2">
             </svg>
           </span>
-          <span class="svgbox" title="Wound, -1 on Trait rolls.">
+          <span class="svgbox" title="Wound">
             <svg id="wound3Toggle" class="toggle-image2">
             </svg>
           </span>
-          <span class="svgbox" title="Fatigue, -1 on Trait rolls.">
-            <svg id="fatigue1Toggle" class="toggle-image2">
+          <span class="svgbox" title="Fatigue">
+            <svg id="fatigue1Toggle" class="toggle-image">
             </svg>
           </span>
-          <span class="svgbox" title="Fatigue, -1 on Trait rolls.">
-            <svg id="fatigue2Toggle" class="toggle-image2">
+          <span class="svgbox" title="Fatigue">
+            <svg id="fatigue2Toggle" class="toggle-image">
             </svg>
           </span>
           <span class="svgbox" title="Light">
@@ -101,15 +101,40 @@
             </svg>
           </span>
           <span class="svgbox" title="Distracted">
-            <svg id="distractedToggle" class="toggle-image2">
+            <svg id="distractedToggle" class="toggle-image">
             </svg>
           </span>
-          <span class="svgbox" title="Multi Action">
-            <svg id="multiToggle" class="toggle-image2">
+          <span class="svgbox" title="Vulnerable">
+            <svg id="vulnerableToggle" class="toggle-image">
+            </svg>
+          </span>
+          <span class="svgbox" title="One Action">
+            <svg id="multiToggle" class="toggle-image">
+            </svg>
+          </span>
+
+          <span class="svgbox" title="Called Shot">
+            <svg id="calledShotToggle" class="toggle-image">
+            </svg>
+          </span>
+          <span class="svgbox" title="Cover">
+            <svg id="coverToggle" class="toggle-image">
+            </svg>
+          </span>
+          <span class="svgbox" title="Range">
+            <svg id="rangeToggle" class="toggle-image">
+            </svg>
+          </span>
+          <span class="svgbox" title="The Drop">
+            <svg id="theDropToggle" class="toggle-image">
             </svg>
           </span>
           <span class="svgbox" title="Wild Attack">
             <svg id="wildAttackToggle" class="toggle-image">
+            </svg>
+          </span>
+          <span class="svgbox" title="Gang Up">
+            <svg id="gangUpToggle" class="toggle-image">
             </svg>
           </span>
         </div>
@@ -196,8 +221,7 @@
 
   </div>
   <div id="app"></div>
-  <object id="buttons-svg" type="image/svg+xml" data="/buttons.svg" width="0" height="0"
-    class="disappeared"></object>
+  <object id="buttons-svg" type="image/svg+xml" data="/buttons.svg" width="0" height="0" class="disappeared"></object>
 </body>
 
 </html>

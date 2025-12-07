@@ -36,7 +36,7 @@ export function createContextMenu(playerId:string) {
         await OBR.popover.open({
           id: `${Util.StatBlockMkey}/popover`,
           url: `/popup.html?itemId=${encodeURIComponent(character.id)}`,
-          height: 680,
+          height: 640,
           width: 480,
           anchorReference: "ELEMENT",
           anchorElementId: character.id,

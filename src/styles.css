@@ -34,7 +34,7 @@ html {
 body {
   margin: 0;
   padding: 0;
-  height: 600px;
+  height: 640px;
   width: 400px;
   display: flex;
   vertical-align: top;
@@ -286,7 +286,7 @@ button:focus-visible {
 .sidebar {
   min-width: 100px;
   width: 100px;
-  height: 600px;
+  height: 640px;
   overflow: hidden;
   padding: 0;
   -webkit-user-select: none;
@@ -351,7 +351,7 @@ fieldset#dice-tray {
   padding: 0;
   margin: 0;
   width: 300px;
-  height: 600px;
+  height: 640px;
   display: flex;
   flex-direction: column;
 }
@@ -432,7 +432,7 @@ legend {
 
 .log {
   padding: 0;
-  height: 300px;
+  height: 340px;
   margin: 0;
   overflow: hidden;
   flex: 1;

@@ -15,17 +15,17 @@
 - Attacher options
   - [complete] +2 wild attack: +2 to melee (not ranged), +2 to damage (on both trait and damage mode)
   - [complete] -2/-4 multi-actions: -2 for 2 actions, -4 for 3 actions, limit 3
-  - x** -2/-4 called shot: -2 limb, -4 head/vitals, -6 small
-  - XXX-2 offhand: -2 on attack
+  - [complete] -2/-4 called shot: 0 calledshot, -2 limb, -4 hand, -4 head(+4 dmg), -2 itemsword, -4 itempistol, -4 unarmored, -6 eyeslit
+  - **-2 offhand: -2 on attack
 
 - Target conditions
-  - x** -2/-4/-6/-8 cover: -2 light, -4 medium, -6 heavy, -8 near total
-  - x** +2 vulnerable: target is vulnerable
-  - x** +4 drop: attacker has the drop on target
-  - x** 0/-2/-4/-8: range penalties, short medium long extreme
-  - XXX-2 unarmed: melee only
-  - XXX-4 prone: range attack target is prone, -4 medium cover if >= 3" away; melee, +0 but target gets -2 parry
-  - XXX+1-4 gang up: based on adjacent characters
+  - [complete] -2/-4/-6/-8 cover: -2 light, -4 medium, -6 heavy, -8 near total
+  - [complete] +2 vulnerable: target is vulnerable
+  - [complete] +4 drop: attacker has the drop on target
+  - [complete] 0/-2/-4/-8: range penalties, short medium long extreme
+  - **-2 unarmed: melee only
+  - **-4 prone: range attack target is prone, -4 medium cover if >= 3" away; melee, +0 but target gets -2 parry
+  - [complete]+1-4 gang up: based on adjacent characters
 
 cover,multi,distracted
 vulnerable
