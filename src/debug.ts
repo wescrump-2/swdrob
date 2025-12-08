@@ -13,7 +13,7 @@ export class Debug {
 	static async sceneOnChange() {
 		const isReady = await OBR.scene.isReady();
 		if (isReady) {
-			Debug.log("Scene is ready, executing scene-dependent code");
+			//Debug.log("Scene is ready, executing scene-dependent code");
 			const initialItems = await OBR.scene.items.getItems((item): item is Image => item.layer === "CHARACTER" && isImage(item));
 			Debug.updateFromPlayers(initialItems.map(i => i.name))
 			Debug.log(`Scene ready - found ${initialItems.length} character items`);

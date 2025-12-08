@@ -1,21 +1,23 @@
 # To-Do List
 
+- improvements and bug fixes
+  - [complete] handle Smarts d6 (A) and Smarts d4 (M)
+  - [complete] remove em or en dash or hyphen from Gear, Edges, Powers, string
+  - handle ligatures in input parsing text, some pdfs have ligatures ex. tt in Attribute:
+  - [complete] handle arcane background in edges list ex. Arcane Background (Weird Science),
+
 - Environment
-  - [complete] Add illumination toggles for light, dim, dark, and pitch
-    - +0 Light: normal illumination
-    - −2 Dim: Twilight, light fog, night with a full moon.
-    - −4 Dark: Typical night conditions with some ambient light from stars, a clouded or partial moon, emergency lights in an office building, a few flickering torches in a large space, etc. Targets aren't visible outside of 10″.
-    - −6 Pitch: Complete and total darkness (or the target is hidden or invisible). Powers that require sight may not be possible.
+  - [complete] Add illumination toggles for light, dim, dark, and pitch +0 Light: normal illumination  −2 Dim: Twilight, light fog, night with a full moon. −4 Dark: Typical night conditions with some ambient light from stars, a clouded or partial moon, emergency lights in an office building, a few flickering torches in a large space, etc. Targets aren't visible outside of 10″. −6 Pitch: Complete and total darkness (or the target is hidden or invisible). Powers that require sight may not be possible.
   
 - Attacker conditions
   - [complete] -2 distracted: -2 to all trait, trait mode only
-  - - -2 unstable platform, -2 to ranged (not melee), trait mode only
-  - XXX-2 prone: -2 fighting
+  - -2 unstable platform, -2 to ranged (not melee), trait mode only
+  - -2 prone: -2 fighting
 
 - Attacher options
   - [complete] +2 wild attack: +2 to melee (not ranged), +2 to damage (on both trait and damage mode)
   - [complete] -2/-4 multi-actions: -2 for 2 actions, -4 for 3 actions, limit 3
-  - [complete] -2/-4 called shot: 0 calledshot, -2 limb, -4 hand, -4 head(+4 dmg), -2 itemsword, -4 itempistol, -4 unarmored, -6 eyeslit
+  - [complete] -2/-4 0 calledshot, -2 limb, -4 hand, -4 head(+4 dmg), -2 itemsword, -4 itempistol, -4 unarmored, -6 eyeslit   
   - **-2 offhand: -2 on attack
 
 - Target conditions
@@ -23,39 +25,9 @@
   - [complete] +2 vulnerable: target is vulnerable
   - [complete] +4 drop: attacker has the drop on target
   - [complete] 0/-2/-4/-8: range penalties, short medium long extreme
-  - **-2 unarmed: melee only
-  - **-4 prone: range attack target is prone, -4 medium cover if >= 3" away; melee, +0 but target gets -2 parry
+  - -2 unarmed: melee only, defender unarmed
+  - -4 prone: range attack target is prone, -4 medium cover if >= 3" away; melee, +0 but target gets -2 parry
   - [complete]+1-4 gang up: based on adjacent characters
-
-cover,multi,distracted
-vulnerable
-wild, drop, called shots
-
-- called shots
-  - HAND (−4): Target may be Disarmed, see
-page 100.
-  - HEAD OR VITALS (−4): Hitting the head
-or vital organs of living creatures adds +4
-damage to the attacker’s total.
-The penalty is −5 if attempting to target
-the face of someone wearing an open-
-faced helmet (thus bypassing the helmet’s
-Armor).
-  - ITEM (?): Use the dimensions on the Scale
-table for items. Targeting something the
-size of a pistol, for example, is −4; a 3' long
-sword is −2.
-  - LIMBS (−2): Hitting a limb has no additional
-special effect since it’s already accounted
-for by Wound and Pace penalties (see
-Wounds, page 95).
-  - UNARMORED AREA (?): The attack targets
-the unprotected area of a target otherwise
-covered in Armor. The penalty depends on
-the Scale of the area. The eyeslit of a helmet
-is Tiny (−6), for example, while the flesh
-beneath the missing scale of a Huge dragon
-might be Very Small (−4).
 
 - Allow GM to set a particular player's target number and modifier values
 

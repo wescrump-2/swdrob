@@ -3,31 +3,7 @@ import { Util } from "./util";
 import { Character, Savaged, Trait } from "./savaged";
 import { Debug } from "./debug";
 
-const DEFAULT_STATBLOCK: Character = {
-  name: "",
-  attributes: [
-    { name: "agility", die: "d6" },
-    { name: "smarts", die: "d6" },
-    { name: "spirit", die: "d6" },
-    { name: "strength", die: "d6" },
-    { name: "vigor", die: "d6" }
-  ],
-  skills: [
-    { name: "unskilled", die: "d4-2" },
-    { name: "athletics", die: "d4" },
-    { name: "common knowledge", die: "d4" },
-    { name: "notice", die: "d4" },
-    { name: "persuasion", die: "d4" },
-    { name: "stealth", die: "d4" },
-  ],
-  weapons: [],
-  pace: 6,
-  parry: 2,
-  toughness: 5,
-  edges: [],
-  hindrances: [],
-  gear: [],
-};
+const DEFAULT_STATBLOCK: Character = Character.getDefaultCharacter();
 
 let currentItemId: string | null = null;
 
@@ -212,7 +188,7 @@ function populateForm(character: Character) {
   (character.attributes || [] as Trait[]).forEach((trait: Trait) => {
     const button = document.createElement("button");
     const displayName = Util.toTitleCase(trait.name);
-    button.textContent = `${displayName} ${trait.die}`;
+    button.textContent = `${displayName} ${trait.die}${trait.info ? trait.info : ''}`;
     button.type = "button";
     button.className = "popup-roll-btn popup-attribute-btn";
     button.dataset.die = trait.die;
@@ -378,6 +354,8 @@ function populateForm(character: Character) {
   const advancesTextarea = document.getElementById("advances") as HTMLTextAreaElement;
 
   if (character.edges && character.edges.length > 0) {
+    if (edgesTextarea.rows >= character.edges.length) edgesTextarea.rows = character.edges.length
+    else edgesTextarea.rows = 3;
     edgesTextarea.value = character.edges.join("\n");
     document.getElementById("edges-section")?.classList.remove("hidden");
   } else {
@@ -385,6 +363,8 @@ function populateForm(character: Character) {
   }
 
   if (character.hindrances && character.hindrances.length > 0) {
+    if (hindrancesTextarea.rows >= character.hindrances.length) hindrancesTextarea.rows = character.hindrances.length
+    else hindrancesTextarea.rows = 3;
     hindrancesTextarea.value = character.hindrances.join("\n");
     document.getElementById("hindrances-section")?.classList.remove("hidden");
   } else {
@@ -392,6 +372,8 @@ function populateForm(character: Character) {
   }
 
   if (character.gear && character.gear.length > 0) {
+    if (gearTextarea.rows >= character.gear.length) gearTextarea.rows = character.gear.length
+    else gearTextarea.rows = 3;
     gearTextarea.value = character.gear.join("\n");
     document.getElementById("gear-section")?.classList.remove("hidden");
   } else {
@@ -399,6 +381,8 @@ function populateForm(character: Character) {
   }
 
   if (character.specialAbilities && character.specialAbilities.length > 0) {
+        if (specialAbilitiesTextarea.rows >= character.specialAbilities.length) specialAbilitiesTextarea.rows = character.specialAbilities.length
+    else specialAbilitiesTextarea.rows = 3;
     specialAbilitiesTextarea.value = character.specialAbilities.join("\n");
     document.getElementById("special-abilities-section")?.classList.remove("hidden");
   } else {
@@ -406,6 +390,8 @@ function populateForm(character: Character) {
   }
 
   if (character.advances && character.advances.length > 0) {
+     if (advancesTextarea.rows >= character.advances.length) advancesTextarea.rows = character.advances.length
+    else advancesTextarea.rows = 3;
     advancesTextarea.value = character.advances.join("\n");
     document.getElementById("advances-section")?.classList.remove("hidden");
   } else {
@@ -506,7 +492,7 @@ function parseWeaponDamage(damageStr: string): { dice: string[], modifier: numbe
     }
   }
 
-  Debug.log(`Parsed weapon damage: dice=${JSON.stringify(diceParts)}, modifier=${finalModifier}`);
+  //Debug.log(`Parsed weapon damage: dice=${JSON.stringify(diceParts)}, modifier=${finalModifier}`);
   return { dice: diceParts, modifier: finalModifier };
 }
 

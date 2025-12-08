@@ -429,5 +429,15 @@ export class Util {
 
         return result;
     };
+
+    static removeDashes = (str: string): string => {
+        if (!str) return str;
+
+        // Only remove one dash if it is the first character
+        if (str.length > 0 && /[—–-]/.test(str[0])) {
+            return str.substring(1);
+        }
+        return str;
+    };
 }
 
