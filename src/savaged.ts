@@ -309,7 +309,6 @@ export class Savaged {
     static proxy_url_base = "https://owlbearproxy.vercel.app/url/proxy";
     static API_KEY: string = '12271xNGRlMzAyYTctMzJkMy00NzhhLThiYmUtZTQ1NDU2YWIyNWY0';
     /*
-    "/auth/get-saves"
     "/campaigns/get-setting-from-session-id"
     "/wc/bestiary-export-json-generic/"
     "/wc/bestiary-fantasy-grounds/"
@@ -500,8 +499,6 @@ export class Savaged {
         }
     }
 
-
-
     static async parseCharacterFromURL(url: string): Promise<Character> {
         try {
             const proxyUrl = `${Savaged.proxy_url_base}`;
@@ -533,7 +530,7 @@ export class Savaged {
             const nameMatch = text.match(/<h1>([^<]*)<\/h1>/);
             const name = nameMatch ? nameMatch[1] : '';
             character.name = Util.toTitleCase(name);
-
+            character.isWildCard=true; //savaged.us are wild cards.
             const h1 = doc.querySelector('h1');
             if (h1) {
                 const nextDiv = h1.nextElementSibling;
