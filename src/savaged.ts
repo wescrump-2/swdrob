@@ -160,7 +160,7 @@ export class Character {
             const arcaneDie = this.getSkillDie(skillName) || this.getSkillDie('unskilled');
             Debug.log(`Arcane skill die for "${skillName}": "${arcaneDie}"`);
 
-            this.skills.push({ name: 'arcane', die: arcaneDie });
+            //this.skills.push({ name: 'arcane', die: arcaneDie });
             this.arcaneBackground = bgName; // Store just the background name
             this.arcaneSkill = skillName;
         } else {

@@ -326,7 +326,7 @@ function populateForm(character: Character) {
   if (character.arcaneBackground) {
     const p = document.createElement("p");
     p.className = "popup-arcane-info";
-    p.textContent = `${character.arcaneBackground} (Skill: ${character.arcaneSkill || 'unknown'})`;
+    p.textContent = `Arcane Background: ${character.arcaneBackground} (Skill: ${character.arcaneSkill || '-'})`;
     arcaneInfoDiv.appendChild(p);
   }
 
