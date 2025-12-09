@@ -282,15 +282,13 @@ function populateForm(character: Character) {
   const weaponsDiv = document.getElementById("weapons")!;
   weaponsDiv.innerHTML = "";
   (character.weapons || []).forEach((weapon) => {
-    if (weapon.damage) {
-      const button = document.createElement("button");
-      button.textContent = `${Util.toTitleCase(weapon.name)} ${weapon.damage}`;
-      button.type = "button";
-      button.className = "popup-roll-btn popup-weapon-btn";
-      button.dataset.die = weapon.damage;
-      button.dataset.weapon = weapon.name;
-      weaponsDiv.appendChild(button);
-    }
+    const button = document.createElement("button");
+    button.textContent = `${Util.toTitleCase(weapon.name)} ${weapon.damage ? weapon.damage : '?d?'}`;
+    button.type = "button";
+    button.className = "popup-roll-btn popup-weapon-btn";
+    button.dataset.die = weapon.damage;
+    button.dataset.weapon = weapon.name;
+    weaponsDiv.appendChild(button);
   });
 
   // Powers
@@ -381,7 +379,7 @@ function populateForm(character: Character) {
   }
 
   if (character.specialAbilities && character.specialAbilities.length > 0) {
-        if (specialAbilitiesTextarea.rows >= character.specialAbilities.length) specialAbilitiesTextarea.rows = character.specialAbilities.length
+    if (specialAbilitiesTextarea.rows >= character.specialAbilities.length) specialAbilitiesTextarea.rows = character.specialAbilities.length
     else specialAbilitiesTextarea.rows = 3;
     specialAbilitiesTextarea.value = character.specialAbilities.join("\n");
     document.getElementById("special-abilities-section")?.classList.remove("hidden");
@@ -390,7 +388,7 @@ function populateForm(character: Character) {
   }
 
   if (character.advances && character.advances.length > 0) {
-     if (advancesTextarea.rows >= character.advances.length) advancesTextarea.rows = character.advances.length
+    if (advancesTextarea.rows >= character.advances.length) advancesTextarea.rows = character.advances.length
     else advancesTextarea.rows = 3;
     advancesTextarea.value = character.advances.join("\n");
     document.getElementById("advances-section")?.classList.remove("hidden");

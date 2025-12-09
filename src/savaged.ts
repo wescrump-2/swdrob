@@ -156,7 +156,6 @@ function extractSectionContent(lines: string[], startIndex: number, sectionHeade
         return sectionHeaderPatterns.some(pattern => pattern.test(line));
     };
 
-
     // Start from the given index and collect content until we hit another section header
     while (currentIndex < lines.length) {
         const line = lines[currentIndex].trim();
@@ -1386,7 +1385,7 @@ export class Savaged {
         "Attributes", "Skills", "Edges", "Hindrances", "Gear",
         "Special Abilities", "Advances", "Background", "Type",
         "Rank", "Race", "Profession", "Charisma", "Cybertech",
-        "Experience", "Bennies", "Pace", "Parry", "Toughness",
+        "Experience", "Bennies", "Pace", 
         "Arcane Background", "Powers", "Weapons", "Languages",
         "Wealth", "Power Points", "Description",
         "Armor", //Armor is last for reasons
@@ -2373,97 +2372,218 @@ export class Savaged {
         // Helper function to parse weapons from gear items
         function parseWeaponFromGearItem(gearItem: string, character: Character): Weapon | null {
             const trimmedItem = gearItem.trim();
-            const weaponPattern = /^(.*?)\s*\(([^()]+)\)\s*\.?$/;
-            const weaponMatch = trimmedItem.match(weaponPattern);
-
-            let altWeaponMatch = null;
-            if (!weaponMatch) {
-                // Try alternative pattern for weapons without parentheses
-                // Look for weapons with properties separated by commas
-                const altWeaponPattern = /^(.+?)\s*,\s*(.+)$/;
-                altWeaponMatch = trimmedItem.match(altWeaponPattern);
-                if (!altWeaponMatch) {
-                    return null; // Doesn't look like a weapon
-                }
-            }
-
+    
+            // NEW: Improved weapon pattern that handles nested parentheses and complex descriptions
+            // This pattern looks for the last opening parenthesis that starts weapon details
+            // and handles cases like "shock truncheon with 1 battery (Str+d6: Knockdown, Parry)"
             let weaponName = '';
             let detailsStr = '';
-
-            if (weaponMatch) {
-                weaponName = weaponMatch[1].trim();
-                detailsStr = weaponMatch[2].trim();
-            } else if (altWeaponMatch) {
-                weaponName = altWeaponMatch[1].trim();
-                detailsStr = altWeaponMatch[2].trim();
+    
+            // Find the last opening parenthesis that contains weapon-like details
+            const lastParenIndex = trimmedItem.lastIndexOf('(');
+            if (lastParenIndex !== -1) {
+                // Extract everything before the last parenthesis as weapon name
+                weaponName = trimmedItem.substring(0, lastParenIndex).trim();
+    
+                // Extract everything from the last parenthesis to the end
+                const detailsWithParens = trimmedItem.substring(lastParenIndex).trim();
+    
+                // Remove the outer parentheses
+                if (detailsWithParens.startsWith('(') && detailsWithParens.endsWith(')')) {
+                    detailsStr = detailsWithParens.substring(1, detailsWithParens.length - 1).trim();
+                } else if (detailsWithParens.startsWith('(')) {
+                    // Handle cases where there's no closing parenthesis (malformed)
+                    detailsStr = detailsWithParens.substring(1).trim();
+                } else {
+                    // No parentheses found, try alternative parsing
+                    detailsStr = '';
+                }
             }
-
+    
+            // If no parentheses found, try alternative parsing for weapons without parentheses
+            if (!detailsStr) {
+                // Look for weapons with properties separated by commas
+                const commaIndex = trimmedItem.lastIndexOf(',');
+                if (commaIndex !== -1) {
+                    weaponName = trimmedItem.substring(0, commaIndex).trim();
+                    detailsStr = trimmedItem.substring(commaIndex + 1).trim();
+                } else {
+                    // Doesn't look like a weapon with details
+                    return null;
+                }
+            }
+    
             // Clean up weapon name by removing quantity indicators like "2x"
             weaponName = weaponName.replace(/^\d+x\s*/i, '').trim();
-
+    
+            // NEW: Handle weapon names with colons (e.g., "shock truncheon with 1 battery: some description")
+            const colonIndex = weaponName.indexOf(':');
+            if (colonIndex !== -1) {
+                weaponName = weaponName.substring(0, colonIndex).trim();
+            }
+    
             // Parse the details to extract weapon information
-            // Split by commas first, then handle semicolons within each part
-            const detailParts = detailsStr.split(',').map(part => part.trim());
+            // NEW: Handle details with colons like "Str+d6: Knockdown, Parry"
+            const detailParts = [];
+            let currentPart = '';
+            let inParentheses = 0;
+    
+            // Custom parser to handle nested parentheses and colons
+            for (let i = 0; i < detailsStr.length; i++) {
+                const char = detailsStr[i];
+    
+                if (char === '(') {
+                    inParentheses++;
+                    currentPart += char;
+                } else if (char === ')') {
+                    inParentheses--;
+                    currentPart += char;
+                } else if (char === ',' && inParentheses === 0) {
+                    // Only split on commas that are not inside parentheses
+                    if (currentPart.trim()) {
+                        detailParts.push(currentPart.trim());
+                    }
+                    currentPart = '';
+                } else {
+                    currentPart += char;
+                }
+            }
+    
+            // Add the last part
+            if (currentPart.trim()) {
+                detailParts.push(currentPart.trim());
+            }
+    
             const detailMap: Record<string, string> = {};
-
+    
             detailParts.forEach(part => {
                 // Skip empty parts
                 if (!part || part.trim() === '') return;
-
-                // Handle different detail formats
-                if (part.match(/^[-+]\d+\s+Parry$/i)) {
-                    // Format: "+1 Parry" or "-1 Parry"
-                    const value = part.replace(/parry/i, '').trim();
-                    detailMap['parry'] = value;
+    
+                // NEW: Handle parts with colons like "Str+d6: Knockdown, Parry"
+                if (part.includes(':') && !part.includes(':')) {
+                    // Simple case: "Range: 12/24/48"
+                    const colonIndex = part.indexOf(':');
+                    const key = part.substring(0, colonIndex).trim().toLowerCase();
+                    const value = part.substring(colonIndex + 1).trim();
+                    detailMap[key] = value;
                 } else if (part.includes(':')) {
-                    // Format: "Range: 12/24/48" or "Damage: 2d6"
-                    const [key, ...valueParts] = part.split(':');
-                    const keyLower = key.toLowerCase().trim();
-                    const value = valueParts.join(':').trim();
-                    detailMap[keyLower] = value;
-                } else if (part.includes(' ')) {
-                    // Format: "Str+d6", "AP 2", "Reach 1", etc.
-                    const spaceIndex = part.indexOf(' ');
-                    const key = part.substring(0, spaceIndex).toLowerCase();
-                    const value = part.substring(spaceIndex + 1).trim();
-
-                    // Special handling for damage patterns
-                    const isDamagePattern =
-                        value.match(/^\d*d\d+[\+\-]?\d*$/i) || // 2d6, d8+2, etc.
-                        value.match(/^(str)\s*[\+\-]?\s*d\d+[\+\-]?\d*/i) || // Str+d6, etc.
-                        value.match(/^(str)$/i); // Just "Str" alone
-
-                    if (isDamagePattern && (key === 'damage' || key === '')) {
-                        detailMap['damage'] = value;
-                    } else if (key === 'range' || key === 'reach' || key === 'ap' || key === 'rof') {
-                        detailMap[key] = value;
-                    } else if (value === 'melee' || value === 'ranged') {
-                        detailMap['range'] = value;
-                    } else {
-                        // Handle cases like "AP 1" where key is "AP" and value is "1"
-                        detailMap[key] = value;
+                    // Complex case with multiple colons or nested structure
+                    // Look for the first colon that's not inside parentheses
+                    let firstColonIndex = -1;
+                    let parenDepth = 0;
+    
+                    for (let i = 0; i < part.length; i++) {
+                        if (part[i] === '(') {
+                            parenDepth++;
+                        } else if (part[i] === ')') {
+                            parenDepth--;
+                        } else if (part[i] === ':' && parenDepth === 0) {
+                            firstColonIndex = i;
+                            break;
+                        }
                     }
-                } else {
-                    // Single word parts - could be damage like "2d6" or properties like "AP"
-                    const isDamagePattern =
-                        part.match(/^\d*d\d+[\+\-]?\d*$/i) || // 2d6, d8+2, etc.
-                        part.match(/^(str)\s*[\+\-]?\s*d\d+[\+\-]?\d*/i) || // Str+d6, etc.
-                        part.match(/^(str)$/i); // Just "Str" alone
-
-                    if (isDamagePattern) {
-                        detailMap['damage'] = part;
-                    } else if (part.match(/^\d+$/)) {
-                        // Could be AP value or other numeric property
-                        if (!detailMap['ap']) {
-                            detailMap['ap'] = part;
+    
+                    if (firstColonIndex !== -1) {
+                        const key = part.substring(0, firstColonIndex).trim().toLowerCase();
+                        const value = part.substring(firstColonIndex + 1).trim();
+                        detailMap[key] = value;
+    
+                        // Also check if the key part contains damage information
+                        const keyPart = part.substring(0, firstColonIndex).trim();
+                        if (keyPart.match(/^(str)\s*[\+\-]?\s*d\d+[\+\-]?\d*$/i) ||
+                            keyPart.match(/^\d*d\d+[\+\-]?\d*$/i) ||
+                            keyPart === 'Str') {
+                            detailMap['damage'] = keyPart;
                         }
                     } else {
-                        // Could be properties like "Throwing", "Shooting", etc.
-                        detailMap[part.toLowerCase()] = 'true';
+                        // No colon found outside parentheses, treat as simple value
+                        // Check if this is a damage pattern
+                        const isDamagePattern =
+                            part.match(/^\d*d\d+[\+\-]?\d*$/i) || // 2d6, d8+2, etc.
+                            part.match(/^(str)\s*[\+\-]?\s*d\d+[\+\-]?\d*/i) || // Str+d6, etc.
+                            part.match(/^(str)$/i); // Just "Str" alone
+    
+                        if (isDamagePattern) {
+                            detailMap['damage'] = part;
+                        } else if (part.match(/^[-+]\d+\s+Parry$/i)) {
+                            // Format: "+1 Parry" or "-1 Parry"
+                            const value = part.replace(/parry/i, '').trim();
+                            detailMap['parry'] = value;
+                        } else if (part.includes(' ')) {
+                            // Format: "AP 2", "Reach 1", etc.
+                            const spaceIndex = part.indexOf(' ');
+                            const key = part.substring(0, spaceIndex).toLowerCase();
+                            const value = part.substring(spaceIndex + 1).trim();
+    
+                            if (key === 'range' || key === 'reach' || key === 'ap' || key === 'rof') {
+                                detailMap[key] = value;
+                            } else if (value === 'melee' || value === 'ranged') {
+                                detailMap['range'] = value;
+                            } else {
+                                // Handle cases like "AP 1" where key is "AP" and value is "1"
+                                detailMap[key] = value;
+                            }
+                        } else if (part.match(/^\d+$/)) {
+                            // Could be AP value or other numeric property
+                            if (!detailMap['ap']) {
+                                detailMap['ap'] = part;
+                            }
+                        } else {
+                            // Could be properties like "Throwing", "Shooting", etc.
+                            detailMap[part.toLowerCase()] = 'true';
+                        }
+                    }
+                } else {
+                    // Handle different detail formats (fallback to original logic)
+                    if (part.match(/^[-+]\d+\s+Parry$/i)) {
+                        // Format: "+1 Parry" or "-1 Parry"
+                        const value = part.replace(/parry/i, '').trim();
+                        detailMap['parry'] = value;
+                    } else if (part.includes(' ')) {
+                        // Format: "Str+d6", "AP 2", "Reach 1", etc.
+                        const spaceIndex = part.indexOf(' ');
+                        const key = part.substring(0, spaceIndex).toLowerCase();
+                        const value = part.substring(spaceIndex + 1).trim();
+    
+                        // Special handling for damage patterns
+                        const isDamagePattern =
+                            value.match(/^\d*d\d+[\+\-]?\d*$/i) || // 2d6, d8+2, etc.
+                            value.match(/^(str)\s*[\+\-]?\s*d\d+[\+\-]?\d*/i) || // Str+d6, etc.
+                            value.match(/^(str)$/i); // Just "Str" alone
+    
+                        if (isDamagePattern && (key === 'damage' || key === '')) {
+                            detailMap['damage'] = value;
+                        } else if (key === 'range' || key === 'reach' || key === 'ap' || key === 'rof') {
+                            detailMap[key] = value;
+                        } else if (value === 'melee' || value === 'ranged') {
+                            detailMap['range'] = value;
+                        } else {
+                            // Handle cases like "AP 1" where key is "AP" and value is "1"
+                            detailMap[key] = value;
+                        }
+                    } else {
+                        // Single word parts - could be damage like "2d6" or properties like "AP"
+                        const isDamagePattern =
+                            part.match(/^\d*d\d+[\+\-]?\d*$/i) || // 2d6, d8+2, etc.
+                            part.match(/^(str)\s*[\+\-]?\s*d\d+[\+\-]?\d*/i) || // Str+d6, etc.
+                            part.match(/^(str)$/i); // Just "Str" alone
+    
+                        if (isDamagePattern) {
+                            detailMap['damage'] = part;
+                        } else if (part.match(/^\d+$/)) {
+                            // Could be AP value or other numeric property
+                            if (!detailMap['ap']) {
+                                detailMap['ap'] = part;
+                            }
+                        } else {
+                            // Could be properties like "Throwing", "Shooting", etc.
+                            detailMap[part.toLowerCase()] = 'true';
+                        }
                     }
                 }
             });
-
+    
             // NEW: Handle cases where damage is specified without "Damage:" prefix
             // Look for patterns like "Str+d6" or "2d6" in the details
             if (!detailMap['damage']) {
@@ -2473,7 +2593,7 @@ export class Savaged {
                     detailMap['damage'] = damageMatch[0].trim();
                 }
             }
-
+    
             // NEW: Handle range patterns like "Range 12/24/48" or "12/24/48"
             if (!detailMap['range'] || detailMap['range'] === 'melee') {
                 const rangePattern = /\b(\d+\/\d+\/\d+)\b/;
@@ -2482,7 +2602,7 @@ export class Savaged {
                     detailMap['range'] = rangeMatch[0];
                 }
             }
-
+    
             // Determine if this is actually a weapon by checking for weapon-like details
             const isWeapon = detailMap['damage'] ||
                 detailMap['range'] ||
@@ -2492,11 +2612,11 @@ export class Savaged {
                 detailMap['rof'] ||
                 detailMap['throwing'] === 'true' ||
                 detailMap['shooting'] === 'true';
-
+    
             if (!isWeapon) {
                 return null;
             }
-
+    
             // Build the weapon object
             const weapon: Weapon = {
                 name: weaponName,
@@ -2506,14 +2626,14 @@ export class Savaged {
                 rof: detailMap['rof'],
                 ap: detailMap['ap']
             };
-
+    
             // Process damage string
             let damage = detailMap['damage'];
             if (damage) {
-
+    
                 const strDie = character.getAttributeDie('strength');
                 Debug.log(`Gear weapon damage parsing - Original: "${damage}", Str die: "${strDie}"`);
-
+    
                 // Handle complex damage patterns like "(1-3)d6" first
                 const complexDamageMatch = damage.match(/^\((\d+)-(\d+)\)(d\d+)$/i);
                 if (complexDamageMatch) {
@@ -2524,26 +2644,26 @@ export class Savaged {
                     damage = `${avgDice}${dieType}`;
                     Debug.log(`Complex damage pattern converted: "${complexDamageMatch[0]}" -> "${damage}"`);
                 }
-
+    
                 // Handle standalone attribute references (like "Str" alone)
                 damage = damage.replace(/\bStr\b(?!\s*[+-]?\s*d\d+)/gi, strDie);
-
+    
                 // Handle attributes followed by dice notation
                 damage = damage.replace(/\bStr\b(?=\s*[+-]?\s*d\d+)/gi, strDie);
-
+    
                 Debug.log(`Gear weapon damage parsing - After substitution: "${damage}"`);
                 weapon.damage = damage;
             }
-
+    
             const weaponNameLower = weaponName.toLowerCase();
             const isThrown = ['axe', 'hand axe', 'throwing axe', 'dagger', 'knife', 'net', 'sling', 'spear', 'javelin', 'trident', 'starknife', 'shuriken', 'bolas', 'hammer', 'warhammer', 'rock'].some(tw => weaponNameLower.includes(tw));
             const isOnlyThrown = ['net', 'sling', 'shuriken', 'bolas', 'rock'].some(tw => weaponNameLower.includes(tw));
-
+    
             // NEW: Better range detection
             const rangeValue = detailMap['range'] ? detailMap['range'].toLowerCase() : '';
             const isMelee = !rangeValue || rangeValue === 'melee' || rangeValue === '';
             const isShooting = !isMelee && !isThrown;
-
+    
             // Special handling for Unarmed weapons
             const isUnarmed = weaponNameLower.includes('unarmed');
             if (isUnarmed && isMelee && !isThrown) {
@@ -2560,7 +2680,7 @@ export class Savaged {
             } else if (isShooting) {
                 weapon.attack = character.getSkillDie('shooting');
             }
-
+    
             // Set default reach and parry for melee weapons
             if (isMelee && !weapon.reach) {
                 weapon.reach = '1';
@@ -2571,7 +2691,7 @@ export class Savaged {
             if (!isMelee && !weapon.rof) {
                 weapon.rof = '1';
             }
-
+    
             //Debug.log(`Parsed weapon from gear: ${weapon.name} -> attack: ${weapon.attack}, damage: ${weapon.damage}, range: ${weapon.range}`);
             return weapon;
         }
