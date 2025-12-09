@@ -67,6 +67,9 @@ export class Character {
     public getSkillDie(name: string): string {
         return this.skills.find(t => t.name === name)?.die || 'd4-2';
     }
+    public getAttributeDie(name: string): string {
+        return this.attributes.find(t => t.name.toLowerCase() === name.toLowerCase())?.die || 'd4';
+    }
     // Add this function to the Character class or as a static method
     static getDefaultCharacter(): Character {
         const character = new Character();
@@ -152,6 +155,7 @@ function extractSectionContent(lines: string[], startIndex: number, sectionHeade
     const isSectionHeader = (line: string): boolean => {
         return sectionHeaderPatterns.some(pattern => pattern.test(line));
     };
+
 
     // Start from the given index and collect content until we hit another section header
     while (currentIndex < lines.length) {
@@ -751,7 +755,8 @@ export class Savaged {
                     // NEW: Handle nested parentheses in weapon names
                     // Find the last occurrence of "(" that starts the weapon details section
                     // This should be the one that contains "Range", "Damage", etc.
-                    const lastDetailsParenIndex = part.lastIndexOf('(Range');
+                    let lastDetailsParenIndex = part.lastIndexOf('(');
+                    //const lastDetailsParenIndex = part.lastIndexOf('(Range');
                     if (lastDetailsParenIndex === -1) {
                         Debug.log(`  No weapon details found for: "${part}"`);
                         return; // Skip weapons without proper details
@@ -775,6 +780,19 @@ export class Savaged {
                                 detailMap['parry'] = value;
                                 Debug.log(`    Found parry modifier: "${value}"`);
                             } else {
+                                // Check if this is a damage pattern first (before trying to split by space)
+                                // This handles patterns like "2d6-2", "3d8+1", "Str", etc.
+                                const isDamagePattern =
+                                    p.match(/^\d+d\d+[+-]?\d*$/i) || // 2d6, 2d6-2, 3d8+1, etc.
+                                    p.match(/^(str)\s*[+-]?\s*d\d+[+-]?\d*/i) || // Str+d6, Str-d4, etc.
+                                    p.match(/^(str)$/i); // Just "Str" alone
+
+                                if (isDamagePattern) {
+                                    detailMap['damage'] = p;
+                                    Debug.log(`    Identified standalone damage pattern: "${p}"`);
+                                    return; // Early return for damage patterns
+                                }
+
                                 let key: string, value: string;
                                 if (p.includes(': ')) {
                                     [key, value] = p.split(': ');
@@ -786,7 +804,7 @@ export class Savaged {
                                         value = p.substring(spaceIndex + 1);
                                         Debug.log(`    Split by space -> key: "${key}", value: "${value}"`);
                                     } else {
-                                        Debug.log(`    Invalid part (no space): "${p}"`);
+                                        Debug.log(`    Invalid part (no space, not damage): "${p}"`);
                                         return; // invalid part
                                     }
                                 }
@@ -798,8 +816,8 @@ export class Savaged {
                         let damage = detailMap['damage'];
                         if (damage) {
                             // Substitute attribute abbreviations with actual dice
-                            const getAttributeDie = (name: string) => character.attributes.find(t => t.name.toLowerCase() === name.toLowerCase())?.die || 'd4';
-                            const strDie = getAttributeDie('strength');
+
+                            const strDie = character.getAttributeDie('strength');
                             Debug.log(`Weapon damage parsing - Original: "${damage}", Str die: "${strDie}"`);
 
                             // NEW: Handle complex damage patterns like "(1-3)d6" first
@@ -1226,11 +1244,6 @@ export class Savaged {
                 const attackPattern = /^(.+?):\s*(.+)$/i; // Pattern like "Bite: Str+d8"
                 const weaponsFromSpecialAbilities: Weapon[] = [];
 
-                // Helper function to substitute attribute abbreviations with actual dice
-                const getAttributeDie = (name: string) => character.attributes.find(t => t.name.toLowerCase() === name.toLowerCase())?.die || 'd4';
-
-
-
                 // Process special abilities in reverse order to avoid index issues when removing
                 for (let i = character.specialAbilities.length - 1; i >= 0; i--) {
                     const ability = character.specialAbilities[i];
@@ -1262,7 +1275,7 @@ export class Savaged {
 
                         if (isWeaponAttackName && hasDamage) {
                             // Debug logging for attribute substitution
-                            const strDie = getAttributeDie('strength');
+                            const strDie = character.getAttributeDie('strength');
                             Debug.log(`Special ability weapon parsing: ${match[1].trim()} - Original damage: "${finalDamageStr}", Str die: "${strDie}"`);
 
                             // Debug: Log all attributes to see what we're working with
@@ -1327,14 +1340,6 @@ export class Savaged {
         let clean: string = '';
         // Regex patterns to replace Unicode characters with *
         const regexhyphen = /(?<=\p{L})-[\r\n]+(?=\p{L})/gu;
-        // Option 1: Replace all non-ASCII characters (most common need)
-        // This preserves ASCII letters, numbers, punctuation, and spaces
-        const regex1 = /[^\x00-\x7F]/g;
-        const xregex1 = /[\x00-\x7F]/g;
-        const regexes = [
-            { name: "Non-ASCII only", pattern: regex1, replace: "•", description: "Replaces everything outside ASCII range (0-127)" },
-            { name: "Non-ASCII only-REMOVED", pattern: xregex1, replace: "", description: "Replaces everything outside ASCII range (0-127)" },
-        ];
         //remove hyphenation
         let testString = text.replace(regexhyphen, '');
         const from = "—’″−";
@@ -1342,9 +1347,16 @@ export class Savaged {
         const map = new Map<string, string>(
             [...from].map((char, i) => [char, to[i] ?? char])
         );
-
         testString = testString.replace(/./g, ch => map.get(ch) ?? ch);
 
+        // Option 1: Replace all non-ASCII characters (most common need)
+        // This preserves ASCII letters, numbers, punctuation, and spaces
+        const regex1 = /[^\x00-\x7F]/g;
+        //const xregex1 = /[\x00-\x7F]/g;
+        const regexes = [
+            { name: "Non-ASCII only", pattern: regex1, replace: "-", description: "Replaces everything outside ASCII range (0-127)" },
+            //{ name: "Non-ASCII only-REMOVED", pattern: xregex1, replace: "", description: "Replaces everything outside ASCII range (0-127)" },
+        ];
         regexes.forEach(({ name, pattern, replace, description }, patcnt) => {
             try {
                 const result = testString.replace(pattern, replace);
@@ -1360,9 +1372,9 @@ export class Savaged {
     }
 
     static weaponAttackNames = [
-        'bite', 'claw', 'slam', 'strike', 'punch', 'kick', 'gore', 'trample', 
-        'crush', 'rend', 'maul', 'rake', 'peck', 'sting', 'lash', 'swipe', 
-        'chomp', 'snap', 'slash', 'stab', 'pierce', 'bludgeon', 'horn','trunk',
+        'bite', 'claw', 'slam', 'strike', 'punch', 'kick', 'gore', 'trample',
+        'crush', 'rend', 'maul', 'rake', 'peck', 'sting', 'lash', 'swipe',
+        'chomp', 'snap', 'slash', 'stab', 'pierce', 'bludgeon', 'horn', 'trunk',
         'touch', 'tongue', 'tendrils', 'swarm', 'sting or bite', 'bite or sting',
         'tail', 'vines', 'beak', 'fist', 'unarmed', 'antler', 'tusks', 'mandibles',
         'tentacle', 'fang', 'talon', 'hoof', 'pincer', 'mandible',
@@ -1371,17 +1383,21 @@ export class Savaged {
 
     // Define section headers for extraction functions (moved to top)
     static sectionHeaders = [
-        "Attributes", "Skills", "Edges", "Hindrances", "Gear", 
+        "Attributes", "Skills", "Edges", "Hindrances", "Gear",
         "Special Abilities", "Advances", "Background", "Type",
-        "Rank", "Race", "Profession", "Charisma","Cybertech",
+        "Rank", "Race", "Profession", "Charisma", "Cybertech",
         "Experience", "Bennies", "Pace", "Parry", "Toughness",
-        "Arcane Background", "Powers", "Weapons", "Armor",
-        "Languages", "Wealth", "Power Points", "Description"
+        "Arcane Background", "Powers", "Weapons", "Languages",
+        "Wealth", "Power Points", "Description",
+        "Armor", //Armor is last for reasons
     ];
 
     static escaped = Savaged.sectionHeaders.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-    static sectionHeadersRegEx = new RegExp(`^(${Savaged.escaped})`, 'i');
+    static sectionHeadersRegEx = new RegExp(`^(${Savaged.escaped}:?)`, 'i');
 
+    static isSectionHeader(line: string): boolean {
+        return this.sectionHeadersRegEx.test(line);
+    }
     static findAndRemoveLineStartingWith(lines: string[], prefix: string): string {
         // Find the index of the first line that starts with the prefix
         const index = lines.findIndex(line => line.toLowerCase().startsWith(prefix));
@@ -1773,7 +1789,7 @@ export class Savaged {
                 continue;
             }
             if (weaponsStart) {
-                if (line.match(/^(Arcane Background|Powers|Gear|Special Abilities):?/i)) {
+                if (line.match(Savaged.sectionHeadersRegEx)) {
                     break;
                 } else {
                     weaponsStr += ' ' + line;
@@ -1784,7 +1800,9 @@ export class Savaged {
             }
         }
         if (weaponsStr) {
-            const weaponMatches = weaponsStr.matchAll(/([^,]+?(?:\([^)]+\))?(?:\([^)]+\))?)(?=,|$)/g);
+            // Improved regex to handle weapons with "Str" damage and nested parentheses
+            //const weaponMatches = weaponsStr.matchAll(/([^,]+?(?:\([^)]+\))*?)(?=,|$)/g);
+            const weaponMatches = [...weaponsStr.matchAll(/([^,]+?(?:\([^)]+\))*?)(?=,|$)/g)];
 
             character.weapons = [];
             for (const match of weaponMatches) {
@@ -1795,44 +1813,45 @@ export class Savaged {
                 let weaponName = weaponText;
                 let detailsStr = '';
 
-                const detailPatterns = ['(Range', '(Damage', '(Str+', '(Str-', '(AP'];
-                let lastDetailsParenIndex = -1;
-                let detailPatternUsed = '';
+                // const detailPatterns = ['(Range', '(Damage', '(Str+', '(Str-', '(AP'];
+                // let lastDetailsParenIndex = -1;
+                // let detailPatternUsed = '';
 
-                // Find the last occurrence of any detail pattern
-                for (const pattern of detailPatterns) {
-                    const index = weaponText.lastIndexOf(pattern);
-                    if (index > lastDetailsParenIndex) {
-                        lastDetailsParenIndex = index;
-                        detailPatternUsed = pattern;
-                    }
-                }
+                // // Find the last occurrence of any detail pattern
+                // for (const pattern of detailPatterns) {
+                //     const index = weaponText.lastIndexOf(pattern);
+                //     if (index > lastDetailsParenIndex) {
+                //         lastDetailsParenIndex = index;
+                //         detailPatternUsed = pattern;
+                //     }
+                // }
+                let lastDetailsParenIndex = weaponText.lastIndexOf('(');
 
                 // Fallback: if no specific patterns found, look for any parenthesis with weapon-like content
-                if (lastDetailsParenIndex === -1) {
-                    // Look for parentheses containing known weapon properties
-                    const weaponPropertyPatterns = ['Range', 'Damage', 'Str+', 'Str-', 'AP', 'Parry', 'Reach', 'ROF'];
-                    const parenMatches = weaponText.matchAll(/\(([^)]+)\)/g);
-                    let bestMatchIndex = -1;
-                    let bestMatchScore = 0;
+                // if (lastDetailsParenIndex === -1) {
+                //     // Look for parentheses containing known weapon properties
+                //     const weaponPropertyPatterns = ['Range', 'Damage', 'Str+', 'Str-', 'AP', 'Parry', 'Reach', 'ROF'];
+                //     const parenMatches = weaponText.matchAll(/\(([^)]+)\)/g);
+                //     let bestMatchIndex = -1;
+                //     let bestMatchScore = 0;
 
-                    for (const match of parenMatches) {
-                        let score = 0;
-                        const content = match[1];
-                        weaponPropertyPatterns.forEach(prop => {
-                            if (content.includes(prop)) score++;
-                        });
-                        if (score > bestMatchScore) {
-                            bestMatchScore = score;
-                            bestMatchIndex = match.index;
-                        }
-                    }
+                //     for (const match of parenMatches) {
+                //         let score = 0;
+                //         const content = match[1];
+                //         weaponPropertyPatterns.forEach(prop => {
+                //             if (content.includes(prop)) score++;
+                //         });
+                //         if (score > bestMatchScore) {
+                //             bestMatchScore = score;
+                //             bestMatchIndex = match.index;
+                //         }
+                //     }
 
-                    if (bestMatchIndex !== -1) {
-                        lastDetailsParenIndex = bestMatchIndex;
-                        detailPatternUsed = 'fallback';
-                    }
-                }
+                //     if (bestMatchIndex !== -1) {
+                //         lastDetailsParenIndex = bestMatchIndex;
+                //         detailPatternUsed = 'fallback';
+                //     }
+                // }
 
                 if (lastDetailsParenIndex === -1) {
                     Debug.log(`  No weapon details found for: "${weaponText}"`);
@@ -1841,8 +1860,12 @@ export class Savaged {
 
                 // Extract weapon name (everything before the last details parenthesis)
                 weaponName = weaponText.substring(0, lastDetailsParenIndex).trim();
-                // Extract details (everything from the last details parenthesis onwards)
-                detailsStr = weaponText.substring(lastDetailsParenIndex + 1).trim();
+                // Extract details (everything from the last details parenthesis onwards, excluding the final closing parenthesis)
+                const detailsWithParen = weaponText.substring(lastDetailsParenIndex).trim();
+                // Remove the final closing parenthesis if present
+                const starts = detailsWithParen.startsWith('(') ? 1 : 0;
+                const ends = detailsWithParen.endsWith(')') ? 1 : 0;
+                detailsStr = detailsWithParen.substring(starts, detailsWithParen.length - ends).trim();
 
                 // Clean up weapon name by removing any trailing parentheses that might be part of the name
                 // e.g., ".45" in "Colt .45 (Range 12/24/48, Damage 2d6)"
@@ -1856,17 +1879,51 @@ export class Savaged {
                     }
                 }
 
-                Debug.log(`  Enhanced parsing - Name: "${weaponName}", Details: "${detailsStr}", Pattern: "${detailPatternUsed}"`);
+                Debug.log(`  Enhanced parsing - Name: "${weaponName}", Details: "${detailsStr}""`);
 
                 if (weaponName && detailsStr) {
                     const detailParts = detailsStr.split(', ');
                     const detailMap: Record<string, string> = {};
+
+                    // Special handling for comma-separated values format
+                    if (detailParts.length >= 2) {
+                        // First value is typically damage
+                        const firstValue = detailParts[0].trim();
+                        if (firstValue.match(/^\d+d\d+$/) || firstValue === 'Str' || firstValue.match(/^Str[+-]?\d*$/i)) {
+                            detailMap['damage'] = firstValue;
+                        }
+
+                        // Second value is typically range if it looks like range format
+                        const secondValue = detailParts[1].trim();
+                        if (secondValue.match(/^\d+\/\d+\/\d+$/) || secondValue === 'melee') {
+                            detailMap['range'] = secondValue;
+                        }
+
+                        // Third value might be ROF
+                        if (detailParts.length >= 3 && detailParts[2].trim().startsWith('ROF')) {
+                            detailMap['rof'] = detailParts[2].trim().replace('ROF', '').trim();
+                        }
+                    }
+
                     detailParts.forEach(p => {
                         p = p.trim();
                         if (p.match(/^[-+]\d+ Parry$/)) {
                             const value = p.replace(' Parry', '');
                             detailMap['parry'] = value;
                         } else {
+                            // Check if this is a damage pattern first (before trying to split by space)
+                            // This handles patterns like "2d6-2", "3d8+1", "Str", etc.
+                            const isDamagePattern =
+                                p.match(/^\d+d\d+[+-]?\d*$/i) || // 2d6, 2d6-2, 3d8+1, etc.
+                                p.match(/^(str)\s*[+-]?\s*d\d+[+-]?\d*/i) || // Str+d6, Str-d4, etc.
+                                p.match(/^(str)$/i); // Just "Str" alone
+
+                            if (isDamagePattern) {
+                                detailMap['damage'] = p;
+                                Debug.log(`    Identified standalone damage pattern: "${p}"`);
+                                return; // Early return for damage patterns
+                            }
+
                             let key: string, value: string;
                             if (p.includes(': ')) {
                                 [key, value] = p.split(': ');
@@ -1876,7 +1933,13 @@ export class Savaged {
                                     key = p.substring(0, spaceIndex);
                                     value = p.substring(spaceIndex + 1);
                                 } else {
-                                    return;
+                                    // Handle standalone values like "Str" as damage
+                                    if (p === 'Str' || p.match(/^\d+d\d+$/)) {
+                                        detailMap['damage'] = p;
+                                        return;
+                                    } else {
+                                        return;
+                                    }
                                 }
                             }
                             detailMap[key.toLowerCase().replace(':', '')] = value.trim();
@@ -1884,8 +1947,9 @@ export class Savaged {
                     });
                     let damage = detailMap['damage'];
                     if (damage) {
-                        const getAttributeDie = (name: string) => character.attributes.find(t => t.name.toLowerCase() === name.toLowerCase())?.die || 'd4';
-                        const strDie = getAttributeDie('strength');
+                        // Substitute attribute abbreviations with actual dice
+
+                        const strDie = character.getAttributeDie('strength');
                         Debug.log(`Weapon damage parsing (text) - Original: "${damage}", Str die: "${strDie}"`);
 
                         // NEW: Handle complex damage patterns like "(1-3)d6" first
@@ -2446,8 +2510,8 @@ export class Savaged {
             // Process damage string
             let damage = detailMap['damage'];
             if (damage) {
-                const getAttributeDie = (name: string) => character.attributes.find(t => t.name.toLowerCase() === name.toLowerCase())?.die || 'd4';
-                const strDie = getAttributeDie('strength');
+
+                const strDie = character.getAttributeDie('strength');
                 Debug.log(`Gear weapon damage parsing - Original: "${damage}", Str die: "${strDie}"`);
 
                 // Handle complex damage patterns like "(1-3)d6" first
@@ -2471,9 +2535,6 @@ export class Savaged {
                 weapon.damage = damage;
             }
 
-            // Determine attack values based on weapon type and skills
-            const getSkillDie = (name: string) => character.skills.find(t => t.name === name)?.die || 'd4-2';
-
             const weaponNameLower = weaponName.toLowerCase();
             const isThrown = ['axe', 'hand axe', 'throwing axe', 'dagger', 'knife', 'net', 'sling', 'spear', 'javelin', 'trident', 'starknife', 'shuriken', 'bolas', 'hammer', 'warhammer', 'rock'].some(tw => weaponNameLower.includes(tw));
             const isOnlyThrown = ['net', 'sling', 'shuriken', 'bolas', 'rock'].some(tw => weaponNameLower.includes(tw));
@@ -2486,18 +2547,18 @@ export class Savaged {
             // Special handling for Unarmed weapons
             const isUnarmed = weaponNameLower.includes('unarmed');
             if (isUnarmed && isMelee && !isThrown) {
-                weapon.attack = getSkillDie('fighting');
+                weapon.attack = character.getSkillDie('fighting');
             } else if (isMelee && !isThrown) {
-                weapon.attack = getSkillDie('fighting');
+                weapon.attack = character.getSkillDie('fighting');
             } else if (isThrown) {
                 if (isOnlyThrown) {
-                    weapon.attack = getSkillDie('athletics');
+                    weapon.attack = character.getSkillDie('athletics');
                 } else {
-                    weapon.attack = getSkillDie('fighting');
-                    weapon.thrownAttack = getSkillDie('athletics');
+                    weapon.attack = character.getSkillDie('fighting');
+                    weapon.thrownAttack = character.getSkillDie('athletics');
                 }
             } else if (isShooting) {
-                weapon.attack = getSkillDie('shooting');
+                weapon.attack = character.getSkillDie('shooting');
             }
 
             // Set default reach and parry for melee weapons
@@ -2574,7 +2635,7 @@ export class Savaged {
                         (currentLine.match(/^[A-Z]/) && currentLine.includes(':'));
                     const isSectionHeader = currentLine.match(Savaged.sectionHeadersRegEx);
 
-                    if (isSectionHeader) {
+                    if (isSectionHeader && isSectionHeader[0] != 'Armor') { //Armor could be a section header but also, could be in special abilites, so exclude it here.
                         break; // Stop at next section
                     }
 
@@ -2658,12 +2719,6 @@ export class Savaged {
             const attackPattern = /^(.+?):\s*(.+)$/i; // Pattern like "Bite: Str+d8"
             const weaponsFromSpecialAbilities: Weapon[] = [];
 
-            // Helper function to substitute attribute abbreviations with actual dice
-            const getAttributeDie = (name: string) => character.attributes.find(t => t.name === name)?.die || 'd4';
-
-            // List of known weapon attack names to be more precise
-
-
             // Process special abilities in reverse order to avoid index issues when removing
             for (let i = character.specialAbilities.length - 1; i >= 0; i--) {
                 const ability = character.specialAbilities[i];
@@ -2696,7 +2751,7 @@ export class Savaged {
 
                     if (isWeaponAttackName && hasDamage) {
                         // Debug logging for attribute substitution
-                        const strDie = getAttributeDie('strength');
+                        const strDie = character.getAttributeDie('strength');
                         Debug.log(`Special ability weapon parsing: ${match[1].trim()} - Original damage: "${finalDamageStr}", Str die: "${strDie}"`);
 
                         // Extract AP value if present (e.g., "Str+d6 AP 2" or "Str+d6, AP 2" -> ap: "2")

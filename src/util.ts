@@ -412,19 +412,35 @@ export class Util {
 
         const lower = str.toLowerCase();
         let result = '';
+        let prev = '';
+        let prevcheck = false;
         let capitalizeNext = true;
 
         for (let i = 0; i < lower.length; i++) {
             const char = lower[i];
-            if (char === ' ' || char === '-' || char === '_' || char === '/' || char === '\\') {
-                result += char;
-                capitalizeNext = true;
-            } else if (capitalizeNext) {
-                result += char.toUpperCase();
-                capitalizeNext = false;
+            // Check if character is a letter or number
+            if (/[a-z0-9]/.test(char)) {
+                if (capitalizeNext) {
+                    result += char.toUpperCase();
+                    capitalizeNext = false;
+                } else {
+                    result += char;
+                }
             } else {
+                // For any non-alphanumeric character, add it to result and set capitalizeNext to true
                 result += char;
+                if ('\'`’'.includes(char)) {
+                    if (prevcheck){
+                        capitalizeNext= false;
+                    } else {
+                        capitalizeNext=true;
+                    }
+                } else {
+                    capitalizeNext=true;
+                }
             }
+            prevcheck=/[a-z0-9]/.test(prev);
+            prev=char;
         }
 
         return result;

@@ -17,7 +17,7 @@
 - Attacher options
   - [complete] +2 wild attack: +2 to melee (not ranged), +2 to damage (on both trait and damage mode)
   - [complete] -2/-4 multi-actions: -2 for 2 actions, -4 for 3 actions, limit 3
-  - [complete] -2/-4 0 calledshot, -2 limb, -4 hand, -4 head(+4 dmg), -2 itemsword, -4 itempistol, -4 unarmored, -6 eyeslit   
+  - [complete] -2/-4 0 calledshot, -2 limb, -4 hand, -4 head(+4 dmg), -2 itemsword, -4 itempistol, -4 unarmored, -6 eyeslit
   - **-2 offhand: -2 on attack
 
 - Target conditions
