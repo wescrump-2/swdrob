@@ -2423,23 +2423,23 @@ export class Savaged {
             }
     
             // Parse the details to extract weapon information
-            // NEW: Handle details with colons like "Str+d6: Knockdown, Parry"
+            // NEW: Handle details with colons and semicolons like "Range 12/24/48; Damage 2d6+1, RoF 1"
             const detailParts = [];
             let currentPart = '';
             let inParentheses = 0;
-    
-            // Custom parser to handle nested parentheses and colons
+
+            // Custom parser to handle nested parentheses, colons, and semicolons
             for (let i = 0; i < detailsStr.length; i++) {
                 const char = detailsStr[i];
-    
+
                 if (char === '(') {
                     inParentheses++;
                     currentPart += char;
                 } else if (char === ')') {
                     inParentheses--;
                     currentPart += char;
-                } else if (char === ',' && inParentheses === 0) {
-                    // Only split on commas that are not inside parentheses
+                } else if ((char === ',' || char === ';') && inParentheses === 0) {
+                    // Split on both commas and semicolons that are not inside parentheses
                     if (currentPart.trim()) {
                         detailParts.push(currentPart.trim());
                     }
@@ -2448,7 +2448,7 @@ export class Savaged {
                     currentPart += char;
                 }
             }
-    
+
             // Add the last part
             if (currentPart.trim()) {
                 detailParts.push(currentPart.trim());
@@ -2459,20 +2459,13 @@ export class Savaged {
             detailParts.forEach(part => {
                 // Skip empty parts
                 if (!part || part.trim() === '') return;
-    
-                // NEW: Handle parts with colons like "Str+d6: Knockdown, Parry"
-                if (part.includes(':') && !part.includes(':')) {
-                    // Simple case: "Range: 12/24/48"
-                    const colonIndex = part.indexOf(':');
-                    const key = part.substring(0, colonIndex).trim().toLowerCase();
-                    const value = part.substring(colonIndex + 1).trim();
-                    detailMap[key] = value;
-                } else if (part.includes(':')) {
-                    // Complex case with multiple colons or nested structure
+
+                // NEW: Handle parts with colons like "Range: 12/24/48" or "Damage: 2d6+1"
+                if (part.includes(':')) {
                     // Look for the first colon that's not inside parentheses
                     let firstColonIndex = -1;
                     let parenDepth = 0;
-    
+
                     for (let i = 0; i < part.length; i++) {
                         if (part[i] === '(') {
                             parenDepth++;
@@ -2483,12 +2476,12 @@ export class Savaged {
                             break;
                         }
                     }
-    
+
                     if (firstColonIndex !== -1) {
                         const key = part.substring(0, firstColonIndex).trim().toLowerCase();
                         const value = part.substring(firstColonIndex + 1).trim();
                         detailMap[key] = value;
-    
+
                         // Also check if the key part contains damage information
                         const keyPart = part.substring(0, firstColonIndex).trim();
                         if (keyPart.match(/^(str)\s*[\+\-]?\s*d\d+[\+\-]?\d*$/i) ||
@@ -2496,65 +2489,26 @@ export class Savaged {
                             keyPart === 'Str') {
                             detailMap['damage'] = keyPart;
                         }
-                    } else {
-                        // No colon found outside parentheses, treat as simple value
-                        // Check if this is a damage pattern
-                        const isDamagePattern =
-                            part.match(/^\d*d\d+[\+\-]?\d*$/i) || // 2d6, d8+2, etc.
-                            part.match(/^(str)\s*[\+\-]?\s*d\d+[\+\-]?\d*/i) || // Str+d6, etc.
-                            part.match(/^(str)$/i); // Just "Str" alone
-    
-                        if (isDamagePattern) {
-                            detailMap['damage'] = part;
-                        } else if (part.match(/^[-+]\d+\s+Parry$/i)) {
-                            // Format: "+1 Parry" or "-1 Parry"
-                            const value = part.replace(/parry/i, '').trim();
-                            detailMap['parry'] = value;
-                        } else if (part.includes(' ')) {
-                            // Format: "AP 2", "Reach 1", etc.
-                            const spaceIndex = part.indexOf(' ');
-                            const key = part.substring(0, spaceIndex).toLowerCase();
-                            const value = part.substring(spaceIndex + 1).trim();
-    
-                            if (key === 'range' || key === 'reach' || key === 'ap' || key === 'rof') {
-                                detailMap[key] = value;
-                            } else if (value === 'melee' || value === 'ranged') {
-                                detailMap['range'] = value;
-                            } else {
-                                // Handle cases like "AP 1" where key is "AP" and value is "1"
-                                detailMap[key] = value;
-                            }
-                        } else if (part.match(/^\d+$/)) {
-                            // Could be AP value or other numeric property
-                            if (!detailMap['ap']) {
-                                detailMap['ap'] = part;
-                            }
-                        } else {
-                            // Could be properties like "Throwing", "Shooting", etc.
-                            detailMap[part.toLowerCase()] = 'true';
-                        }
                     }
-                } else {
-                    // Handle different detail formats (fallback to original logic)
-                    if (part.match(/^[-+]\d+\s+Parry$/i)) {
-                        // Format: "+1 Parry" or "-1 Parry"
-                        const value = part.replace(/parry/i, '').trim();
-                        detailMap['parry'] = value;
-                    } else if (part.includes(' ')) {
-                        // Format: "Str+d6", "AP 2", "Reach 1", etc.
+                }
+                // Handle space-separated parts like "Range 12/24/48" or "Damage 2d6+1"
+                else if (part.includes(' ')) {
+                    // Check if this is a damage pattern first
+                    const isDamagePattern =
+                        part.match(/^\d*d\d+[\+\-]?\d*$/i) || // 2d6, d8+2, etc.
+                        part.match(/^(str)\s*[\+\-]?\s*d\d+[\+\-]?\d*/i) || // Str+d6, etc.
+                        part.match(/^(str)$/i); // Just "Str" alone
+
+                    if (isDamagePattern) {
+                        detailMap['damage'] = part;
+                    }
+                    // Handle standard key-value pairs
+                    else {
                         const spaceIndex = part.indexOf(' ');
                         const key = part.substring(0, spaceIndex).toLowerCase();
                         const value = part.substring(spaceIndex + 1).trim();
-    
-                        // Special handling for damage patterns
-                        const isDamagePattern =
-                            value.match(/^\d*d\d+[\+\-]?\d*$/i) || // 2d6, d8+2, etc.
-                            value.match(/^(str)\s*[\+\-]?\s*d\d+[\+\-]?\d*/i) || // Str+d6, etc.
-                            value.match(/^(str)$/i); // Just "Str" alone
-    
-                        if (isDamagePattern && (key === 'damage' || key === '')) {
-                            detailMap['damage'] = value;
-                        } else if (key === 'range' || key === 'reach' || key === 'ap' || key === 'rof') {
+
+                        if (key === 'range' || key === 'reach' || key === 'ap' || key === 'rof' || key === 'shots') {
                             detailMap[key] = value;
                         } else if (value === 'melee' || value === 'ranged') {
                             detailMap['range'] = value;
@@ -2562,24 +2516,29 @@ export class Savaged {
                             // Handle cases like "AP 1" where key is "AP" and value is "1"
                             detailMap[key] = value;
                         }
-                    } else {
-                        // Single word parts - could be damage like "2d6" or properties like "AP"
-                        const isDamagePattern =
-                            part.match(/^\d*d\d+[\+\-]?\d*$/i) || // 2d6, d8+2, etc.
-                            part.match(/^(str)\s*[\+\-]?\s*d\d+[\+\-]?\d*/i) || // Str+d6, etc.
-                            part.match(/^(str)$/i); // Just "Str" alone
-    
-                        if (isDamagePattern) {
-                            detailMap['damage'] = part;
-                        } else if (part.match(/^\d+$/)) {
-                            // Could be AP value or other numeric property
-                            if (!detailMap['ap']) {
-                                detailMap['ap'] = part;
-                            }
-                        } else {
-                            // Could be properties like "Throwing", "Shooting", etc.
-                            detailMap[part.toLowerCase()] = 'true';
+                    }
+                }
+                // Handle single word parts
+                else {
+                    const isDamagePattern =
+                        part.match(/^\d*d\d+[\+\-]?\d*$/i) || // 2d6, d8+2, etc.
+                        part.match(/^(str)\s*[\+\-]?\s*d\d+[\+\-]?\d*/i) || // Str+d6, etc.
+                        part.match(/^(str)$/i); // Just "Str" alone
+
+                    if (isDamagePattern) {
+                        detailMap['damage'] = part;
+                    } else if (part.match(/^[-+]\d+\s+Parry$/i)) {
+                        // Format: "+1 Parry" or "-1 Parry"
+                        const value = part.replace(/parry/i, '').trim();
+                        detailMap['parry'] = value;
+                    } else if (part.match(/^\d+$/)) {
+                        // Could be AP value or other numeric property
+                        if (!detailMap['ap']) {
+                            detailMap['ap'] = part;
                         }
+                    } else {
+                        // Could be properties like "Throwing", "Shooting", etc.
+                        detailMap[part.toLowerCase()] = 'true';
                     }
                 }
             });
