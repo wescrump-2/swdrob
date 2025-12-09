@@ -65,7 +65,31 @@ export class Character {
     advances?: string[];
     isWildCard?: boolean;
     public getSkillDie(name: string): string {
-        return this.skills.find(t => t.name === name)?.die || 'd4-2';
+        // First try exact match
+        const exactMatch = this.skills.find(t => t.name === name);
+        if (exactMatch) {
+            return exactMatch.die;
+        }
+
+        // Try case-insensitive match for common arcane skills
+        const lowerName = name.toLowerCase();
+        const caseInsensitiveMatch = this.skills.find(t => t.name.toLowerCase() === lowerName);
+        if (caseInsensitiveMatch) {
+            return caseInsensitiveMatch.die;
+        }
+
+        // Special handling for psionics skill - check for common variations
+        if (lowerName === 'psionics') {
+            const psionicsMatch = this.skills.find(t =>
+                t.name.toLowerCase() === 'psionics' ||
+                t.name.toLowerCase().includes('psionic')
+            );
+            if (psionicsMatch) {
+                return psionicsMatch.die;
+            }
+        }
+
+        return 'd4-2';
     }
     public getAttributeDie(name: string): string {
         return this.attributes.find(t => t.name.toLowerCase() === name.toLowerCase())?.die || 'd4';
@@ -110,6 +134,39 @@ export class Character {
         return character;
     }
 
+
+    setArcaneBackground(arcaneStr: string) {
+        const skillMap: { [key: string]: string } = {
+            'Bard': 'performance',
+            'Cleric': 'faith',
+            'Druid': 'faith',
+            'Miracles': 'faith',
+            'Alchemist': 'alchemy',
+            'Oracle': 'faith',
+            'Gifted': 'focus',
+            'Psionics': 'psionics',
+            'Weird Science': 'weird science'
+        };
+        // Debug logging to help diagnose arcane background parsing
+        Debug.log(`setArcaneBackground called with: "${arcaneStr}"`);
+
+        // Improved regex to handle "Arcane Background: Psionics" format
+        const match = arcaneStr.match(/(?:Arcane Background(?::\s*|\s+))?(?:\(?)([^)]+)(?:\))?/);
+        if (match && match.length > 0) {
+            const bgName = match[1].trim();
+            const skillName = skillMap[bgName] || 'spellcasting';
+            Debug.log(`Arcane Background parsed - Name: "${bgName}", Skill: "${skillName}"`);
+
+            const arcaneDie = this.getSkillDie(skillName) || this.getSkillDie('unskilled');
+            Debug.log(`Arcane skill die for "${skillName}": "${arcaneDie}"`);
+
+            this.skills.push({ name: 'arcane', die: arcaneDie });
+            this.arcaneBackground = bgName; // Store just the background name
+            this.arcaneSkill = skillName;
+        } else {
+            Debug.log(`Failed to parse arcane background from: "${arcaneStr}"`);
+        }
+    }
 }
 
 function splitIgnoringParentheses(str: string, separator: string): string[] {
@@ -706,20 +763,26 @@ export class Savaged {
             // Skills
             const skillsMatch = text.match(/<strong>Skills<\/strong>: ([^<]*)/);
             if (skillsMatch) {
-                //Debug.log(`Skills string: "${skillsMatch[1]}"`);
+                Debug.log(`Skills string: "${skillsMatch[1]}"`);
                 skillsMatch[1].split(', ').forEach(skill => {
-                    //Debug.log(`Processing skill: "${skill}"`);
+                    Debug.log(`Processing skill: "${skill}"`);
                     const parts = skill.trim().split(' ');
                     if (parts.length >= 2) {
                         const d = parts.pop()!;
                         const n = parts.join(' ');
-                        character.skills.push({ name: toCamelCase(n), die: d });
-                        //Debug.log(`Parsed skill: "${n}" -> "${d}"`);
+                        const normalizedSkillName = toCamelCase(n);
+                        character.skills.push({ name: normalizedSkillName, die: d });
+                        Debug.log(`Parsed skill: "${normalizedSkillName}" -> "${d}"`);
+
+                        // Special handling for Psionics skill - ensure it's recognized for arcane background
+                        if (normalizedSkillName.toLowerCase() === 'psionics') {
+                            Debug.log(`Found Psionics skill with die: "${d}" - this should be the arcane skill`);
+                        }
                     } else {
                         Debug.log(`Skipping invalid skill: "${skill}"`);
                     }
                 });
-                //Debug.log(`Parsed ${skillsMatch[1].split(', ').length} skills`);
+                Debug.log(`Parsed ${skillsMatch[1].split(', ').length} skills`);
             }
             // Weapons
             const weaponsStrong = Array.from(doc.querySelectorAll('strong')).find(strong => strong.textContent?.trim() === 'Weapons');
@@ -912,7 +975,8 @@ export class Savaged {
                     arcaneStr = arcaneStr.substring(2);
                 }
 
-                this.setArcaneBackground(arcaneStr, character);
+                Debug.log(`Found Arcane Background in HTML: "${arcaneStr}"`);
+                character.setArcaneBackground(arcaneStr);
 
                 //Debug.log(`Parsed arcane background: "${character.arcaneBackground}", skill: "${skillName}", die: "${arcaneDie}"`);
             }
@@ -1385,7 +1449,7 @@ export class Savaged {
         "Attributes", "Skills", "Edges", "Hindrances", "Gear",
         "Special Abilities", "Advances", "Background", "Type",
         "Rank", "Race", "Profession", "Charisma", "Cybertech",
-        "Experience", "Bennies", "Pace", 
+        "Experience", "Bennies", "Pace",
         "Arcane Background", "Powers", "Weapons", "Languages",
         "Wealth", "Power Points", "Description",
         "Armor", //Armor is last for reasons
@@ -1410,29 +1474,6 @@ export class Savaged {
 
         // Return blank if not found
         return '';
-    }
-
-    static setArcaneBackground(arcaneStr: string, character: Character) {
-        //const bgName = arcaneStr.split(' (')[0].trim();
-        const skillMap: { [key: string]: string } = {
-            'Bard': 'performance',
-            'Cleric': 'faith',
-            'Druid': 'faith',
-            'Miracles': 'faith',
-            'Alchemist': 'alchemy',
-            'Oracle': 'faith',
-            'Gifted': 'focus',
-            'Psionics': 'psionics',
-            'Weird Science': 'weird science'
-        };
-        const match = arcaneStr.match(/(?:Arcane Background(?::\s*|\s+))?(?:\(?)([^)]+)(?:\))?/);
-        if (match && match.length > 0) {
-            const skillName = skillMap[match[1]] || 'spellcasting';
-            const arcaneDie = character.getSkillDie(skillName) || character.getSkillDie('unskilled');
-            character.skills.push({ name: 'arcane', die: arcaneDie });
-            character.arcaneBackground = arcaneStr;
-            character.arcaneSkill = skillName;
-        }
     }
 
     static rankRegEx = /\b(Veteran|Novice|Seasoned|Heroic|Legendary)\b/i;
@@ -1753,8 +1794,14 @@ export class Savaged {
                     const skillName = trimmedSkill.substring(0, dieMatch.index).trim();
 
                     if (skillName && die) {
-                        //Debug.log(`Parsed skill: "${skillName}" -> "${die}"`);
-                        character.skills.push({ name: toCamelCase(skillName), die: die });
+                        const normalizedSkillName = toCamelCase(skillName);
+                        Debug.log(`Parsed skill: "${normalizedSkillName}" -> "${die}"`);
+                        character.skills.push({ name: normalizedSkillName, die: die });
+
+                        // Special handling for Psionics skill - ensure it's recognized for arcane background
+                        if (normalizedSkillName.toLowerCase() === 'psionics') {
+                            Debug.log(`Found Psionics skill with die: "${die}" - this should be the arcane skill`);
+                        }
                     } else {
                         Debug.log(`Skipping invalid skill format: "${trimmedSkill}"`);
                     }
@@ -1764,8 +1811,14 @@ export class Savaged {
                     if (colonMatch) {
                         const skillName = colonMatch[1].trim();
                         const die = colonMatch[2].trim();
-                        //Debug.log(`Parsed skill (colon format): "${skillName}" -> "${die}"`);
-                        character.skills.push({ name: toCamelCase(skillName), die: die });
+                        const normalizedSkillName = toCamelCase(skillName);
+                        Debug.log(`Parsed skill (colon format): "${normalizedSkillName}" -> "${die}"`);
+                        character.skills.push({ name: normalizedSkillName, die: die });
+
+                        // Special handling for Psionics skill - ensure it's recognized for arcane background
+                        if (normalizedSkillName.toLowerCase() === 'psionics') {
+                            Debug.log(`Found Psionics skill with die: "${die}" - this should be the arcane skill`);
+                        }
                     } else {
                         Debug.log(`Could not parse skill: "${trimmedSkill}" - no die found`);
                     }
@@ -2029,7 +2082,8 @@ export class Savaged {
             const line = lines[lineIndex];
             if (line.match(/^Arcane Background:\s*(.*)$/i)) {
                 arcaneStr = line.replace(/^Arcane Background:\s*/i, '').trim();
-                Savaged.setArcaneBackground(arcaneStr, character);
+                Debug.log(`Found Arcane Background in text: "${arcaneStr}"`);
+                character.setArcaneBackground(arcaneStr);
                 break;
             }
             lineIndex++;
@@ -2209,9 +2263,12 @@ export class Savaged {
                 edgesStr = Util.removeDashes(edgesStr);
                 character.edges = splitIgnoringParentheses(edgesStr, ', ');
                 lineIndex = edgesResult.endIndex;
-                const arcback = this.findAndRemoveLineStartingWith(character.edges ? character.edges : [], 'arcane background')
-                if (arcback.length > 0) {
-                    Savaged.setArcaneBackground(arcback, character);
+                if (!character.arcaneBackground && !character.arcaneSkill) {
+                    const arcback = this.findAndRemoveLineStartingWith(character.edges ? character.edges : [], 'arcane background')
+                    if (arcback.length > 0) {
+                        Debug.log(`Found Arcane Background in edges: "${arcback}"`);
+                        character.setArcaneBackground(arcback);
+                    }
                 }
                 break;
             }
@@ -2372,22 +2429,22 @@ export class Savaged {
         // Helper function to parse weapons from gear items
         function parseWeaponFromGearItem(gearItem: string, character: Character): Weapon | null {
             const trimmedItem = gearItem.trim();
-    
+
             // NEW: Improved weapon pattern that handles nested parentheses and complex descriptions
             // This pattern looks for the last opening parenthesis that starts weapon details
             // and handles cases like "shock truncheon with 1 battery (Str+d6: Knockdown, Parry)"
             let weaponName = '';
             let detailsStr = '';
-    
+
             // Find the last opening parenthesis that contains weapon-like details
             const lastParenIndex = trimmedItem.lastIndexOf('(');
             if (lastParenIndex !== -1) {
                 // Extract everything before the last parenthesis as weapon name
                 weaponName = trimmedItem.substring(0, lastParenIndex).trim();
-    
+
                 // Extract everything from the last parenthesis to the end
                 const detailsWithParens = trimmedItem.substring(lastParenIndex).trim();
-    
+
                 // Remove the outer parentheses
                 if (detailsWithParens.startsWith('(') && detailsWithParens.endsWith(')')) {
                     detailsStr = detailsWithParens.substring(1, detailsWithParens.length - 1).trim();
@@ -2399,7 +2456,7 @@ export class Savaged {
                     detailsStr = '';
                 }
             }
-    
+
             // If no parentheses found, try alternative parsing for weapons without parentheses
             if (!detailsStr) {
                 // Look for weapons with properties separated by commas
@@ -2412,16 +2469,16 @@ export class Savaged {
                     return null;
                 }
             }
-    
+
             // Clean up weapon name by removing quantity indicators like "2x"
             weaponName = weaponName.replace(/^\d+x\s*/i, '').trim();
-    
+
             // NEW: Handle weapon names with colons (e.g., "shock truncheon with 1 battery: some description")
             const colonIndex = weaponName.indexOf(':');
             if (colonIndex !== -1) {
                 weaponName = weaponName.substring(0, colonIndex).trim();
             }
-    
+
             // Parse the details to extract weapon information
             // NEW: Handle details with colons and semicolons like "Range 12/24/48; Damage 2d6+1, RoF 1"
             const detailParts = [];
@@ -2453,9 +2510,9 @@ export class Savaged {
             if (currentPart.trim()) {
                 detailParts.push(currentPart.trim());
             }
-    
+
             const detailMap: Record<string, string> = {};
-    
+
             detailParts.forEach(part => {
                 // Skip empty parts
                 if (!part || part.trim() === '') return;
@@ -2542,7 +2599,7 @@ export class Savaged {
                     }
                 }
             });
-    
+
             // NEW: Handle cases where damage is specified without "Damage:" prefix
             // Look for patterns like "Str+d6" or "2d6" in the details
             if (!detailMap['damage']) {
@@ -2552,7 +2609,7 @@ export class Savaged {
                     detailMap['damage'] = damageMatch[0].trim();
                 }
             }
-    
+
             // NEW: Handle range patterns like "Range 12/24/48" or "12/24/48"
             if (!detailMap['range'] || detailMap['range'] === 'melee') {
                 const rangePattern = /\b(\d+\/\d+\/\d+)\b/;
@@ -2561,7 +2618,7 @@ export class Savaged {
                     detailMap['range'] = rangeMatch[0];
                 }
             }
-    
+
             // Determine if this is actually a weapon by checking for weapon-like details
             const isWeapon = detailMap['damage'] ||
                 detailMap['range'] ||
@@ -2571,11 +2628,11 @@ export class Savaged {
                 detailMap['rof'] ||
                 detailMap['throwing'] === 'true' ||
                 detailMap['shooting'] === 'true';
-    
+
             if (!isWeapon) {
                 return null;
             }
-    
+
             // Build the weapon object
             const weapon: Weapon = {
                 name: weaponName,
@@ -2585,14 +2642,14 @@ export class Savaged {
                 rof: detailMap['rof'],
                 ap: detailMap['ap']
             };
-    
+
             // Process damage string
             let damage = detailMap['damage'];
             if (damage) {
-    
+
                 const strDie = character.getAttributeDie('strength');
                 Debug.log(`Gear weapon damage parsing - Original: "${damage}", Str die: "${strDie}"`);
-    
+
                 // Handle complex damage patterns like "(1-3)d6" first
                 const complexDamageMatch = damage.match(/^\((\d+)-(\d+)\)(d\d+)$/i);
                 if (complexDamageMatch) {
@@ -2603,26 +2660,26 @@ export class Savaged {
                     damage = `${avgDice}${dieType}`;
                     Debug.log(`Complex damage pattern converted: "${complexDamageMatch[0]}" -> "${damage}"`);
                 }
-    
+
                 // Handle standalone attribute references (like "Str" alone)
                 damage = damage.replace(/\bStr\b(?!\s*[+-]?\s*d\d+)/gi, strDie);
-    
+
                 // Handle attributes followed by dice notation
                 damage = damage.replace(/\bStr\b(?=\s*[+-]?\s*d\d+)/gi, strDie);
-    
+
                 Debug.log(`Gear weapon damage parsing - After substitution: "${damage}"`);
                 weapon.damage = damage;
             }
-    
+
             const weaponNameLower = weaponName.toLowerCase();
             const isThrown = ['axe', 'hand axe', 'throwing axe', 'dagger', 'knife', 'net', 'sling', 'spear', 'javelin', 'trident', 'starknife', 'shuriken', 'bolas', 'hammer', 'warhammer', 'rock'].some(tw => weaponNameLower.includes(tw));
             const isOnlyThrown = ['net', 'sling', 'shuriken', 'bolas', 'rock'].some(tw => weaponNameLower.includes(tw));
-    
+
             // NEW: Better range detection
             const rangeValue = detailMap['range'] ? detailMap['range'].toLowerCase() : '';
             const isMelee = !rangeValue || rangeValue === 'melee' || rangeValue === '';
             const isShooting = !isMelee && !isThrown;
-    
+
             // Special handling for Unarmed weapons
             const isUnarmed = weaponNameLower.includes('unarmed');
             if (isUnarmed && isMelee && !isThrown) {
@@ -2639,7 +2696,7 @@ export class Savaged {
             } else if (isShooting) {
                 weapon.attack = character.getSkillDie('shooting');
             }
-    
+
             // Set default reach and parry for melee weapons
             if (isMelee && !weapon.reach) {
                 weapon.reach = '1';
@@ -2650,7 +2707,7 @@ export class Savaged {
             if (!isMelee && !weapon.rof) {
                 weapon.rof = '1';
             }
-    
+
             //Debug.log(`Parsed weapon from gear: ${weapon.name} -> attack: ${weapon.attack}, damage: ${weapon.damage}, range: ${weapon.range}`);
             return weapon;
         }
