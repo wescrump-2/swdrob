@@ -7,6 +7,24 @@ const DEFAULT_STATBLOCK: Character = Character.getDefaultCharacter();
 
 let currentItemId: string | null = null;
 
+/**
+ * Ensures that a character object is a proper Character instance with all methods.
+ * This is needed because character data loaded from metadata might be plain objects
+ * that have lost their prototype chain during serialization/deserialization.
+ */
+function ensureCharacterInstance(charData: any): Character {
+  if (charData instanceof Character) {
+    return charData;
+  }
+
+  // If it's a plain object, create a new Character instance and copy properties
+  const character = new Character();
+  if (charData) {
+    Object.assign(character, charData);
+  }
+  return character;
+}
+
 OBR.onReady(async () => {
   Debug.log("Popup onReady called");
   const urlParams = new URLSearchParams(window.location.search);
@@ -24,7 +42,7 @@ OBR.onReady(async () => {
   // Load existing data from item metadata
   const items = await OBR.scene.items.getItems([itemId!]);
   const item = items[0];
-  const metadata = item.metadata[Util.StatBlockMkey] as { url?: string, character?: Character, timestamp?: number, statBlockText?: string };
+  const metadata = item.metadata[Util.StatBlockMkey] as { url?: string, character?: any, timestamp?: number, statBlockText?: string };
   let storedChar: Character;
 
   if (metadata?.character && metadata.timestamp) {
@@ -46,13 +64,13 @@ OBR.onReady(async () => {
           storedChar = freshCharacter;
         } catch (e) {
           console.warn('Failed to refresh stale data, using cached:', e);
-          storedChar = metadata.character;
+          storedChar = ensureCharacterInstance(metadata.character);
         }
       } else {
-        storedChar = metadata.character;
+        storedChar = ensureCharacterInstance(metadata.character);
       }
     } else {
-      storedChar = metadata.character;
+      storedChar = ensureCharacterInstance(metadata.character);
     }
   } else {
     storedChar = DEFAULT_STATBLOCK;
@@ -130,7 +148,7 @@ OBR.onReady(async () => {
       });
 
       // Update the form with parsed data
-      await applyData(currentItemId, parsedCharacter);
+      await applyData(currentItemId, ensureCharacterInstance(parsedCharacter));
 
       // Scroll to top after loading
       document.body.scrollTop = 0;
@@ -312,8 +330,8 @@ function populateForm(character: Character) {
       Debug.log(`Created damage power button for ${power.name} with damage: ${power.damage}`);
     } else {
       // Power has no damage - treat it as a regular arcane skill roll
-      button.dataset.die = character.skills.find(t => t.name === character.arcaneSkill)?.die;
-      button.dataset.skill = character.arcaneSkill;
+      button.dataset.die =  character.getArcaneSkillDie?.() || 'd4-2';
+      button.dataset.skill = character.arcaneSkill || 'spellcasting';
       Debug.log(`Created regular power button for ${power.name} with arcane skill`);
     }
 
@@ -636,17 +654,19 @@ function addRollHandlers() {
 // }
 
 async function applyData(itemId: string, data: Character): Promise<Character> {
-  //let saved = { ...DEFAULT_STATBLOCK, ...data };
+  // Ensure the data is a proper Character instance
+  const characterData = ensureCharacterInstance(data);
+
   await OBR.scene.items.updateItems([itemId!], (items) => {
     for (const item of items) {
       const existing = item.metadata[Util.StatBlockMkey] as any;
-      item.metadata[Util.StatBlockMkey] = { ...existing, character: data, timestamp: Date.now() };
+      item.metadata[Util.StatBlockMkey] = { ...existing, character: characterData, timestamp: Date.now() };
     }
   });
 
   // Re-populate form
-  populateForm(data);
+  populateForm(characterData);
   addRollHandlers();
 
-  return data;
+  return characterData;
 }

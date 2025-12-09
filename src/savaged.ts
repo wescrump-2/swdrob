@@ -31,6 +31,8 @@ export interface Power {
     skillBonus?: string;
     duration?: string;
     range?: string;
+    damage?: string;
+    damagemod?: string;
     [key: string]: any; // Allow additional properties
 }
 
@@ -90,6 +92,11 @@ export class Character {
         }
 
         return 'd4-2';
+    }
+    public getArcaneSkillDie():string {
+        let result=this.getSkillDie(this.arcaneSkill||'spellcasting');
+        if(!result) result=this.getSkillDie('unskilled');
+        return result;
     }
     public getAttributeDie(name: string): string {
         return this.attributes.find(t => t.name.toLowerCase() === name.toLowerCase())?.die || 'd4';
@@ -472,11 +479,11 @@ export class Savaged {
 
     static damagePowers = [
         /// {"name","damage","raise","damage mod"}
-        { name: "minor bolt", damage: "d4+d4", raise: "+d6", mod: "" },
-        { name: "bolt", damage: "d6+d6", raise: "+d6", mod: "d6+d6+d6" },
-        { name: "blast", damage: "d6+d6", raise: "+d6", mod: "d6+d6+d6" },
-        { name: "burst", damage: "d6+d6", raise: "+d6", mod: "d6+d6+d6" },
-        { name: "damage field", damage: "d4+d4", raise: "", mod: "d6+d6" },
+        { name: "minor bolt", damage: "d4+d4", raise: "+d6", damagemod: "" },
+        { name: "bolt", damage: "d6+d6", raise: "+d6", damagemod: "d6+d6+d6" },
+        { name: "blast", damage: "d6+d6", raise: "+d6", damagemod: "d6+d6+d6" },
+        { name: "burst", damage: "d6+d6", raise: "+d6", damagemod: "d6+d6+d6" },
+        { name: "damage field", damage: "d4+d4", raise: "", damagemod: "d6+d6" },
     ]
 
     /**
@@ -494,8 +501,8 @@ export class Savaged {
         if (foundPower) {
             // Add damage and damagemod properties to the power object
             powerObj.damage = foundPower.damage;
-            powerObj.damagemod = foundPower.mod;
-            Debug.log(`Enhanced power "${powerObj.name}" with damage: ${foundPower.damage}, damagemod: ${foundPower.mod}`);
+            powerObj.damagemod = foundPower.damagemod;
+            Debug.log(`Enhanced power "${powerObj.name}" with damage: ${foundPower.damage}, damagemod: ${foundPower.damagemod}`);
         }
     }
 
