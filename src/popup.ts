@@ -27,6 +27,23 @@ function ensureCharacterInstance(charData: any): Character {
 
 OBR.onReady(async () => {
   Debug.log("Popup onReady called");
+
+  // Add close button functionality
+  const closeButton = document.getElementById("close-popup");
+  if (closeButton) {
+    closeButton.addEventListener("click", async () => {
+      try {
+        Debug.log("Closing popover...");
+        await OBR.popover.close(`${Util.StatBlockMkey}/popover`);
+        Debug.log("Popover closed successfully");
+      } catch (error) {
+        Debug.error("Failed to close popover:", error);
+        // Fallback: close the window if popover.close() fails
+        window.close();
+      }
+    });
+  }
+
   const urlParams = new URLSearchParams(window.location.search);
   const itemId = urlParams.get('itemId');
   Debug.log("Item ID from URL:", itemId);

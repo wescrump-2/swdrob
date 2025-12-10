@@ -538,7 +538,7 @@ h2 {
 /* Popup styles */
 .popup-body {
   font-family: Arial, sans-serif;
-  padding: 2px;
+  padding: 0px;
   background: #16213e;
   color: #eee;
   display: block;
@@ -546,6 +546,42 @@ h2 {
   width: auto;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+.popup-header {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0;
+  background: #16213e;
+  z-index: 1000;
+  position: sticky;
+  top: 0;
+}
+
+.close-popup-btn {
+  position: fixed;
+  top: 1px;
+  right: 1px;
+  width: 20px;
+  height: 20px;
+  background: #e94560;
+  color: white;
+  border: none;
+  padding: 0;
+  font-size: 14px;
+  cursor: pointer;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.close-popup-btn:hover {
+  background: #ff5a75;
+  transform: scale(1.05);
 }
 
 .popup-label {
