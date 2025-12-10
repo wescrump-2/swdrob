@@ -10,22 +10,21 @@ tags:
 manifest: https://swdrob.vercel.app/manifest.json
 ---
 
-# Savage Owlbear Dice
+## Savage Owlbear Dice
 
 A custom 3D dice roller extension for Savage Worlds Adventure Edition (SWADE) fans using [Owlbear Rodeo](https://owlbear-rodeo.com/). This extension simulates the unique dice mechanics of SWADE, including exploding dice (acing), wild dice, success/raise calculations, and more.
 
 ## Overview
 
-This extension implements the Savage Worlds Dice Rolling system. This extension supports many of the unique dice mechanics and rules of Savage Worlds with Wild Dice, Aceing(exploding dice), success/raise calculation, critical failures, and more, making it simple to set modifiers for wounds, fatigue, bonus damage, having a joker, breaking things. 
+This extension implements the Savage Worlds Dice Rolling system. This extension supports many of the unique dice mechanics and rules of Savage Worlds with Wild Dice, Aceing(exploding dice), success/raise calculation, critical failures, and more, making it simple to set modifiers for wounds, fatigue, bonus damage, having a joker, breaking things.
 
 ## Getting Started
 
 ### Installation
 
-1. Install the extension from the manifest at https://swdrob.vercel.app/manifest.json
+1. Install the extension from the manifest at <https://swdrob.vercel.app/manifest.json>
 2. Open your Owlbear Rodeo scene
 3. Click the Savage Owlbear Dice icon ![Savage Worlds Dice](icon.svg) in the toolbar to open the dice tray
-
 
 ## How It Works
 
@@ -38,30 +37,47 @@ The extension supports three roll modes: Trait Rolls, Damage Rolls, and Standard
 ## Roll Modes
 
 ### 1. Trait Rolls
+
 ![Trait Mode](traitmode.png)
 Used for skill checks, attacks, spellcasting, and other trait-based rolls. Trait rolls determine success based on meeting or exceeding a Target Number (TN), with possible raises.
 
 **Controls:**
+
 - **Target Number**: ![Target Number](targetnumber.png) Spinner (4-24, default 4) - The number to meet or beat for success.
 - **Modifier**: ![Modifier](modifier.png) Spinner (-14 to +14, default 0) - Bonus/penalty applied to the roll.
 - **Wild Die**: ![Wild Die](wilddie.png) Toggle to enable/disable the wild die (d6 by default, selectable type).
 - **Wild Die Type**: ![Wild Die](wilddietype.png) Dropdown to select wild die size (d6, d8, d10, d12).
-- **Opposed Roll**: ![Opposed Roll](opposedroll.png) Toggle to set Target Number to the result of the most recent trait roll by another player.
+- **Adjust**: ![Adjust](adjustroll.png) After a roll, updates results of the latest roll in history log according to changed target number and modifiers.
 - **Joker Drawn**: ![Joker Drawn](jokerdrawn.png) Toggle (+2 modifier) when your character gets Joker from the Action Deck.
+- **Opposed Roll**: ![Opposed Roll](opposedroll.png) Toggle to set Target Number to the result of the most recent trait roll by another player.
 - **Wounds**: ![Wounds](wound.png) Three toggles (-1 each) for wound penalties.
 - **Fatigue**: ![Fatigue](fatigue.png) Two toggles (-1 each) for fatigue penalties.
+- **Illumination**: ![Illumination](illumination.png) Cycles through Light, Dim(-2), Dark(-4), and Pitch(-6).
+- **Distracted**: ![Distracted](distracted.png) Toggle to set Distracted status for trait rolls.
+- **Vulnerable**: ![Vulnerable](vulnerable.png) Toggle to set when Foe is Vulnerable to attack rolls.
+- **Multi-Action**: ![Multi Action](multi_action.png) Cycles through One Action, Two Actions(-2), and Three Actions(-4) multi-action penalties.
+- **Called Shot**: ![Called Shot](called_shot.png) Cycles through various called shot locations, Limb(-2), Hand(-4), Head/Vitals(-4,+4 dmg), Item(-2), Item(-4), Unarmored(-4), Eyeslit(-6).
+- **Cover**: ![Cover](cover.png) Cycles through No Cover, Light Cover(-2), Medium Cover(-4), Heavy Cover(-6), and Near Total Cover(-8).
+- **Range**: ![Range](range.png) Cycles through Short Range, Medium Range(-2), Long Range(-4) and Extreme Range(-8).
+- **The Drop**: ![The Drop](the_drop.png) Toggle to indicate having The Drop on the Foe.
+- **Wild Attack**: ![Wild Attack](wild_attack.png) Toggle to make a Wild Attack roll(-2, +2 damage).
+- **Gang Up**: ![Gang Up](gang_up.png) Cycles through Gang Up Bonuses +1 to +4.
+
 - **Dice Selection**: ![Dice Selection](diceselection.png) d4, d6, d8, d10, d12 - Click to add trait dice to the tray.
 
 **Mechanics:**
+
 - For single trait die: Roll trait die + wild die (if enabled), use higher result, check against TN for success/raises.
 - For multiple trait dice: Each die that meets/exceeds TN counts as a success. Wild die can add successes/raises.
 - Exploding dice: Dice "ace" (roll max) and add another die.
 - Critical failure: If multiple trait dice and more than half show 1s, including wild die as 1.
 
 **Example:** Fighting attack with d8 trait, wild die d6, TN 4, +1 modifier.
+
 - Roll: Trait d8=6, Wild d6=4 → Use 6, success with 1 raise (6-4=2, 2/4=0.5→1 raise).
 
 ### 2. Damage Rolls
+
 ![Damage Roll Interface](damagedice.png)
 
 Used for calculating damage from weapons, spells, etc. Damage rolls sum all dice, with modifiers applied.
@@ -69,22 +85,31 @@ Used for calculating damage from weapons, spells, etc. Damage rolls sum all dice
 ![Damage Mode](damagemode.png)
 
 **Controls:**
+
 - **Target Number**: ![Target Number](targetnumber.png) Spinner (4-24) - Optional, used to calculate raises on damage.
 - **Modifier**: ![Modifier](modifier.png) Spinner (-14 to +14, default 0) - Bonus/penalty to damage.
+- **Adjust**: ![Adjust](adjustroll.png) After a roll, updates results of the latest roll in history log according to changed target number and modifiers.
+- **Joker Drawn**: ![Joker Drawn](jokerdrawn.png) Toggle (+2 modifier) when dealt a Joker.
+- **Breaking Objects**: ![Breaking Objects](breakobjects.png) Toggle to disable acing (dice don't explode on max roll) and bonus damge die.
 - **Bonus Damage**: ![Bonus Damage](bonusdamage.png) Toggle to add an extra d6 for bonus damage effects.
-- **Breaking Objects**: ![Breaking Objects](breakobjects.png) Toggle to disable acing (dice don't explode on max roll).
-- **Joker Drawn**: ![Joker Drawn](jokerdrawn.png) Toggle (+2 modifier) when Joker drawn.
+- **Called Shot**: ![Called Shot](called_shot.png) Cycles through various called shot locations, Limb(-2), Hand(-4), Head/Vitals(-4,+4 dmg), Item(-2), Item(-4), Unarmored(-4), Eyeslit(-6). Only affects damage rolls when Head/Vitals.
+- **The Drop**: ![The Drop](the_drop.png) Toggle to indicate having The Drop on the Foe.
+- **Wild Attack**: ![Wild Attack](wild_attack.png) Toggle to make a Wild Attack roll(-2, +2 damage).
+
 - **Dice Selection**: ![Dice Selection](diceselection.png) d4, d6, d8, d10, d12 - Click to add damage dice.
 
 **Mechanics:**
+
 - Sum all dice + modifiers.
 - Exploding dice unless "Breaking Objects" is enabled.
 - If TN set, calculate raises: (damage - TN) / 4, rounded down.
 
 **Example:** Damage with 2d6, +1 modifier, TN 4.
+
 - Roll: 4 + 3 +1 = 8, success with 1 raise (8-4=4, 4/4=1).
 
 ### 3. Standard Rolls
+
 ![Standard Roll Interface](standarddice.png)
 
 Basic dice rolls without SWADE-specific mechanics. Simply sums dice with modifiers.
@@ -92,10 +117,14 @@ Basic dice rolls without SWADE-specific mechanics. Simply sums dice with modifie
 ![Standard Mode](standardmode.png)
 
 **Controls:**
+
 - **Modifier**: ![Modifier](modifier.png) Spinner (-14 to +14, default 0).
+- **Adjust**: ![Adjust](adjustroll.png) After a roll, updates results of the latest roll in history log according to changed target number and modifiers.
+
 - **Dice Selection**: ![Dice Selection](diceselection.png) d4 through d100 - All available dice types.
 
 **Mechanics:**
+
 - Sum all dice + modifier.
 - No exploding, no TN checks.
 
@@ -107,13 +136,13 @@ Basic dice rolls without SWADE-specific mechanics. Simply sums dice with modifie
 - **Reroll Dice**: ![Reroll Dice](rerolldice.png) Re-rolls the most recent roll by the same player.
 - **Remove Dice**: ![Remove Dice](removedice.png) Clears all dice from the tray.
 - **Reset**: ![Reset](resetdefaults.png) Resets all controls to defaults.
-- **Adjust**: ![Adjust](adjustroll.png) After a roll, modify TN/modifiers and recalculate results.
 - **Color**: ![Color](dicecolor.png) Cycles through dice color themes.
 - **Clear**: ![Clear](clearlog.png) Clears the entire dice history log.
 
 ## Dice History Log
 
 The log displays past rolls with the following information:
+
 - **Player Name**: Who made the roll.
 - **Roll Details**: Breakdown of each die, modifiers, and calculations.
 - **Result**: Total and description (success/failure, raises, etc.).
@@ -133,6 +162,7 @@ The log persists across sessions and syncs across players in the Owlbear Rodeo r
 ## Examples
 
 **Trait Roll Example:**
+
 - Mode: Trait
 - Dice: 1d8 (trait), Wild Die d6 enabled
 - TN: 5 (opponent's Parry)
@@ -141,6 +171,7 @@ The log persists across sessions and syncs across players in the Owlbear Rodeo r
 - Result: Trait 8 (aces to 3) + Wild 4 = 8 total, success with 1 raise.
 
 **Damage Roll Example:**
+
 - Mode: Damage
 - Dice: 2d6
 - Bonus Damage: Enabled (+1d6)
@@ -149,10 +180,94 @@ The log persists across sessions and syncs across players in the Owlbear Rodeo r
 - Result: 5 + 4 + 6 (aces to 2) +2 = 13 damage.
 
 **Standard Roll Example:**
+
 - Mode: Standard
 - Dice: 1d20
 - Modifier: +5
 - Result: 17 +5 = 22.
+
+## Savage Worlds Stat Block Features
+
+The Savage Worlds Stat Block system is a web-based interface for managing and interacting with character data in the Savage Worlds tabletop RPG system. It provides a comprehensive UI for displaying character attributes, skills, weapons, powers, and other game mechanics. Character data can be imported from shared characters from Savaged.us, or by copy/paste of Savage Worlds stat blocks from PDFs, documents or online resources.
+
+### Core Components
+
+#### Stat Block Popup
+
+The interface is organized into several key sections:
+
+1. **Character Header**: Displays the character name with a wildcard symbol indicator
+2. **Basic Stats**: Shows Pace, Parry, and Toughness values
+3. **Attributes Section**: Lists core character attributes (Agility, Smarts, Spirit, Strength, Vigor)
+4. **Skills Section**: Displays character skills with roll buttons
+5. **Weapons Section**: Shows available weapons with damage rolls
+6. **Powers Section**: Lists magical/arcane powers with casting options
+7. **Edges/Gear/Special Abilities/Edges/Hindrances**: Text areas for additional character details
+8. **Advances Section**: Tracks character progression
+9. **Import Functionality**: URL import and text parsing for stat blocks
+
+he core functionality is implemented in TypeScript with these key features:
+
+### Data Management
+
+#### Data Persistence
+
+- Stores character data in Owlbear Rodeo item metadata
+- Implements caching with 24-hour expiration
+- Supports automatic refresh from source URLs when data is stale
+
+### Roll Mechanics
+
+#### Roll Types
+
+- **Trait Rolls**: For attributes and skills
+- **Damage Rolls**: For weapons and damage powers
+- **Special Rolls**: Frenzy, ROF (Rate of Fire) calculations
+
+#### ROF (Rate of Fire) Handling
+
+- Automatically detects weapons with ROF > 1
+- Creates ROF buttons from 2 up to maximum weapon ROF
+- Applies -2 penalty unless character has "Rock and Roll" edge
+- Supports Rapid Fire feats for +1 ROF
+
+#### Frenzy Support
+
+- Detects characters with Frenzy edge
+- Creates special Frenzy button for Fighting skill
+- Rolls 2 dice of the fighting skill type
+
+### Import Functionality
+
+#### URL Import
+
+- Parses character data from Savaged.us shared URLs
+- Stores original URL for future refreshes
+- Handles errors gracefully with fallback to cached data
+
+#### Text Parsing
+
+- Accepts pasted stat block text
+- Uses `Savaged.parseCharacterFromText()` for parsing
+- Stores both parsed character and original text
+
+#### Special Calculations
+
+- Toughness display includes armor value when applicable
+- ROF calculations consider character edges
+- Power buttons differentiate between damage powers and regular spells
+
+### Key Features Summary
+
+1. **Comprehensive Character Display**: All Savage Worlds character attributes and abilities
+2. **Interactive Roll System**: Click-to-roll for all skills, attributes, and weapons
+3. **Advanced Combat Features**: ROF handling, Frenzy support, damage calculations
+4. **Data Import**: URL and text-based stat block importing
+5. **Smart UI**: Conditional display, dynamic sizing, and responsive layout
+6. **Persistence**: Automatic saving and caching of character data
+7. **Game Mechanics Support**: Handles all core Savage Worlds rules and edge cases
+
+The system provides a complete digital representation of Savage Worlds characters with full support for the game's unique mechanics like wildcard characters, arcane powers, and combat specializations.
 
 ## Acknowledgements
 
@@ -160,10 +275,9 @@ This extension is inspired by and built upon the mechanics of the Savage Worlds 
 
 - **Savage Worlds Adventure Edition** by [Pinnacle Entertainment Group](https://www.peginc.com/) for the core RPG system and dice mechanics.
 - **@3d-dice/dice-box** library from [Fantastic Dice](https://fantasticdice.games/) for providing the 3D dice simulation engine.
-- **Savage Dice Roller** by immaterialplane (https://immaterialplane.com/apps/swdr/) for the original concept and implementation that inspired this Owlbear Rodeo extension.
-- **Game Icons** from https://game-icons.net/ for the icon assets used in the interface.
+- **Savage Dice Roller** by immaterialplane (<https://immaterialplane.com/apps/swdr/>) for the original concept and implementation that inspired this Owlbear Rodeo extension.
+- **Game Icons** from <https://game-icons.net/> for the icon assets used in the interface.
 
 ## Support
 
 For issues or questions, please contact the developer or check the Owlbear Rodeo community forums.
-
