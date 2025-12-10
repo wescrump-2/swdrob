@@ -5,7 +5,6 @@ import { playerCache } from "./main";
 
 export function createContextMenu(playerId:string) {
   // Add context menu item
-  console.log(playerId);
   OBR.contextMenu.create({
     id: `${Util.StatBlockMkey}/open-statblock`,
     icons: [
@@ -16,6 +15,7 @@ export function createContextMenu(playerId:string) {
           roles: ["PLAYER", "GM"],
           some: [
             { key: "layer", value: "CHARACTER" },
+            { key: "createdUserId", value: `${playerId}`,  },
           ],
         },
       },
