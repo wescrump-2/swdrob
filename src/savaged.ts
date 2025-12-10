@@ -176,6 +176,29 @@ export class Character {
     }
 }
 
+// function splitIgnoringParentheses(str: string, separator: string): string[] {
+//     const result: string[] = [];
+//     let current = '';
+//     let depth = 0;
+//     for (let i = 0; i < str.length; i++) {
+//         const char = str[i];
+//         if (char === '(') {
+//             depth++;
+//             current += char;
+//         } else if (char === ')') {
+//             depth--;
+//             current += char;
+//         } else if (depth === 0 && str.substr(i, separator.length) === separator) {
+//             result.push(current.trim());
+//             current = '';
+//             i += separator.length - 1;
+//         } else {
+//             current += char;
+//         }
+//     }
+//     if (current.trim()) result.push(current.trim());
+//     return result;
+// }
 function splitIgnoringParentheses(str: string, separator: string): string[] {
     const result: string[] = [];
     let current = '';
@@ -188,6 +211,13 @@ function splitIgnoringParentheses(str: string, separator: string): string[] {
         } else if (char === ')') {
             depth--;
             current += char;
+            // FIXED: Check for separator immediately after closing parenthesis
+            // The separator is "), " but we've already consumed the ")", so check for ", "
+            if (depth === 0 && str.substr(i + 1, separator.length - 1) === separator.substr(1)) {
+                result.push(current.trim());
+                current = '';
+                i += separator.length - 1;
+            }
         } else if (depth === 0 && str.substr(i, separator.length) === separator) {
             result.push(current.trim());
             current = '';
@@ -199,7 +229,6 @@ function splitIgnoringParentheses(str: string, separator: string): string[] {
     if (current.trim()) result.push(current.trim());
     return result;
 }
-
 /**
  * Extracts all lines for a section into one string separated by spaces.
  * Each section ends when the next line has the start marker for the next section.
@@ -800,7 +829,7 @@ export class Savaged {
                         const el = current as Element;
                         if (el.tagName === 'SUP') {
                             // include sup text with parentheses
-                            weaponsStr += ' (' + el.textContent + ')';
+                            weaponsStr += '[' + el.textContent + ']';
                         } else if (el.tagName === 'BR' || el.tagName === 'STRONG') {
                             break;
                         }
@@ -899,6 +928,13 @@ export class Savaged {
                                 Debug.log(`Complex damage pattern converted: "${complexDamageMatch[0]}" -> "${damage}"`);
                             }
 
+                            // under str
+                            if (damage.includes('[us]')) {
+                                // remove
+                                damage = damage.replace(/\[us\]/gi, '');
+                                // replace all dX with Str
+                                damage = damage.replace(/\bd\d+\b/gi,'Str')
+                            }
                             // NEW: Handle standalone attribute references (like "Str" alone)
                             // First pass: replace standalone attributes
                             damage = damage.replace(/\bStr\b(?!\s*[+-]?\s*d\d+)/gi, strDie);
@@ -3045,7 +3081,7 @@ export class Savaged {
                     } else if (current.nodeType === Node.ELEMENT_NODE) {
                         const el = current as Element;
                         if (el.tagName === 'SUP') {
-                            extractedText += ' (' + el.textContent + ')';
+                            extractedText += ' [' + el.textContent + ']';
                         } else if (el.tagName === 'BR' || el.tagName === 'STRONG') {
                             break;
                         }
