@@ -93,9 +93,9 @@ export class Character {
 
         return 'd4-2';
     }
-    public getArcaneSkillDie():string {
-        let result=this.getSkillDie(this.arcaneSkill||'spellcasting');
-        if(!result) result=this.getSkillDie('unskilled');
+    public getArcaneSkillDie(): string {
+        let result = this.getSkillDie(this.arcaneSkill || 'spellcasting');
+        if (!result) result = this.getSkillDie('unskilled');
         return result;
     }
     public getAttributeDie(name: string): string {
@@ -566,7 +566,7 @@ export class Savaged {
             const nameMatch = text.match(/<h1>([^<]*)<\/h1>/);
             const name = nameMatch ? nameMatch[1] : '';
             character.name = Util.toTitleCase(name);
-            character.isWildCard=true; //savaged.us are wild cards.
+            character.isWildCard = true; //savaged.us are wild cards.
             const h1 = doc.querySelector('h1');
             if (h1) {
                 const nextDiv = h1.nextElementSibling;
@@ -839,6 +839,7 @@ export class Savaged {
                 if (weaponsStr.startsWith(': ')) {
                     weaponsStr = weaponsStr.substring(2);
                 }
+                weaponsStr = weaponsStr.replace(/\((\d)\-(\d)\)/g,'[$1-$2]');
                 Debug.log(`Weapons string: "${weaponsStr}"`);
                 const weaponParts = weaponsStr.split('), ');
                 character.weapons = [];
@@ -917,14 +918,15 @@ export class Savaged {
 
                             // NEW: Handle complex damage patterns like "(1-3)d6" first
                             // Extract the base damage pattern and handle variable dice counts
-                            const complexDamageMatch = damage.match(/^\((\d+)-(\d+)\)(d\d+)$/i);
+                            const complexDamageMatch = damage.match(/\[(\d+)-(\d+)\](d\d+)/i);
+
                             if (complexDamageMatch) {
-                                const minDice = parseInt(complexDamageMatch[1]);
+                                //const minDice = parseInt(complexDamageMatch[1]);
                                 const maxDice = parseInt(complexDamageMatch[2]);
                                 const dieType = complexDamageMatch[3];
                                 // For now, use the average: (min+max)/2 rounded up
-                                const avgDice = Math.ceil((minDice + maxDice) / 2);
-                                damage = `${avgDice}${dieType}`;
+                                //const avgDice = Math.ceil((minDice + maxDice) / 2);
+                                damage = `${maxDice}${dieType}`;
                                 Debug.log(`Complex damage pattern converted: "${complexDamageMatch[0]}" -> "${damage}"`);
                             }
 
@@ -933,7 +935,7 @@ export class Savaged {
                                 // remove
                                 damage = damage.replace(/\[us\]/gi, '');
                                 // replace all dX with Str
-                                damage = damage.replace(/\bd\d+\b/gi,'Str')
+                                damage = damage.replace(/\bd\d+\b/gi, 'Str')
                             }
                             // NEW: Handle standalone attribute references (like "Str" alone)
                             // First pass: replace standalone attributes
@@ -1891,6 +1893,7 @@ export class Savaged {
                 lineIndex++;
             }
         }
+        weaponsStr = weaponsStr.replace(/\((\d)\-(\d)\)/g,'[$1-$2]');
         if (weaponsStr) {
             // Improved regex to handle weapons with "Str" damage and nested parentheses
             //const weaponMatches = weaponsStr.matchAll(/([^,]+?(?:\([^)]+\))*?)(?=,|$)/g);
@@ -2045,15 +2048,16 @@ export class Savaged {
                         Debug.log(`Weapon damage parsing (text) - Original: "${damage}", Str die: "${strDie}"`);
 
                         // NEW: Handle complex damage patterns like "(1-3)d6" first
-                        // Extract the base damage pattern and handle variable dice counts
-                        const complexDamageMatch = damage.match(/^\((\d+)-(\d+)\)(d\d+)$/i);
+                        // Extract the base damage pattern and handle variable dice counts\
+                        const complexDamageMatch = damage.match(/\[(\d+)-(\d+)\](d\d+)/i);
+
                         if (complexDamageMatch) {
-                            const minDice = parseInt(complexDamageMatch[1]);
+                            //const minDice = parseInt(complexDamageMatch[1]);
                             const maxDice = parseInt(complexDamageMatch[2]);
                             const dieType = complexDamageMatch[3];
                             // For now, use the average: (min+max)/2 rounded up
-                            const avgDice = Math.ceil((minDice + maxDice) / 2);
-                            damage = `${avgDice}${dieType}`;
+                            //const avgDice = Math.ceil((minDice + maxDice) / 2);
+                            damage = `${maxDice}${dieType}`;
                             Debug.log(`Complex damage pattern converted (text): "${complexDamageMatch[0]}" -> "${damage}"`);
                         }
 
@@ -2468,7 +2472,7 @@ export class Savaged {
 
         // Helper function to parse weapons from gear items
         function parseWeaponFromGearItem(gearItem: string, character: Character): Weapon | null {
-            const trimmedItem = gearItem.trim();
+            const trimmedItem = gearItem.replace(/\((\d)\-(\d)\)/g,'[$1-$2]').trim();
 
             // NEW: Improved weapon pattern that handles nested parentheses and complex descriptions
             // This pattern looks for the last opening parenthesis that starts weapon details
@@ -2691,13 +2695,14 @@ export class Savaged {
                 Debug.log(`Gear weapon damage parsing - Original: "${damage}", Str die: "${strDie}"`);
 
                 // Handle complex damage patterns like "(1-3)d6" first
-                const complexDamageMatch = damage.match(/^\((\d+)-(\d+)\)(d\d+)$/i);
+                const complexDamageMatch = damage.match(/\[(\d+)-(\d+)\](d\d+)/i);
+
                 if (complexDamageMatch) {
-                    const minDice = parseInt(complexDamageMatch[1]);
+                    // const minDice = parseInt(complexDamageMatch[1]);
                     const maxDice = parseInt(complexDamageMatch[2]);
                     const dieType = complexDamageMatch[3];
-                    const avgDice = Math.ceil((minDice + maxDice) / 2);
-                    damage = `${avgDice}${dieType}`;
+                    //const avgDice = Math.ceil((minDice + maxDice) / 2);
+                    damage = `${maxDice}${dieType}`;
                     Debug.log(`Complex damage pattern converted: "${complexDamageMatch[0]}" -> "${damage}"`);
                 }
 
