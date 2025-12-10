@@ -206,7 +206,20 @@ The interface is organized into several key sections:
 8. **Advances Section**: Tracks character progression
 9. **Import Functionality**: URL import and text parsing for stat blocks
 
-he core functionality is implemented in TypeScript with these key features:
+### Using the Stat Block
+
+In Owlbear Rodeo with the extension loaded, add a character avatar to the scene. You will only be able to attach to characters that you own.
+
+- Right Click on the character image. (Can also be accessed by left click, then the three dots.)
+- Select ![Stat Block Menu](savaged_context.png) from the context menu.
+- A popup window will appear with a default character. ![Popup Window](popup.png)
+- At the botton of the window are 2 input boxes, one for interfacing with Savaged.us, if you have a shared character there, and one for pasting the stat block text directly.
+- Enter the url to the shared character and click Load.
+- Alternatively, copy/paste the stat block text into the text area, and click the Parse Stat Block button to have your pasted text parsed by the extention.
+- The character data will be extracted and displayed in the popup window.
+![Example](popup_example.png)
+
+*** The parser will try to capture everything it can, however, different sources format and organize Savage World stat blocks slightly differently and this can confuse the parser. If it doesn't extract everything from the text, you can try reviewing and edit the text to help it out. Might work, might not.
 
 ### Data Management
 
