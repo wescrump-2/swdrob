@@ -53,6 +53,7 @@ export function createContextMenu(playerId:string) {
             vertical: "TOP",
           },
           disableClickAway: true,
+          hidePaper: true,
         });
       } catch (error) {
         Debug.error("Failed to open popover:", error);

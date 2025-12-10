@@ -54,7 +54,7 @@ OBR.onReady(async () => {
   }
 
   // Store original dimensions for restore functionality
-  const originalWidth = 400;
+  const originalWidth = 480;
   const originalHeight = 640;
   // Optimal minimized dimensions to show just the minimize and close buttons
   const minimizedWidth = 50;   // 25px (minimize pos) + 20px (close btn) + 5px (padding)
