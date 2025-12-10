@@ -546,6 +546,11 @@ h2 {
   width: auto;
   overflow-y: auto;
   overflow-x: hidden;
+  transition: all 0.3s ease;
+}
+
+.popup-content {
+  transition: opacity 0.3s ease;
 }
 
 .popup-header {
@@ -582,6 +587,45 @@ h2 {
 .close-popup-btn:hover {
   background: #ff5a75;
   transform: scale(1.05);
+}
+
+.minimize-popup-btn {
+  position: fixed;
+  top: 1px;
+  right: 25px;
+  width: 20px;
+  height: 20px;
+  background: #537fe7;
+  color: white;
+  border: none;
+  padding: 0;
+  font-size: 14px;
+  cursor: pointer;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.minimize-popup-btn:hover {
+  background: #6a95ff;
+  transform: scale(1.05);
+}
+
+.popup-header-buttons {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+
+.popup-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0 5px;
+  box-sizing: border-box;
 }
 
 .popup-label {

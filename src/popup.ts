@@ -44,6 +44,44 @@ OBR.onReady(async () => {
     });
   }
 
+  // Add minimize button functionality
+  const minimizeButton = document.getElementById("minimize-popup");
+
+  if (minimizeButton) {
+    minimizeButton.addEventListener("click", () => {
+      toggleMinimize();
+    });
+  }
+
+  // Store original dimensions for restore functionality
+  const originalWidth = 400;
+  const originalHeight = 640;
+  // Optimal minimized dimensions to show just the minimize and close buttons
+  const minimizedWidth = 50;   // 25px (minimize pos) + 20px (close btn) + 5px (padding)
+  const minimizedHeight = 30;  // 20px (button height) + padding
+
+  async function toggleMinimize() {
+    try {
+      // Get current popover dimensions to determine if we're minimized
+      const currentWidth = await OBR.popover.getWidth(`${Util.StatBlockMkey}/popover`);
+      const isMinimized = currentWidth === minimizedWidth;
+
+      if (isMinimized) {
+        // Restore using OBR popover API
+        await OBR.popover.setWidth(`${Util.StatBlockMkey}/popover`, originalWidth);
+        await OBR.popover.setHeight(`${Util.StatBlockMkey}/popover`, originalHeight);
+        Debug.log("Popover restored to original size");
+      } else {
+        // Minimize using OBR popover API
+        await OBR.popover.setWidth(`${Util.StatBlockMkey}/popover`, minimizedWidth);
+        await OBR.popover.setHeight(`${Util.StatBlockMkey}/popover`, minimizedHeight);
+        Debug.log("Popover minimized using OBR API");
+      }
+    } catch (error) {
+      Debug.error("Failed to toggle popover size:", error);
+    }
+  }
+
   const urlParams = new URLSearchParams(window.location.search);
   const itemId = urlParams.get('itemId');
   Debug.log("Item ID from URL:", itemId);

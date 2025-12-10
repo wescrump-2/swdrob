@@ -11,16 +11,20 @@
 
 <body class="popup-body">
   <div class="popup-header">
-    <h1 id="title" class="popup-h1">
-      <span id="wildcard-symbol" class="wildcard-symbol">✪ </span>
-      <span id="statblock-title" class="statblock-title">Savage Worlds Stat Block</span>
-    </h1>
-    <button id="close-popup" class="close-popup-btn" title="Close">×</button>
+    <div class="popup-header-content">
+      <h1 id="title" class="popup-h1">
+        <span id="wildcard-symbol" class="wildcard-symbol">✪ </span>
+        <span id="statblock-title" class="statblock-title">Savage Worlds Stat Block</span>
+      </h1>
+      <div class="popup-header-buttons">
+        <button id="minimize-popup" class="minimize-popup-btn" title="Minimize">−</button>
+        <button id="close-popup" class="close-popup-btn" title="Close">×</button>
+      </div>
+    </div>
   </div>
-  <div>
+  <div class="popup-content" id="popup-content">
     <span id="description" class="popup-description"></span>
     <span id="rank" class="popup-description"></span>
-  </div>
   <form id="statblock-form">
 
     <div class="popup-stats-row">
@@ -85,6 +89,7 @@
   <label for="statblock-text" class="popup-label">Paste Stat Block Text</label>
   <textarea id="statblock-text" class="popup-textarea" rows="6" placeholder="Paste stat block text here..."></textarea>
   <button type="button" id="parse-statblock" class="popup-button">Parse Stat Block</button>
+  </div> <!-- Close popup-content div -->
 
 </body>
 
