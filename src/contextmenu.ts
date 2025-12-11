@@ -16,7 +16,7 @@ export function createContextMenu(playerId:string) {
           roles: ["PLAYER", "GM"],
           some: [
             { key: "layer", value: "CHARACTER" },
-            //{ key: "createdUserId", value: `${playerId}`,  },
+            { key: "createdUserId", value: `${playerId}`,  },
           ],
         },
       },
