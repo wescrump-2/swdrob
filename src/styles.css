@@ -589,6 +589,15 @@ h2 {
   transform: scale(1.05);
 }
 
+.minimize-popup-btn:focus,
+.close-popup-btn:focus,
+.minimize-popup-btn:focus-visible,
+.close-popup-btn:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
 .minimize-popup-btn {
   position: fixed;
   top: 1px;

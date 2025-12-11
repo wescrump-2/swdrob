@@ -5,6 +5,7 @@ import { playerCache } from "./main";
 
 export function createContextMenu(playerId:string) {
   // Add context menu item
+  console.log(playerId);
   OBR.contextMenu.create({
     id: `${Util.StatBlockMkey}/open-statblock`,
     icons: [
@@ -15,7 +16,7 @@ export function createContextMenu(playerId:string) {
           roles: ["PLAYER", "GM"],
           every: [
             { key: "layer", value: "CHARACTER" },
-            { key: "createdUserId", value: `${playerId}`,  },
+            //{ key: "createdUserId", value: `${playerId}`,  },
           ],
         },
       },
@@ -39,7 +40,7 @@ export function createContextMenu(playerId:string) {
           height: 640,
           width: 480,
           anchorReference: "ELEMENT",
-          anchorElementId: character.id,
+          //anchorElementId: character.id,
           anchorPosition: {
             left: 0,
             top: 0,
@@ -54,6 +55,7 @@ export function createContextMenu(playerId:string) {
           },
           disableClickAway: true,
           hidePaper: true,
+          marginThreshold: 60,
         });
       } catch (error) {
         Debug.error("Failed to open popover:", error);
