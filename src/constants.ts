@@ -72,7 +72,7 @@ export const CONST = {
 		CRITICAL_FAILURE: '💀',
 		CRITICAL_FAILURE_JODI: '🙌',
 		JOKER: '🃏',
-		ADJUST: '🎛️',
+		ADJUST: '🎚',
 		REROLL: '🔄',
 		WOUND: '🩸'
 	},

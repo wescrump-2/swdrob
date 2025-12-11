@@ -11,7 +11,7 @@
 
   color-scheme: light dark;
   --spacing: 1px;
-  --border: 2px solid var(--theme-color);
+  --border: 2px solid var(--obr-text);
   --border-radius: 6px;
   --button-size: 25px;
   --die-size: 40px;
