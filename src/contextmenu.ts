@@ -13,9 +13,9 @@ export function createContextMenu(playerId:string) {
         label: "Savaged.us Character",
         filter: {
           roles: ["PLAYER", "GM"],
-          some: [
+          every: [
             { key: "layer", value: "CHARACTER" },
-            { key: "createdUserId", value: `${playerId}`,  },
+            { key: "createdUserId", value: `${playerId}`},
           ],
         },
       },
