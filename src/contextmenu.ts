@@ -3,8 +3,9 @@ import { Util } from "./util";
 import { Debug } from "./debug";
 import { playerCache } from "./main";
 
-export function createContextMenu(playerId:string) {
+export function createContextMenu(playerId: string) {
   // Add context menu item
+  console.log(`Player: ${playerId}`);
   OBR.contextMenu.create({
     id: `${Util.StatBlockMkey}/open-statblock`,
     icons: [
@@ -15,22 +16,22 @@ export function createContextMenu(playerId:string) {
           roles: ["PLAYER", "GM"],
           every: [
             { key: "layer", value: "CHARACTER" },
-            { key: "createdUserId", value: `${playerId}`},
+            //{ key: "createdUserId", value: `${playerId}` },
           ],
         },
       },
     ],
     onClick: async (context: { items: Item[] }) => {
-      const character = context.items.find((item) =>  item.layer === "CHARACTER" && item.type === "IMAGE");
+      const character = context.items.find((item) => item.layer === "CHARACTER" && item.type === "IMAGE");
       if (!character) {
         Debug.log("No character found in context items");
         return;
       }
-
-      if (!playerCache.isGm && character.createdUserId != playerCache.id) {
-        OBR.notification.show("Access restricted to characters that belong to you.", "WARNING");
-        return;
-      }
+      Debug.log(`Player: ${playerCache.name}`);
+      // if (!playerCache.isGm && character.createdUserId != playerCache.id) {
+      //   OBR.notification.show("Access restricted to characters that belong to you.", "WARNING");
+      //   return;
+      // }
 
       try {
         await OBR.popover.open({
@@ -39,7 +40,7 @@ export function createContextMenu(playerId:string) {
           height: 640,
           width: 480,
           anchorReference: "ELEMENT",
-          //anchorElementId: character.id,
+          anchorElementId: character.id,
           anchorPosition: {
             left: 0,
             top: 0,
