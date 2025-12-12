@@ -1307,16 +1307,6 @@ async function updateStorage(rh: SWDR[]) {
 
     save();
 }
-/**
- * Compress roll history data using pako deflate (for backward compatibility)
- * This function is kept for backward compatibility with existing compressed data
- * @param data - Array of SWDR objects to compress
- * @returns Compressed Uint8Array
- */
-// function compress(data: SWDR[]): Uint8Array {
-//     const serialized = JSON.stringify(data);
-//     return pako.deflate(serialized, { level: 9 });
-// }
 
 /**
  * Decompress roll history data using pako inflate (for backward compatibility)
