@@ -1059,13 +1059,28 @@ async function onSceneMetadataChange(metadata: any) {
         // Check scene metadata for roll history
         if (metadata[Util.SceneDiceHistoryMkey]) {
             try {
-                const storedHistory = metadata[Util.SceneDiceHistoryMkey] as Uint8Array;
-                ROLL_HISTORY = decompress(storedHistory);
-                const logContainer = document.getElementById('log-entries');
-                if (logContainer) {
-                    logContainer.innerHTML = '';
+                const storedHistory = metadata[Util.SceneDiceHistoryMkey];
+                
+                // Handle both direct and compressed formats
+                let rollHistory: SWDR[] = [];
+                if (isDirectStorageFormat(storedHistory)) {
+                    Debug.log("Processing roll history in direct storage format");
+                    rollHistory = restoreObjectsDirectly(storedHistory);
+                } else if (storedHistory instanceof Uint8Array) {
+                    Debug.log("Processing roll history in compressed format (backward compatibility)");
+                    rollHistory = decompress(storedHistory);
+                } else {
+                    console.error("Unknown roll history format in metadata");
                 }
-                renderLog(ROLL_HISTORY);
+                
+                if (rollHistory.length > 0) {
+                    ROLL_HISTORY = rollHistory;
+                    const logContainer = document.getElementById('log-entries');
+                    if (logContainer) {
+                        logContainer.innerHTML = '';
+                    }
+                    renderLog(ROLL_HISTORY);
+                }
             } catch (error) {
                 console.error("Failed to process roll history:", error);
                 // Continue with other metadata processing
@@ -1181,7 +1196,6 @@ async function updateRollHistory(roll: SWDR) {
     ROLL_HISTORY.push(roll);
     updateStorage(ROLL_HISTORY)
 }
-
 async function fetchStorage(): Promise<SWDR[]> {
     // Wait until OBR is actually ready — no shortcuts
     // Add timeout to prevent infinite loop
@@ -1203,6 +1217,7 @@ async function fetchStorage(): Promise<SWDR[]> {
         const sceneStartTime = Date.now();
         const MAX_SCENE_WAIT_TIME = 30000; // 30 seconds timeout
         
+
         while (!await OBR.scene.isReady()) {
             // Check if we've exceeded the maximum wait time
             if (Date.now() - sceneStartTime > MAX_SCENE_WAIT_TIME) {
@@ -1214,11 +1229,26 @@ async function fetchStorage(): Promise<SWDR[]> {
 
         // Get metadata from scene only (new approach)
         const sceneMetadata = await OBR.scene.getMetadata();
-        const storedHistory = sceneMetadata[Util.SceneDiceHistoryMkey] as Uint8Array | undefined;
+        const storedHistory = sceneMetadata[Util.SceneDiceHistoryMkey];
 
         if (storedHistory) {
             Debug.log("Found roll history in scene metadata");
-            return decompress(storedHistory);
+            
+            // Check if this is direct storage format
+            if (isDirectStorageFormat(storedHistory)) {
+                Debug.log("Using direct object storage format");
+                return restoreObjectsDirectly(storedHistory);
+            }
+            // Check if this is compressed format (backward compatibility)
+            else if (storedHistory instanceof Uint8Array) {
+                Debug.log("Using backward-compatible compressed format");
+                return decompress(storedHistory);
+            }
+            // Handle unexpected format
+            else {
+                console.error("Unknown roll history format in metadata");
+                return [];
+            }
         }
 
         Debug.log("No saved roll history found in scene metadata");
@@ -1233,8 +1263,10 @@ async function updateStorage(rh: SWDR[]) {
     while (rh.length > MAX_HISTORY) rh.shift();
     let history = [...rh];
 
-    let buff = compress(history);
-    Debug.log("History size:", buff.byteLength, "bytes");
+    // Use direct object storage instead of compression
+    let directStorage = saveObjectsDirectly(history);
+    Debug.log("Using direct object storage for roll history");
+    
     const save = async () => {
         if (!OBR.isReady) {
             requestAnimationFrame(save);
@@ -1250,11 +1282,11 @@ async function updateStorage(rh: SWDR[]) {
                 return;
             }
 
-            // Use scene metadata only (new approach)
+            // Use scene metadata with direct object storage
             await OBR.scene.setMetadata({
-                [Util.SceneDiceHistoryMkey]: buff
+                [Util.SceneDiceHistoryMkey]: directStorage
             });
-            Debug.log("Roll history saved to scene metadata");
+            Debug.log("Roll history saved to scene metadata using direct object storage");
         } catch (err: unknown) {
             // TypeScript now knows err is unknown → we have to check it safely
             if (err && typeof err === "object" && "message" in err) {
@@ -1275,13 +1307,23 @@ async function updateStorage(rh: SWDR[]) {
 
     save();
 }
-// Compress
-function compress(data: SWDR[]): Uint8Array {
-    const serialized = JSON.stringify(data);
-    return pako.deflate(serialized, { level: 9 });
-}
+/**
+ * Compress roll history data using pako deflate (for backward compatibility)
+ * This function is kept for backward compatibility with existing compressed data
+ * @param data - Array of SWDR objects to compress
+ * @returns Compressed Uint8Array
+ */
+// function compress(data: SWDR[]): Uint8Array {
+//     const serialized = JSON.stringify(data);
+//     return pako.deflate(serialized, { level: 9 });
+// }
 
-// Decompress
+/**
+ * Decompress roll history data using pako inflate (for backward compatibility)
+ * This function is kept for backward compatibility with existing compressed data
+ * @param compressedData - Compressed Uint8Array to decompress
+ * @returns Array of SWDR objects
+ */
 function decompress(compressedData: Uint8Array): SWDR[] {
     try {
         const decompressed = pako.inflate(compressedData);
@@ -1293,9 +1335,55 @@ function decompress(compressedData: Uint8Array): SWDR[] {
     }
 }
 
+/**
+ * Save roll history data directly as objects without compression
+ * This is the new preferred storage method that avoids JSON serialization overhead
+ * @param data - Array of SWDR objects to store
+ * @returns Object with direct storage format including version marker
+ */
+function saveObjectsDirectly(data: SWDR[]): any {
+    // Store the data directly as an object
+    // We'll use a marker to indicate this is direct storage format
+    return {
+        __directStorage: true,
+        version: 1,
+        data: data
+    };
+}
+
+/**
+ * Restore roll history data from direct object storage
+ * @param storedData - Object in direct storage format
+ * @returns Array of SWDR objects, or empty array if format is invalid
+ */
+function restoreObjectsDirectly(storedData: any): SWDR[] {
+    try {
+        // Check if this is direct storage format
+        if (storedData && storedData.__directStorage && storedData.version === 1) {
+            return Array.isArray(storedData.data) ? storedData.data : [];
+        }
+        // If not direct storage format, return empty array
+        // (this will be handled by the backward compatibility logic)
+        return [];
+    } catch (err) {
+        console.error("Failed to restore objects directly:", err);
+        return [];
+    }
+}
+
+/**
+ * Check if stored data uses the direct storage format
+ * @param storedData - Data to check
+ * @returns true if data is in direct storage format, false otherwise
+ */
+function isDirectStorageFormat(storedData: any): boolean {
+    return storedData && storedData.__directStorage && storedData.version === 1;
+}
+
 function getTargetNumber(): number {
     return targetNumberSpinner.valueAsNumber;
 }
+
 // Determine the amount of successes and raises and build description text.
 function calculateRaises(rollResult: number, targetnumber: number) {
     // Get the target number and create empty variables for raises and description.
