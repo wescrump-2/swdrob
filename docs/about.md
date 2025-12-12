@@ -2,8 +2,8 @@
 title: Savage Owlbear Dice
 description: Savage Worlds Dice roller extension for Owlbear Rodeo.
 author: Wes Crump
-image: https://swdrob.vercel.app/docs/logo.png
-icon: https://swdrob.vercel.app/docs/icon.svg
+image: https://swdrob.vercel.app/logo.png
+icon: https://swdrob.vercel.app/icon.svg
 tags:
   - savage-worlds
   - dice
@@ -52,16 +52,16 @@ Used for skill checks, attacks, spellcasting, and other trait-based rolls. Trait
 - **Opposed Roll**: ![Opposed Roll](opposedroll.png) Toggle to set Target Number to the result of the most recent trait roll by another player.
 - **Wounds**: ![Wounds](wound.png) Three toggles (-1 each) for wound penalties.
 - **Fatigue**: ![Fatigue](fatigue.png) Two toggles (-1 each) for fatigue penalties.
-- **Illumination**: ![Illumination](illumination.png) Cycles through Light, Dim(-2), Dark(-4), and Pitch(-6).
 - **Distracted**: ![Distracted](distracted.png) Toggle to set Distracted status for trait rolls.
+- **Wild Attack**: ![Wild Attack](wild_attack.png) Toggle to make a Wild Attack roll(-2, +2 damage).
+- **The Drop**: ![The Drop](the_drop.png) Toggle to indicate having The Drop on the Foe.
 - **Vulnerable**: ![Vulnerable](vulnerable.png) Toggle to set when Foe is Vulnerable to attack rolls.
 - **Multi-Action**: ![Multi Action](multi_action.png) Cycles through One Action, Two Actions(-2), and Three Actions(-4) multi-action penalties.
+- **Gang Up**: ![Gang Up](gang_up.png) Cycles through Gang Up Bonuses +1 to +4.
 - **Called Shot**: ![Called Shot](called_shot.png) Cycles through various called shot locations, Limb(-2), Hand(-4), Head/Vitals(-4,+4 dmg), Item(-2), Item(-4), Unarmored(-4), Eyeslit(-6).
 - **Cover**: ![Cover](cover.png) Cycles through No Cover, Light Cover(-2), Medium Cover(-4), Heavy Cover(-6), and Near Total Cover(-8).
 - **Range**: ![Range](range.png) Cycles through Short Range, Medium Range(-2), Long Range(-4) and Extreme Range(-8).
-- **The Drop**: ![The Drop](the_drop.png) Toggle to indicate having The Drop on the Foe.
-- **Wild Attack**: ![Wild Attack](wild_attack.png) Toggle to make a Wild Attack roll(-2, +2 damage).
-- **Gang Up**: ![Gang Up](gang_up.png) Cycles through Gang Up Bonuses +1 to +4.
+- **Illumination**: ![Illumination](illumination.png) Cycles through Light, Dim(-2), Dark(-4), and Pitch(-6).
 
 - **Dice Selection**: ![Dice Selection](diceselection.png) d4, d6, d8, d10, d12 - Click to add trait dice to the tray.
 
@@ -92,9 +92,9 @@ Used for calculating damage from weapons, spells, etc. Damage rolls sum all dice
 - **Joker Drawn**: ![Joker Drawn](jokerdrawn.png) Toggle (+2 modifier) when dealt a Joker.
 - **Breaking Objects**: ![Breaking Objects](breakobjects.png) Toggle to disable acing (dice don't explode on max roll) and bonus damge die.
 - **Bonus Damage**: ![Bonus Damage](bonusdamage.png) Toggle to add an extra d6 for bonus damage effects.
-- **Called Shot**: ![Called Shot](called_shot.png) Cycles through various called shot locations, Limb(-2), Hand(-4), Head/Vitals(-4,+4 dmg), Item(-2), Item(-4), Unarmored(-4), Eyeslit(-6). Only affects damage rolls when Head/Vitals.
-- **The Drop**: ![The Drop](the_drop.png) Toggle to indicate having The Drop on the Foe.
 - **Wild Attack**: ![Wild Attack](wild_attack.png) Toggle to make a Wild Attack roll(-2, +2 damage).
+- **The Drop**: ![The Drop](the_drop.png) Toggle to indicate having The Drop on the Foe.
+- **Called Shot**: ![Called Shot](called_shot.png) Cycles through various called shot locations, Limb(-2), Hand(-4), Head/Vitals(-4,+4 dmg), Item(-2), Item(-4), Unarmored(-4), Eyeslit(-6). Only affects damage rolls when Head/Vitals.
 
 - **Dice Selection**: ![Dice Selection](diceselection.png) d4, d6, d8, d10, d12 - Click to add damage dice.
 
@@ -155,7 +155,7 @@ The log displays past rolls with the following information:
   - 🃏 Joker bonus applied
   - 🎚 Roll adjusted after the fact
   - 🔄 Reroll of previous roll
-  - 🩹 Wound/fatigue penalty applied
+  - 🩸 Wound/fatigue penalty applied
 
 The log persists across sessions and syncs across players in the Owlbear Rodeo room.
 
@@ -212,11 +212,15 @@ In Owlbear Rodeo with the extension loaded, add a character avatar to the scene.
 
 - Right Click on the character image. (Can also be accessed by left click, then the three dots.)
 - Select ![Stat Block Menu](savaged_context.png) from the context menu.
-- A popup window will appear with a default character. ![Popup Window](popup.png)
+- A popup window will appear with a default character.
+
+![Popup Window](popup.png)
+
 - At the botton of the window are 2 input boxes, one for interfacing with Savaged.us, if you have a shared character there, and one for pasting the stat block text directly.
 - Enter the url to the shared character and click Load.
 - Alternatively, copy/paste the stat block text into the text area, and click the Parse Stat Block button to have your pasted text parsed by the extention.
 - The character data will be extracted and displayed in the popup window.
+
 ![Example](popup_example.png)
 
 *** The parser will try to capture everything it can, however, different sources format and organize Savage World stat blocks slightly differently and this can confuse the parser. If it doesn't extract everything from the text, you can try reviewing and edit the text to help it out. Might work, might not.
@@ -272,15 +276,15 @@ In Owlbear Rodeo with the extension loaded, add a character avatar to the scene.
 
 ### Key Features Summary
 
-1. **Comprehensive Character Display**: All Savage Worlds character attributes and abilities
-2. **Interactive Roll System**: Click-to-roll for all skills, attributes, and weapons
+1. **Comprehensive Character Display**: Savage Worlds character attributes and abilities
+2. **Interactive Roll System**: Click-to-roll for skills, attributes, and weapons
 3. **Advanced Combat Features**: ROF handling, Frenzy support, damage calculations
 4. **Data Import**: URL and text-based stat block importing
 5. **Smart UI**: Conditional display, dynamic sizing, and responsive layout
 6. **Persistence**: Automatic saving and caching of character data
-7. **Game Mechanics Support**: Handles all core Savage Worlds rules and edge cases
+7. **Game Mechanics Support**: Handles core Savage Worlds rules and edges
 
-The system provides a complete digital representation of Savage Worlds characters with full support for the game's unique mechanics like wildcard characters, arcane powers, and combat specializations.
+The system provides a digital representation of Savage Worlds characters with support for the game's unique mechanics like wildcard characters, arcane powers, and combat edges.
 
 ## Acknowledgements
 
@@ -290,6 +294,7 @@ This extension is inspired by and built upon the mechanics of the Savage Worlds 
 - **@3d-dice/dice-box** library from [Fantastic Dice](https://fantasticdice.games/) for providing the 3D dice simulation engine.
 - **Savage Dice Roller** by immaterialplane (<https://immaterialplane.com/apps/swdr/>) for the original concept and implementation that inspired this Owlbear Rodeo extension.
 - **Game Icons** from <https://game-icons.net/> for the icon assets used in the interface.
+- **Savaged.us** <https://savaged.us> for the excellent Savage Worlds character builder.
 
 ## Support
 

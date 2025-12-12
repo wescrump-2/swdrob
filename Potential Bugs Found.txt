@@ -1,0 +1,34 @@
+Potential Bugs Found
+
+### 6. **Missing Input Validation**
+- **File**: `src/popup.ts`, Line 176
+- **Issue**: No validation on `urlInput.value` before passing to `Savaged.parseCharacterFromURL`
+- **Risk**: Invalid URLs could cause unhandled exceptions
+
+### 7. **Potential Memory Leak**
+- **File**: `src/main.ts`, Line 589
+- **Issue**: The `ResizeObserver` is created but never disconnected
+- **Risk**: Memory leaks over time as observers accumulate
+
+### 8. **Unsafe Array Access**
+- **File**: `src/main.ts`, Line 872
+- **Issue**: Accessing `d.rolls[0].value` without checking if rolls array exists or has elements
+- **Risk**: Runtime errors with malformed roll data
+
+### 9. **Missing Null Checks in Event Handlers**
+- **File**: `src/popup.ts`, Line 576
+- **Issue**: Accessing `target.dataset.die` without checking if target exists
+- **Risk**: Runtime errors if event target is unexpected
+
+
+## Recommendations
+
+1. **Add null checks** for all DOM element accesses using optional chaining or explicit null checks
+2. **Implement proper error handling** for async operations, especially network requests and OBR SDK calls
+3. **Add input validation** for user-provided data like URLs and stat block text
+4. **Clean up resources** like ResizeObserver instances to prevent memory leaks
+5. **Add defensive programming** for array accesses and object property accesses
+6. **Implement timeout mechanisms** for potentially infinite loops
+7. **Add more comprehensive error logging** to help diagnose issues in production
+
+The codebase shows good use of TypeScript and has some error handling in place, but these potential bugs could lead to runtime errors, crashes, or unexpected behavior in edge cases. Addressing these issues would significantly improve the robustness and reliability of the application.

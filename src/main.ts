@@ -18,19 +18,41 @@ function loadSVG(svgObjectId: string, svgPath: string): Promise<Document> {
             return;
         }
 
-        svgObject.addEventListener('load', function () {
-            const svgDoc = svgObject.contentDocument;
-            if (svgDoc) {
-                resolve(svgDoc);
-            } else {
-                reject(new Error('SVG content not loaded'));
+        // Add timeout for load failure detection
+        const timeoutId = setTimeout(() => {
+            cleanup();
+            reject(new Error('SVG load timeout'));
+        }, 5000);
+
+        const loadHandler = function () {
+            try {
+                const svgDoc = svgObject.contentDocument;
+                if (svgDoc) {
+                    cleanup();
+                    resolve(svgDoc);
+                } else {
+                    cleanup();
+                    reject(new Error('SVG contentDocument is null after load event'));
+                }
+            } catch (error) {
+                cleanup();
+                reject(new Error(`Error accessing SVG content: ${error instanceof Error ? error.message : 'Unknown error'}`));
             }
-        });
+        };
 
-        svgObject.addEventListener('error', function () {
+        const errorHandler = function () {
+            cleanup();
             reject(new Error('Failed to load SVG'));
-        });
+        };
 
+        const cleanup = function () {
+            clearTimeout(timeoutId);
+            svgObject.removeEventListener('load', loadHandler);
+            svgObject.removeEventListener('error', errorHandler);
+        };
+
+        svgObject.addEventListener('load', loadHandler);
+        svgObject.addEventListener('error', errorHandler);
         svgObject.data = svgPath;
     });
 }
@@ -151,6 +173,16 @@ const d10Button = document.getElementById('d10Button') as unknown as SVGElement;
 const d12Button = document.getElementById('d12Button') as unknown as SVGElement;
 const d20Button = document.getElementById('d20Button') as unknown as SVGElement;
 const d100Button = document.getElementById('d100Button') as unknown as SVGElement;
+
+// Add null checks for critical elements
+if (!traitdice || !damagedice || !standarddice || !targetNumberButton || !targetNumberSpinner ||
+    !targetCurrent || !modifierButton || !modifierSpinner || !modifierCurrent || !wildDieToggle ||
+    !wildDieType || !bonusDamageToggle || !breakingObjectsToggle || !opposedRollToggle ||
+    !jokerDrawnToggle || !adjustButton || !rollDiceButton || !rerollDiceButton || !resetButton ||
+    !removeDiceButton || !colorButton || !clearButton) {
+    console.error('Critical DOM elements are missing');
+    throw new Error('Required DOM elements not found');
+}
 
 //setup click handlers
 setupRadio();
@@ -432,6 +464,10 @@ function setupCounters(): void {
 }
 
 function updateCounter(target: HTMLElement, updateAmount: number): void {
+    if (!target) {
+        console.error('updateCounter: target element is null or undefined');
+        return;
+    }
     let count = Math.max(0, getCounter(target) + updateAmount);
     target.textContent = (count != 0) ? count.toString() : '';
 }
@@ -642,60 +678,72 @@ export let playerCache = {
 };
 
 async function setPlayer(r: SWDR) {
+    // If player cache is already ready, use it immediately
     if (playerCache.ready) {
         r.playerName = playerCache.name;
         r.playerId = playerCache.id;
         return;
     }
 
+    // If there's already a promise in progress, wait for it
     if (playerCachePromise) {
         await playerCachePromise;
+        // After waiting, check if the cache is now ready
         if (playerCache.ready) {
             r.playerName = playerCache.name;
             r.playerId = playerCache.id;
             return;
         }
+        // If we get here, the promise completed but cache isn't ready (error case)
+        // Fall through to create a new promise
     }
 
-    playerCachePromise = (async () => {
-        try {
-            if (!OBR.isReady) {
-                await new Promise<void>((resolve) => {
-                    const handler = () => {
-                        OBR.onReady(handler); // remove listener
-                        resolve();
-                    };
-                    OBR.onReady(handler);
-                });
+    // Create a new promise only if needed and ensure single execution
+    if (!playerCachePromise) {
+        playerCachePromise = (async () => {
+            try {
+                // Wait for OBR to be ready if it's not
+                if (!OBR.isReady) {
+                    await new Promise<void>((resolve) => {
+                        const handler = () => {
+                            OBR.onReady(handler); // remove listener after first call
+                            resolve();
+                        };
+                        OBR.onReady(handler);
+                    });
+                }
+
+                // Get player info in parallel
+                const [name, id, role] = await Promise.all([
+                    OBR.player.getName(),
+                    OBR.player.getId(),
+                    OBR.player.getRole()
+                ]);
+
+                // Update the cache atomically
+                playerCache.name = name;
+                playerCache.id = id;
+                playerCache.isGm = role === 'GM';
+                playerCache.ready = true;
+
+            } catch (err) {
+                console.error("Failed to get player:", err);
+                // Set error state atomically
+                playerCache.name = "GM";
+                playerCache.id = "error";
+                playerCache.ready = true;
+            } finally {
+                playerCachePromise = null;
             }
+        })();
+    }
 
-            const [name, id, role] = await Promise.all([
-                OBR.player.getName(),
-                OBR.player.getId(),
-                OBR.player.getRole()
-            ]);
-
-            playerCache.name = name;
-            playerCache.id = id;
-            playerCache.isGm = role === 'GM';
-            playerCache.ready = true;
-
-            r.playerName = name;
-            r.playerId = id;
-
-        } catch (err) {
-            console.error("Failed to get player:", err);
-            playerCache.name = "GM";
-            playerCache.id = "error";
-            playerCache.ready = true; 
-            r.playerName = "GM";
-            r.playerId = "error";
-        } finally {
-            playerCachePromise = null;
-        }
-    })();
-
+    // Wait for the promise to complete (either existing or newly created)
     await playerCachePromise;
+
+    // After promise completes, set the player data from cache
+    r.playerName = playerCache.name;
+    r.playerId = playerCache.id;
 }
 
 async function cleanupLegacyRoomMetadata() {
@@ -761,6 +809,7 @@ OBR.onReady(async () => {
             unsubscribeonMetadataChange();
             unsubscribeonReadyChange();
             unsubscribeItemsOnChange();
+            cleanupResizeObserver();
         } catch (error) {
             console.error("Error during cleanup:", error);
         }
@@ -869,15 +918,18 @@ async function buildOutputHTML(rCollection: SWDR, rType: string, rResult: RollRe
         // Check for critical failure
         if (IS_MULTIPLE_TRAIT_DICE) {
             const allDice = rResult;
-            const onesCount = allDice.filter(d => d.rolls[0].value === 1).length;
-            if (onesCount > allDice.length / 2 && WILD_DIE_RESULT && WILD_DIE_RESULT.rolls[0].value === 1) {
+            const onesCount = allDice.filter(d => d.rolls && d.rolls.length > 0 && d.rolls[0].value === 1).length;
+            const wildDieHasOne = WILD_DIE_RESULT && WILD_DIE_RESULT.rolls && WILD_DIE_RESULT.rolls.length > 0 && WILD_DIE_RESULT.rolls[0].value === 1;
+            if (onesCount > allDice.length / 2 && wildDieHasOne) {
                 rCollection.criticalFailure = true;
                 rCollection.total = 0;
             } else {
                 rCollection.criticalFailure = false;
             }
         } else {
-            if (TRAIT_DICE[0] && TRAIT_DICE[0].rolls[0].value === 1 && WILD_DIE_RESULT && WILD_DIE_RESULT.rolls[0].value === 1) {
+            const traitDieHasOne = TRAIT_DICE[0] && TRAIT_DICE[0].rolls && TRAIT_DICE[0].rolls.length > 0 && TRAIT_DICE[0].rolls[0].value === 1;
+            const wildDieHasOne = WILD_DIE_RESULT && WILD_DIE_RESULT.rolls && WILD_DIE_RESULT.rolls.length > 0 && WILD_DIE_RESULT.rolls[0].value === 1;
+            if (traitDieHasOne && wildDieHasOne) {
                 rCollection.criticalFailure = true;
                 rCollection.total = 0;
             } else {
@@ -1132,13 +1184,31 @@ async function updateRollHistory(roll: SWDR) {
 
 async function fetchStorage(): Promise<SWDR[]> {
     // Wait until OBR is actually ready — no shortcuts
+    // Add timeout to prevent infinite loop
+    const startTime = Date.now();
+    const MAX_WAIT_TIME = 30000; // 30 seconds timeout
+
     while (!OBR.isReady) {
+        // Check if we've exceeded the maximum wait time
+        if (Date.now() - startTime > MAX_WAIT_TIME) {
+            console.error("OBR readiness check timed out after 30 seconds");
+            return [];
+        }
         await new Promise(requestAnimationFrame);
     }
 
     try {
         // Wait for scene to be ready
+        // Add timeout to prevent infinite loop
+        const sceneStartTime = Date.now();
+        const MAX_SCENE_WAIT_TIME = 30000; // 30 seconds timeout
+        
         while (!await OBR.scene.isReady()) {
+            // Check if we've exceeded the maximum wait time
+            if (Date.now() - sceneStartTime > MAX_SCENE_WAIT_TIME) {
+                console.error("Scene readiness check timed out after 30 seconds");
+                return [];
+            }
             await new Promise(resolve => setTimeout(resolve, 100));
         }
 
@@ -1359,6 +1429,12 @@ function resizeLogElement() {
 const RESIZE_OBSERVER = new ResizeObserver(resizeLogElement);
 
 RESIZE_OBSERVER.observe(document.querySelector('.dice-roller')!, { box: "border-box" });
+
+function cleanupResizeObserver() {
+    if (RESIZE_OBSERVER) {
+        RESIZE_OBSERVER.disconnect();
+    }
+}
 
 function getModifier(): number {
     return modifierSpinner.valueAsNumber
