@@ -1562,7 +1562,7 @@ function getTheDropModifier(rollType: string): number {
 }
 
 function getVulnerableModifier(rollType: string): number {
-    const mod: number = rollType != CONST.ROLL_TYPES.STANDARD && getState(vulnerableToggle) ? 2 : 0;
+    const mod: number = rollType != CONST.ROLL_TYPES.STANDARD && getState(vulnerableToggle) && !getState(theDropToggle) ? 2 : 0;
     return mod;
 }
 
