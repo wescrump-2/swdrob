@@ -281,6 +281,9 @@ function populateForm(character: Character) {
     button.className = "popup-roll-btn popup-skill-btn";
     button.dataset.die = trait.die;
     button.dataset.skill = trait.name;
+    if (trait.name==='fighting') {
+      button.dataset.allowWildAttack = 'true'
+    }
     skillsDiv.appendChild(button);
 
     // Add Frenzy button after Fighting skill if character has Frenzy edge
@@ -299,6 +302,7 @@ function populateForm(character: Character) {
       // Set dataset for 2 dice of the fighting skill type
       frenzyButton.dataset.die = `${trait.die}+${trait.die}`;
       frenzyButton.dataset.skill = 'frenzy';
+      frenzyButton.dataset.allowWildAttack = button.dataset.allowWildAttack;
       skillsDiv.appendChild(frenzyButton);
     }
 
@@ -361,6 +365,9 @@ function populateForm(character: Character) {
     button.className = "popup-roll-btn popup-weapon-btn";
     button.dataset.die = weapon.damage;
     button.dataset.weapon = weapon.name;
+    if (!weapon.range || weapon.range === 'melee') {
+      button.dataset.allowWildAttack = 'true';
+    }
     weaponsDiv.appendChild(button);
   });
 
@@ -385,7 +392,7 @@ function populateForm(character: Character) {
       Debug.log(`Created damage power button for ${power.name} with damage: ${power.damage}`);
     } else {
       // Power has no damage - treat it as a regular arcane skill roll
-      button.dataset.die =  character.getArcaneSkillDie?.() || 'd4-2';
+      button.dataset.die = character.getArcaneSkillDie?.() || 'd4-2';
       button.dataset.skill = character.arcaneSkill || 'spellcasting';
       Debug.log(`Created regular power button for ${power.name} with arcane skill`);
     }
@@ -574,6 +581,7 @@ function addRollHandlers() {
       e.preventDefault();
       const target = e.target as HTMLButtonElement;
       let dieStr = target.dataset.die || 'd6';
+      const allowWildAttack = target.dataset.allowWildAttack === 'true' || false;
       // Remove (us) indicator for dice parsing
       dieStr = dieStr.replace(/ \(us\)$/g, '');
       const rollType = target.dataset.weapon ? 'damage' : 'trait';
@@ -648,7 +656,8 @@ function addRollHandlers() {
         rollType,
         modifier,
         playerId,
-        ...(rollType === 'trait' && { isWildCard })
+        ...(rollType === 'trait' && { isWildCard }),
+        allowWildAttack,
       };
 
       // Use scene metadata only
@@ -660,7 +669,7 @@ function addRollHandlers() {
           // Add timeout to prevent infinite loop
           const startTime = Date.now();
           const MAX_WAIT_TIME = 30000; // 30 seconds timeout
-          
+
           while (!await OBR.scene.isReady()) {
             // Check if we've exceeded the maximum wait time
             if (Date.now() - startTime > MAX_WAIT_TIME) {

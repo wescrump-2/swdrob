@@ -1092,7 +1092,7 @@ async function onSceneMetadataChange(metadata: any) {
 
         if (rollRequest) {
             try {
-                const { dice, rollType, modifier, playerId, isWildCard } = rollRequest;
+                const { dice, rollType, modifier, playerId, isWildCard, allowWildAttack } = rollRequest;
                 const currentPlayerId = await OBR.player.getId();
 
                 if (playerId === currentPlayerId) {
@@ -1107,6 +1107,11 @@ async function onSceneMetadataChange(metadata: any) {
                     }
                     // Set modifier
                     setSpinner(modifierSpinner, modifierCurrent, modifier);
+
+                    if (!allowWildAttack) {
+                        setState(wildAttackToggle, false);
+                    }
+                    
                     // Clear counters
                     clearCounters();
 
