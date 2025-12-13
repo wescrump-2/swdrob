@@ -1,7 +1,6 @@
 // @ts-ignore
 import DiceBox from "https://unpkg.com/@3d-dice/dice-box@1.1.4/dist/dice-box.es.min.js";
 import OBR from "@owlbear-rodeo/sdk";
-import * as pako from 'pako';
 
 import { Util } from './util';
 import { Savaged } from './savaged';
@@ -1061,14 +1060,10 @@ async function onSceneMetadataChange(metadata: any) {
             try {
                 const storedHistory = metadata[Util.SceneDiceHistoryMkey];
                 
-                // Handle both direct and compressed formats
+                // Simply use the stored history directly
                 let rollHistory: SWDR[] = [];
-                if (isDirectStorageFormat(storedHistory)) {
-                    Debug.log("Processing roll history in direct storage format");
-                    rollHistory = restoreObjectsDirectly(storedHistory);
-                } else if (storedHistory instanceof Uint8Array) {
-                    Debug.log("Processing roll history in compressed format (backward compatibility)");
-                    rollHistory = decompress(storedHistory);
+                if (Array.isArray(storedHistory)) {
+                    rollHistory = storedHistory;
                 } else {
                     console.error("Unknown roll history format in metadata");
                 }
@@ -1237,20 +1232,12 @@ async function fetchStorage(): Promise<SWDR[]> {
         const storedHistory = sceneMetadata[Util.SceneDiceHistoryMkey];
 
         if (storedHistory) {
-            Debug.log("Found roll history in scene metadata");
+            console.log("Found roll history in scene metadata");
             
-            // Check if this is direct storage format
-            if (isDirectStorageFormat(storedHistory)) {
-                Debug.log("Using direct object storage format");
-                return restoreObjectsDirectly(storedHistory);
-            }
-            // Check if this is compressed format (backward compatibility)
-            else if (storedHistory instanceof Uint8Array) {
-                Debug.log("Using backward-compatible compressed format");
-                return decompress(storedHistory);
-            }
-            // Handle unexpected format
-            else {
+            // Simply use the stored history directly
+            if (Array.isArray(storedHistory)) {
+                return storedHistory;
+            } else {
                 console.error("Unknown roll history format in metadata");
                 return [];
             }
@@ -1268,32 +1255,23 @@ async function updateStorage(rh: SWDR[]) {
     while (rh.length > MAX_HISTORY) rh.shift();
     let history = [...rh];
 
-    const save = async (retryCount: number = 0) => {
+    const save = async () => {
         try {
             // Wait for OBR and scene to be ready
             if (!OBR.isReady || !(await OBR.scene.isReady())) {
                 if (!OBR.isReady) {
-                    requestAnimationFrame(() => save(retryCount));
+                    requestAnimationFrame(() => save());
                 } else {
-                    setTimeout(() => save(retryCount), 100);
+                    setTimeout(() => save(), 100);
                 }
                 return;
             }
 
-            // Read current metadata to get the version
-            const currentMetadata = await OBR.scene.getMetadata();
-            const currentHistoryData = currentMetadata[Util.SceneDiceHistoryMkey];
-            const currentVersion = (currentHistoryData as any)?.version || 0;
-
-            // Use direct object storage with versioning
-            let directStorage = saveObjectsDirectly(history, currentVersion);
-            Debug.log("Using direct object storage for roll history");
-
-            // Use scene metadata with direct object storage
+            // Simply save the history directly
             await OBR.scene.setMetadata({
-                [Util.SceneDiceHistoryMkey]: directStorage
+                [Util.SceneDiceHistoryMkey]: history
             });
-            Debug.log("Roll history saved to scene metadata using direct object storage");
+            Debug.log("Roll history saved to scene metadata");
         } catch (err: unknown) {
             // TypeScript now knows err is unknown → we have to check it safely
             if (err && typeof err === "object" && "message" in err) {
@@ -1301,12 +1279,7 @@ async function updateStorage(rh: SWDR[]) {
 
                 if (message.includes("not ready")) {
                     // Still not ready → retry soon
-                    setTimeout(() => save(retryCount), 100);
-                } else if (message.includes("version") && retryCount < 3) {
-                    // Version conflict → retry with exponential backoff
-                    const delay = Math.pow(2, retryCount) * 100;
-                    Debug.log(`Version conflict detected, retrying in ${delay}ms...`);
-                    setTimeout(() => save(retryCount + 1), delay);
+                    setTimeout(() => save(), 100);
                 } else {
                     // Real error (network, permission, etc.) – log once
                     console.error("Failed to save roll history:", message);
@@ -1320,68 +1293,6 @@ async function updateStorage(rh: SWDR[]) {
     save();
 }
 
-/**
- * Decompress roll history data using pako inflate (for backward compatibility)
- * This function is kept for backward compatibility with existing compressed data
- * @param compressedData - Compressed Uint8Array to decompress
- * @returns Array of SWDR objects
- */
-function decompress(compressedData: Uint8Array): SWDR[] {
-    try {
-        const decompressed = pako.inflate(compressedData);
-        const parsed = JSON.parse(new TextDecoder().decode(decompressed));
-        return Array.isArray(parsed) ? parsed : [];
-    } catch (err) {
-        console.error("Failed to decompress history:", err);
-        return [];
-    }
-}
-
-/**
- * Save roll history data directly as objects without compression
- * This is the new preferred storage method that avoids JSON serialization overhead
- * @param data - Array of SWDR objects to store
- * @param currentVersion - Current version number for optimistic locking
- * @returns Object with direct storage format including version marker
- */
-function saveObjectsDirectly(data: SWDR[], currentVersion: number = 0): any {
-    // Store the data directly as an object
-    // We'll use a marker to indicate this is direct storage format
-    return {
-        __directStorage: true,
-        version: currentVersion + 1,
-        data: data
-    };
-}
-
-/**
- * Restore roll history data from direct object storage
- * @param storedData - Object in direct storage format
- * @returns Array of SWDR objects, or empty array if format is invalid
- */
-function restoreObjectsDirectly(storedData: any): SWDR[] {
-    try {
-        // Check if this is direct storage format
-        if (storedData && storedData.__directStorage && storedData.version === 1) {
-            return Array.isArray(storedData.data) ? storedData.data : [];
-        }
-        // If not direct storage format, return empty array
-        // (this will be handled by the backward compatibility logic)
-        return [];
-    } catch (err) {
-        console.error("Failed to restore objects directly:", err);
-        return [];
-    }
-}
-
-/**
- * Check if stored data uses the direct storage format
- * @param storedData - Data to check
- * @returns true if data is in direct storage format, false otherwise
- */
-function isDirectStorageFormat(storedData: any): boolean {
-    return storedData && storedData.__directStorage && storedData.version === 1;
-}
 
 function getTargetNumber(): number {
     return targetNumberSpinner.valueAsNumber;

@@ -535,7 +535,7 @@ export class Savaged {
         }
     }
 
-    static async parseCharacterFromURL(url: string): Promise<Character> {
+    static async parseCharacterFromURL(url: string): Promise<{ character: Character, html: string }> {
         try {
             const proxyUrl = `${Savaged.proxy_url_base}`;
             const options = {
@@ -547,7 +547,8 @@ export class Savaged {
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const html = await response.text();
             Debug.log(`Fetched HTML from ${url} via proxy, length: ${html.length}`);
-            return this.parseCharacterFromHTML(html);
+            const character = this.parseCharacterFromHTML(html);
+            return {character, html}
         } catch (e) {
             Debug.error(`Failed to fetch character from ${url}: ${e}`);
             throw e;

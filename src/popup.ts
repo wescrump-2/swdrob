@@ -109,7 +109,11 @@ OBR.onReady(async () => {
       if (metadata.url) {
         try {
           Debug.log('Stored data is stale, refreshing from URL...');
-          const freshCharacter = await Savaged.parseCharacterFromURL(metadata.url);
+          const { character: freshCharacter, html: freshHtml } = await Savaged.parseCharacterFromURL(metadata.url);
+          // Use extractTextFromHtml2 on the html string and insert into statblock-text textarea
+          const extractedText = Savaged.extractTextFromHtml2(freshHtml);
+          const statBlockTextArea = document.getElementById("statblock-text") as HTMLTextAreaElement;
+          statBlockTextArea.value = extractedText;
           // Update metadata with fresh data
           await OBR.scene.items.updateItems([itemId], (items) => {
             for (const item of items) {
@@ -148,7 +152,12 @@ OBR.onReady(async () => {
   // Import from URL
   document.getElementById("import-url")!.onclick = async () => {
     try {
-      storedChar = await Savaged.parseCharacterFromURL(urlInput.value);
+      const { character: freshCharacter, html: freshHtml } = await Savaged.parseCharacterFromURL(urlInput.value);
+      // Use extractTextFromHtml2 on the html string and insert into statblock-text textarea
+      const extractedText = Savaged.extractTextFromHtml2(freshHtml);
+      const statBlockTextArea = document.getElementById("statblock-text") as HTMLTextAreaElement;
+      statBlockTextArea.value = extractedText;
+      storedChar = freshCharacter;
       // Save URL and character to item metadata
       await OBR.scene.items.updateItems([itemId], (items) => {
         for (const item of items) {
@@ -281,7 +290,7 @@ function populateForm(character: Character) {
     button.className = "popup-roll-btn popup-skill-btn";
     button.dataset.die = trait.die;
     button.dataset.skill = trait.name;
-    if (trait.name==='fighting') {
+    if (trait.name === 'fighting') {
       button.dataset.allowWildAttack = 'true'
     }
     skillsDiv.appendChild(button);
