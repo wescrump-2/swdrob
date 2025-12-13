@@ -1263,24 +1263,26 @@ async function updateStorage(rh: SWDR[]) {
     while (rh.length > MAX_HISTORY) rh.shift();
     let history = [...rh];
 
-    // Use direct object storage instead of compression
-    let directStorage = saveObjectsDirectly(history);
-    Debug.log("Using direct object storage for roll history");
-    
-    const save = async () => {
-        if (!OBR.isReady) {
-            requestAnimationFrame(save);
-            return;
-        }
-
+    const save = async (retryCount: number = 0) => {
         try {
-            // Wait for scene to be ready
-            const isSceneReady = await OBR.scene.isReady();
-            if (!isSceneReady) {
-                // Scene not ready yet, retry soon
-                setTimeout(save, 100);
+            // Wait for OBR and scene to be ready
+            if (!OBR.isReady || !(await OBR.scene.isReady())) {
+                if (!OBR.isReady) {
+                    requestAnimationFrame(() => save(retryCount));
+                } else {
+                    setTimeout(() => save(retryCount), 100);
+                }
                 return;
             }
+
+            // Read current metadata to get the version
+            const currentMetadata = await OBR.scene.getMetadata();
+            const currentHistoryData = currentMetadata[Util.SceneDiceHistoryMkey];
+            const currentVersion = (currentHistoryData as any)?.version || 0;
+
+            // Use direct object storage with versioning
+            let directStorage = saveObjectsDirectly(history, currentVersion);
+            Debug.log("Using direct object storage for roll history");
 
             // Use scene metadata with direct object storage
             await OBR.scene.setMetadata({
@@ -1294,7 +1296,12 @@ async function updateStorage(rh: SWDR[]) {
 
                 if (message.includes("not ready")) {
                     // Still not ready → retry soon
-                    setTimeout(save, 100);
+                    setTimeout(() => save(retryCount), 100);
+                } else if (message.includes("version") && retryCount < 3) {
+                    // Version conflict → retry with exponential backoff
+                    const delay = Math.pow(2, retryCount) * 100;
+                    Debug.log(`Version conflict detected, retrying in ${delay}ms...`);
+                    setTimeout(() => save(retryCount + 1), delay);
                 } else {
                     // Real error (network, permission, etc.) – log once
                     console.error("Failed to save roll history:", message);
@@ -1329,14 +1336,15 @@ function decompress(compressedData: Uint8Array): SWDR[] {
  * Save roll history data directly as objects without compression
  * This is the new preferred storage method that avoids JSON serialization overhead
  * @param data - Array of SWDR objects to store
+ * @param currentVersion - Current version number for optimistic locking
  * @returns Object with direct storage format including version marker
  */
-function saveObjectsDirectly(data: SWDR[]): any {
+function saveObjectsDirectly(data: SWDR[], currentVersion: number = 0): any {
     // Store the data directly as an object
     // We'll use a marker to indicate this is direct storage format
     return {
         __directStorage: true,
-        version: 1,
+        version: currentVersion + 1,
         data: data
     };
 }
