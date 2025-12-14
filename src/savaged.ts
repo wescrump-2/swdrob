@@ -141,7 +141,6 @@ export class Character {
         return character;
     }
 
-
     setArcaneBackground(arcaneStr: string) {
         const skillMap: { [key: string]: string } = {
             'Bard': 'performance',
@@ -176,29 +175,6 @@ export class Character {
     }
 }
 
-// function splitIgnoringParentheses(str: string, separator: string): string[] {
-//     const result: string[] = [];
-//     let current = '';
-//     let depth = 0;
-//     for (let i = 0; i < str.length; i++) {
-//         const char = str[i];
-//         if (char === '(') {
-//             depth++;
-//             current += char;
-//         } else if (char === ')') {
-//             depth--;
-//             current += char;
-//         } else if (depth === 0 && str.substr(i, separator.length) === separator) {
-//             result.push(current.trim());
-//             current = '';
-//             i += separator.length - 1;
-//         } else {
-//             current += char;
-//         }
-//     }
-//     if (current.trim()) result.push(current.trim());
-//     return result;
-// }
 function splitIgnoringParentheses(str: string, separator: string): string[] {
     const result: string[] = [];
     let current = '';
@@ -343,7 +319,7 @@ function toCamelCase(str: string): string {
 export class Savaged {
     static PROXY_BASE = "https://owlbearproxy.vercel.app/api/proxy";
     static proxy_url_base = "https://owlbearproxy.vercel.app/url/proxy";
-    static API_KEY: string = '12271xNGRlMzAyYTctMzJkMy00NzhhLThiYmUtZTQ1NDU2YWIyNWY0';
+    static API_KEY: string = '';
     /*
     "/campaigns/get-setting-from-session-id"
     "/wc/bestiary-export-json-generic/"
@@ -361,150 +337,150 @@ export class Savaged {
         return 0;
     }
 
-    static async testApiConnection(api_key: string) {
-        const url = `${Savaged.PROXY_BASE}/_api/auth/whoami`;
-        const options = {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded; charset=utf-8" },
-            body: `apikey=${encodeURIComponent(api_key)}`
-        };
-        try {
-            const response = await fetch(url, options);
-            const data = await response.json();
-            if (response.ok && data.name && data.name.length > 2) {
-                Debug.log(`Connected as ${data.name}! API key valid.`, "SUCCESS");
-                return true;
-            } else {
-                Debug.log("Invalid API key.", "ERROR");
-                return false;
-            }
-        } catch (e) {
-            Debug.error(`Connection failed`);
-            return false;
-        }
-    }
+    // static async testApiConnection(api_key: string) {
+    //     const url = `${Savaged.PROXY_BASE}/_api/auth/whoami`;
+    //     const options = {
+    //         method: "POST",
+    //         headers: { "Content-Type": "application/x-www-form-urlencoded; charset=utf-8" },
+    //         body: `apikey=${encodeURIComponent(api_key)}`
+    //     };
+    //     try {
+    //         const response = await fetch(url, options);
+    //         const data = await response.json();
+    //         if (response.ok && data.name && data.name.length > 2) {
+    //             Debug.log(`Connected as ${data.name}! API key valid.`, "SUCCESS");
+    //             return true;
+    //         } else {
+    //             Debug.log("Invalid API key.", "ERROR");
+    //             return false;
+    //         }
+    //     } catch (e) {
+    //         Debug.error(`Connection failed`);
+    //         return false;
+    //     }
+    // }
 
-    static async fetchUserData(api_key: string) {
-        const url = `${Savaged.PROXY_BASE}/_api/auth/get-user-data`;
-        const options = {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded; charset=utf-8" },
-            body: `apikey=${encodeURIComponent(api_key)}`
-        };
-        try {
-            const response = await fetch(url, options);
-            if (!response.ok) {
-                const ptext = await response.text();
-                Debug.error(`HTTP ${response.status} ${ptext}`);
-                return JSON.stringify(response);
-            } else {
-                const data = await response.json();
-                Debug.log(`Successfully fetched user data`);
-                return data;
-            }
-        } catch (e) {
-            Debug.error(`Failed to load user data`);
-            return null;
-        }
-    }
+    // static async fetchUserData(api_key: string) {
+    //     const url = `${Savaged.PROXY_BASE}/_api/auth/get-user-data`;
+    //     const options = {
+    //         method: "POST",
+    //         headers: { "Content-Type": "application/x-www-form-urlencoded; charset=utf-8" },
+    //         body: `apikey=${encodeURIComponent(api_key)}`
+    //     };
+    //     try {
+    //         const response = await fetch(url, options);
+    //         if (!response.ok) {
+    //             const ptext = await response.text();
+    //             Debug.error(`HTTP ${response.status} ${ptext}`);
+    //             return JSON.stringify(response);
+    //         } else {
+    //             const data = await response.json();
+    //             Debug.log(`Successfully fetched user data`);
+    //             return data;
+    //         }
+    //     } catch (e) {
+    //         Debug.error(`Failed to load user data`);
+    //         return null;
+    //     }
+    // }
 
-    static async fetchCharacters(api_key: string) {
-        const url = `${Savaged.PROXY_BASE}/_api/auth/get-characters-generic-json`;
-        const options = {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded; charset=utf-8" },
-            body: `apikey=${encodeURIComponent(api_key)}`
-        };
-        try {
-            const response = await fetch(url, options);
-            if (!response.ok) {
-                const ptext = await response.text();
-                Debug.error(`HTTP ${response.status} ${ptext}`);
-                return JSON.stringify(response);
-            } else {
-                const data = await response.json();
-                Debug.log(`Successfully fetched ${data.length} characters`);
-                return data;
-            }
-        } catch (e) {
-            Debug.error(`Failed to load characters`);
-            return JSON.stringify(e);
-        }
-    }
+    // static async fetchCharacters(api_key: string) {
+    //     const url = `${Savaged.PROXY_BASE}/_api/auth/get-characters-generic-json`;
+    //     const options = {
+    //         method: "POST",
+    //         headers: { "Content-Type": "application/x-www-form-urlencoded; charset=utf-8" },
+    //         body: `apikey=${encodeURIComponent(api_key)}`
+    //     };
+    //     try {
+    //         const response = await fetch(url, options);
+    //         if (!response.ok) {
+    //             const ptext = await response.text();
+    //             Debug.error(`HTTP ${response.status} ${ptext}`);
+    //             return JSON.stringify(response);
+    //         } else {
+    //             const data = await response.json();
+    //             Debug.log(`Successfully fetched ${data.length} characters`);
+    //             return data;
+    //         }
+    //     } catch (e) {
+    //         Debug.error(`Failed to load characters`);
+    //         return JSON.stringify(e);
+    //     }
+    // }
 
-    static async fetchSaved(api_key: string) {
-        const url = `${Savaged.PROXY_BASE}/_api/auth/get-saves`;
-        const options = {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded; charset=utf-8" },
-            body: `apikey=${encodeURIComponent(api_key)}`
-        };
-        try {
-            const response = await fetch(url, options);
-            if (!response.ok) {
-                const ptext = await response.text();
-                Debug.error(`HTTP ${response.status} ${ptext}`);
-                return JSON.stringify(response);
-            } else {
-                const data = await response.json();
-                Debug.log(`Successfully fetched ${data.length} saves`);
-                return data;
-            }
-        } catch (e) {
-            Debug.error(`Failed to load saves`);
-            return JSON.stringify(e);
-        }
-    }
+    // static async fetchSaved(api_key: string) {
+    //     const url = `${Savaged.PROXY_BASE}/_api/auth/get-saves`;
+    //     const options = {
+    //         method: "POST",
+    //         headers: { "Content-Type": "application/x-www-form-urlencoded; charset=utf-8" },
+    //         body: `apikey=${encodeURIComponent(api_key)}`
+    //     };
+    //     try {
+    //         const response = await fetch(url, options);
+    //         if (!response.ok) {
+    //             const ptext = await response.text();
+    //             Debug.error(`HTTP ${response.status} ${ptext}`);
+    //             return JSON.stringify(response);
+    //         } else {
+    //             const data = await response.json();
+    //             Debug.log(`Successfully fetched ${data.length} saves`);
+    //             return data;
+    //         }
+    //     } catch (e) {
+    //         Debug.error(`Failed to load saves`);
+    //         return JSON.stringify(e);
+    //     }
+    // }
 
-    static async fetchThisCharacter(api_key: string, uuid: string) {
-        const url = `${Savaged.PROXY_BASE}/_api/auth/get-character-by-uuid-generic-json`;
-        const bodyData = { apikey: api_key, search: uuid };
-        const options = {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded; charset=utf-8" },
-            body: JSON.stringify(bodyData)
-        };
-        try {
-            const response = await fetch(url, options);
-            if (!response.ok) {
-                const ptext = await response.text();
-                Debug.error(`HTTP ${response.status} ${ptext}`);
-                return JSON.stringify(response);
-            } else {
-                const data = await response.json();
-                Debug.log(`Successfully fetched character`);
-                return data;
-            }
-        } catch (e) {
-            Debug.error(`Failed to load character`);
-            return JSON.stringify(e);
-        }
-    }
+    // static async fetchThisCharacter(api_key: string, uuid: string) {
+    //     const url = `${Savaged.PROXY_BASE}/_api/auth/get-character-by-uuid-generic-json`;
+    //     const bodyData = { apikey: api_key, search: uuid };
+    //     const options = {
+    //         method: "POST",
+    //         headers: { "Content-Type": "application/x-www-form-urlencoded; charset=utf-8" },
+    //         body: JSON.stringify(bodyData)
+    //     };
+    //     try {
+    //         const response = await fetch(url, options);
+    //         if (!response.ok) {
+    //             const ptext = await response.text();
+    //             Debug.error(`HTTP ${response.status} ${ptext}`);
+    //             return JSON.stringify(response);
+    //         } else {
+    //             const data = await response.json();
+    //             Debug.log(`Successfully fetched character`);
+    //             return data;
+    //         }
+    //     } catch (e) {
+    //         Debug.error(`Failed to load character`);
+    //         return JSON.stringify(e);
+    //     }
+    // }
 
-    static async searchBestiary(api_key: string, searchString: string) {
-        const url = `${Savaged.PROXY_BASE}/_api/auth/search-bestiary-generic-json`;
-        const bodyData = { apikey: api_key, search: searchString };
-        const options = {
-            method: "POST",
-            headers: { "Content-Type": "application/json; charset=utf-8" },
-            body: JSON.stringify(bodyData)
-        };
-        try {
-            const response = await fetch(url, options);
-            if (!response.ok) {
-                const ptext = await response.text();
-                Debug.error(`HTTP ${response.status} ${ptext}`);
-                return JSON.stringify(response);
-            } else {
-                const data = await response.json();
-                Debug.log(`Successfully fetched ${data.length} beasts`);
-                return data;
-            }
-        } catch (e) {
-            Debug.error(`Bestiary search failed`);
-            return JSON.stringify(e);
-        }
-    }
+    // static async searchBestiary(api_key: string, searchString: string) {
+    //     const url = `${Savaged.PROXY_BASE}/_api/auth/search-bestiary-generic-json`;
+    //     const bodyData = { apikey: api_key, search: searchString };
+    //     const options = {
+    //         method: "POST",
+    //         headers: { "Content-Type": "application/json; charset=utf-8" },
+    //         body: JSON.stringify(bodyData)
+    //     };
+    //     try {
+    //         const response = await fetch(url, options);
+    //         if (!response.ok) {
+    //             const ptext = await response.text();
+    //             Debug.error(`HTTP ${response.status} ${ptext}`);
+    //             return JSON.stringify(response);
+    //         } else {
+    //             const data = await response.json();
+    //             Debug.log(`Successfully fetched ${data.length} beasts`);
+    //             return data;
+    //         }
+    //     } catch (e) {
+    //         Debug.error(`Bestiary search failed`);
+    //         return JSON.stringify(e);
+    //     }
+    // }
 
     static damagePowers = [
         /// {"name","damage","raise","damage mod"}

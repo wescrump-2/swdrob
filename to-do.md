@@ -12,7 +12,7 @@
 - Attacker conditions
   - [complete] -2 distracted: -2 to all trait, trait mode only
   - -2 unstable platform, -2 to ranged (not melee), trait mode only
-  - -2 prone: -2 fighting
+  - -2 prone: -2 fighting(melee)
 
 - Attacher options
   - [complete] +2 wild attack: +2 to melee (not ranged), +2 to damage (on both trait and damage mode)
@@ -25,11 +25,11 @@
   - [complete] +2 vulnerable: target is vulnerable
   - [complete] +4 drop: attacker has the drop on target
   - [complete] 0/-2/-4/-8: range penalties, short medium long extreme
-  - -2 unarmed: melee only, defender unarmed
-  - -4 prone: range attack target is prone, -4 medium cover if >= 3" away; melee, +0 but target gets -2 parry
+  - +2 unarmed defender and armed attacker, melee only; does not stack with the drop
+  - [use-medium-cover]-4 prone: range attack target is prone, -4 medium cover if >= 3" away; melee, +0 but target gets -2 parry; is this needed or just rely on -4 medium cover?) ***
   - [complete]+1-4 gang up: based on adjacent characters
 
-- Allow GM to set a particular player's target number and modifier values
+- Allow GM to set a particular player's target number and modifier values(modifier, illumination, cover, range, vulnerable, prone target)
 
 ## GM Target/Modifier Setting Feature Design
 
