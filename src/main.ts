@@ -527,7 +527,6 @@ function showHideControls(selectedRadio: string) {
             jokerDrawnToggle.parentElement!.style.display = show;
             opposedRollToggle.parentElement!.style.display = show;
 
-
             wound1Toggle.parentElement!.style.display = show;
             wound2Toggle.parentElement!.style.display = show;
             wound3Toggle.parentElement!.style.display = show;
@@ -679,6 +678,7 @@ class DieResult {
     themeColor: string = '#ecd69b'
     value: number = 0
 }
+
 class RollResult {
     dieLabel: string = ''
     rollDetails: string = ''
@@ -793,10 +793,15 @@ async function cleanupLegacyRoomMetadata() {
 OBR.onReady(async () => {
     console.log("OBR.onReady fired");
     await applyTheme();
-    const unsubscribeThemeChange = OBR.theme.onChange(applyTheme); 
+    const unsubscribeThemeChange = OBR.theme.onChange(async () => {
+        try {
+            await applyTheme();
+        } catch (error) {
+            console.error("Error in theme on change handler:", error);
+        }
+    });
 
     await Savaged.checkProxyStatus();
-
 
     await initializeExtension();
 
@@ -1325,7 +1330,6 @@ async function updateStorage(rh: SWDR[]) {
 
     save();
 }
-
 
 function getTargetNumber(): number {
     return targetNumberSpinner.valueAsNumber;
