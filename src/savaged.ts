@@ -16,11 +16,21 @@ export interface Weapon {
     rof?: string;
     ap?: string;
     thrownAttack?: string;
+    minStr?: string;
+    weight?: number;
+    cost?: number;
+    notes?: string;
+    shots?: number;
+    blast?: string;
 }
 
 export interface Armor {
     name: string;
     value: number;
+    minStr?: string;
+    weight?: number;
+    cost?: number;
+    notes?: string;
 }
 
 export interface Power {

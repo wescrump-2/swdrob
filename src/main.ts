@@ -1,12 +1,11 @@
 // @ts-ignore
 import DiceBox from "https://unpkg.com/@3d-dice/dice-box@1.1.4/dist/dice-box.es.min.js";
 import OBR from "@owlbear-rodeo/sdk";
-
+import './styles.css';
 import { Util } from './util';
 import { Savaged } from './savaged';
 import { Debug } from './debug';
 import { CalledShot, CONST, Cover, GangUp, getEnumKeys, Illumination, MultiAction, Range } from "./constants";
-import './styles.css';
 import { createContextMenu } from "./contextmenu";
 
 function loadSVG(svgObjectId: string, svgPath: string): Promise<Document> {
@@ -54,6 +53,35 @@ function loadSVG(svgObjectId: string, svgPath: string): Promise<Document> {
         svgObject.addEventListener('error', errorHandler);
         svgObject.data = svgPath;
     });
+}
+
+async function applyTheme() {
+    const theme = await OBR.theme.getTheme();
+
+    // Background
+    document.documentElement.style.setProperty("--obr-background-default", theme.background.default);
+    document.documentElement.style.setProperty("--obr-background-paper", theme.background.paper);
+
+    // Text
+    document.documentElement.style.setProperty("--obr-text-primary", theme.text.primary);
+    document.documentElement.style.setProperty("--obr-text-secondary", theme.text.secondary);
+    document.documentElement.style.setProperty("--obr-text-disabled", theme.text.disabled);
+
+    // Primary color variants
+    document.documentElement.style.setProperty("--obr-primary-main", theme.primary.main);
+    document.documentElement.style.setProperty("--obr-primary-light", theme.primary.light);
+    document.documentElement.style.setProperty("--obr-primary-dark", theme.primary.dark);
+    document.documentElement.style.setProperty("--obr-primary-contrast", theme.primary.contrastText);
+
+    // Secondary color variants
+    document.documentElement.style.setProperty("--obr-secondary-main", theme.secondary.main);
+    document.documentElement.style.setProperty("--obr-secondary-light", theme.secondary.light);
+    document.documentElement.style.setProperty("--obr-secondary-dark", theme.secondary.dark);
+    document.documentElement.style.setProperty("--obr-secondary-contrast", theme.secondary.contrastText);
+
+    // Optional: Add classes for mode-specific styling
+    document.body.classList.toggle("obr-dark", theme.mode === "DARK");
+    document.body.classList.toggle("obr-light", theme.mode === "LIGHT");
 }
 
 // Usage
@@ -440,8 +468,8 @@ function setupSvgToggle(svgElement: SVGElement) {
             cycleEnum(Cover, coverToggle, true, false);
         } else if (svgElement === rangeToggle) {
             cycleEnum(Range, rangeToggle, true, false);
-         } else if (svgElement === gangUpToggle) {
-            cycleEnum(GangUp, gangUpToggle, true, false);   
+        } else if (svgElement === gangUpToggle) {
+            cycleEnum(GangUp, gangUpToggle, true, false);
         } else {
             toggleState(svgElement);
             if (svgElement === bonusDamageToggle && getState(bonusDamageToggle)) {
@@ -764,8 +792,12 @@ async function cleanupLegacyRoomMetadata() {
 
 OBR.onReady(async () => {
     console.log("OBR.onReady fired");
+    await applyTheme();
+    const unsubscribeThemeChange = OBR.theme.onChange(applyTheme); 
+
     await Savaged.checkProxyStatus();
-    //createContextMenu();
+
+
     await initializeExtension();
 
     const unsubscribeonReadyChange = OBR.scene.onReadyChange(async () => {
@@ -805,6 +837,7 @@ OBR.onReady(async () => {
 
     window.addEventListener('beforeunload', () => {
         try {
+            unsubscribeThemeChange();
             unsubscribeonMetadataChange();
             unsubscribeonReadyChange();
             unsubscribeItemsOnChange();
@@ -1059,7 +1092,7 @@ async function onSceneMetadataChange(metadata: any) {
         if (metadata[Util.SceneDiceHistoryMkey]) {
             try {
                 const storedHistory = metadata[Util.SceneDiceHistoryMkey];
-                
+
                 // Simply use the stored history directly
                 let rollHistory: SWDR[] = [];
                 if (Array.isArray(storedHistory)) {
@@ -1067,7 +1100,7 @@ async function onSceneMetadataChange(metadata: any) {
                 } else {
                     console.error("Unknown roll history format in metadata");
                 }
-                
+
                 if (rollHistory.length > 0) {
                     ROLL_HISTORY = rollHistory;
                     const logContainer = document.getElementById('log-entries');
@@ -1106,7 +1139,7 @@ async function onSceneMetadataChange(metadata: any) {
                     if (!allowWildAttack) {
                         setState(wildAttackToggle, false);
                     }
-                    
+
                     // Clear counters
                     clearCounters();
 
@@ -1216,7 +1249,7 @@ async function fetchStorage(): Promise<SWDR[]> {
         // Add timeout to prevent infinite loop
         const sceneStartTime = Date.now();
         const MAX_SCENE_WAIT_TIME = 30000; // 30 seconds timeout
-        
+
 
         while (!await OBR.scene.isReady()) {
             // Check if we've exceeded the maximum wait time
@@ -1233,7 +1266,7 @@ async function fetchStorage(): Promise<SWDR[]> {
 
         if (storedHistory) {
             console.log("Found roll history in scene metadata");
-            
+
             // Simply use the stored history directly
             if (Array.isArray(storedHistory)) {
                 return storedHistory;
@@ -1483,7 +1516,7 @@ function getVulnerableModifier(rollType: string): number {
 }
 
 function getGangUpModifier(rollType: string): number {
-    const mod: number = rollType === CONST.ROLL_TYPES.TRAIT ? getValue(gangUpToggle): 0;
+    const mod: number = rollType === CONST.ROLL_TYPES.TRAIT ? getValue(gangUpToggle) : 0;
     return mod;
 }
 
