@@ -698,12 +698,12 @@ function addRollHandlers() {
           // Wait for scene to be ready
           // Add timeout to prevent infinite loop
           const startTime = Date.now();
-          const MAX_WAIT_TIME = 30000; // 30 seconds timeout
+          const MAX_WAIT_TIME = 10000; // 10 seconds timeout
 
           while (!await OBR.scene.isReady()) {
             // Check if we've exceeded the maximum wait time
             if (Date.now() - startTime > MAX_WAIT_TIME) {
-              console.error("Scene readiness check timed out after 30 seconds");
+              console.error("Scene readiness check timed out after 10 seconds");
               break;
             }
             await new Promise(resolve => setTimeout(resolve, 100));

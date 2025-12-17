@@ -16,6 +16,7 @@ export interface Vehicle {
     runningDie?: string;
     topSpeed?: string;
     notes?: string;
+    contains?: string[];
 }
 export interface Weapon {
     name: string;
@@ -1007,7 +1008,9 @@ export class Savaged {
                         vehiclesStr += current.textContent;
                     } else if (current.nodeType === Node.ELEMENT_NODE) {
                         const el = current as Element;
-                        if (el.tagName === 'BR' || el.tagName === 'STRONG') {
+                        if (el.tagName === 'BR') {
+                            vehiclesStr += '\n';
+                        } else if (el.tagName === 'STRONG') {
                             break;
                         }
                     }
@@ -1019,62 +1022,124 @@ export class Savaged {
                 Debug.log(`Vehicles string: "${vehiclesStr}"`);
                 character.vehicles = [];
 
-                // Split vehicles by comma and process each one
-                const vehicleParts = vehiclesStr.split(', ');
-                Debug.log(`Found ${vehicleParts.length} vehicle parts to process`);
+                // Split vehicles by newlines and process each line
+                const vehicleLines = vehiclesStr.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+                Debug.log(`Found ${vehicleLines.length} vehicle lines to process`);
 
-                vehicleParts.forEach((part, index) => {
-                    Debug.log(`Processing vehicle part ${index + 1}: "${part}"`);
-                    part = part.trim();
-
-                    // Extract vehicle name (everything before the first parenthesis)
-                    const nameMatch = part.match(/^([^()]+)/);
-                    let vehicleName = '';
-                    let detailsStr = '';
-
-                    if (nameMatch) {
-                        vehicleName = nameMatch[1].trim();
-                        // Extract details (everything inside parentheses)
-                        const detailsMatch = part.match(/\(([^)]+)\)$/);
-                        if (detailsMatch) {
-                            detailsStr = detailsMatch[1].trim();
-                        }
-                    }
-
-                    Debug.log(`  Name: "${vehicleName}", Details: "${detailsStr}"`);
-
-                    if (vehicleName && detailsStr) {
-                        const vehicle: Vehicle = {
-                            name: vehicleName
-                        };
-
-                        // Parse vehicle properties from details string
-                        const detailParts = detailsStr.split('; ');
-                        detailParts.forEach(p => {
-                            p = p.trim();
-                            const [key, value] = p.split(': ');
-                            if (key && value) {
-                                const normalizedKey = key.toLowerCase();
-                                if (normalizedKey === 'size') {
-                                    vehicle.size = value;
-                                } else if (normalizedKey === 'handling') {
-                                    vehicle.handling = value;
-                                } else if (normalizedKey === 'toughness') {
-                                    vehicle.toughness = value;
-                                } else if (normalizedKey === 'pace') {
-                                    vehicle.pace = value;
-                                } else if (normalizedKey === 'running die') {
-                                    vehicle.runningDie = value;
-                                } else if (normalizedKey === 'top speed') {
-                                    vehicle.topSpeed = value;
-                                } else if (normalizedKey === 'notes') {
-                                    vehicle.notes = value;
+                let currentVehicleLine = '';
+                let inVehicle = false;
+                let currentVehicle: Vehicle | null = null;
+                
+                vehicleLines.forEach((line, index) => {
+                    Debug.log(`Processing vehicle line ${index + 1}: "${line}"`);
+                
+                    if (inVehicle) {
+                        currentVehicleLine += ' ' + line;
+                        if (line.includes(')')) {
+                            // parse the accumulated line
+                            const fullLine = currentVehicleLine;
+                            const nameMatch = fullLine.match(/^(.*)\(/);
+                            let vehicleName = '';
+                            let detailsStr = '';
+                
+                            if (nameMatch) {
+                                vehicleName = nameMatch[1].trim();
+                                const detailsMatch = fullLine.match(/\(([^)]+)\)$/);
+                                if (detailsMatch) {
+                                    detailsStr = detailsMatch[1].trim();
                                 }
                             }
-                        });
-
-                        Debug.log(`  Created vehicle: ${JSON.stringify(vehicle)}`);
-                        character.vehicles!.push(vehicle);
+                
+                            if (vehicleName && detailsStr) {
+                                currentVehicle = {
+                                    name: vehicleName
+                                };
+                
+                                const detailParts = detailsStr.split('; ');
+                                detailParts.forEach(p => {
+                                    p = p.trim();
+                                    const [key, value] = p.split(': ');
+                                    if (key && value) {
+                                        const normalizedKey = key.toLowerCase();
+                                        if (normalizedKey === 'size') {
+                                            currentVehicle!.size = value;
+                                        } else if (normalizedKey === 'handling') {
+                                            currentVehicle!.handling = value;
+                                        } else if (normalizedKey === 'toughness') {
+                                            currentVehicle!.toughness = value;
+                                        } else if (normalizedKey === 'pace') {
+                                            currentVehicle!.pace = value;
+                                        } else if (normalizedKey === 'running die') {
+                                            currentVehicle!.runningDie = value;
+                                        } else if (normalizedKey === 'top speed') {
+                                            currentVehicle!.topSpeed = value;
+                                        } else if (normalizedKey === 'notes') {
+                                            currentVehicle!.notes = value;
+                                        }
+                                    }
+                                });
+                
+                                character.vehicles!.push(currentVehicle);
+                                Debug.log(`  Created vehicle: ${JSON.stringify(currentVehicle)}`);
+                            }
+                
+                            inVehicle = false;
+                            currentVehicleLine = '';
+                        }
+                    } else if (line.includes('(') && !line.includes(')')) {
+                        currentVehicleLine = line;
+                        inVehicle = true;
+                    } else if (line.includes('(') && line.includes(')')) {
+                        const nameMatch = line.match(/^(.*)\(/);
+                        let vehicleName = '';
+                        let detailsStr = '';
+                
+                        if (nameMatch) {
+                            vehicleName = nameMatch[1].trim();
+                            const detailsMatch = line.match(/\(([^)]+)\)$/);
+                            if (detailsMatch) {
+                                detailsStr = detailsMatch[1].trim();
+                            }
+                        }
+                
+                        if (vehicleName && detailsStr) {
+                            currentVehicle = {
+                                name: vehicleName
+                            };
+                
+                            const detailParts = detailsStr.split('; ');
+                            detailParts.forEach(p => {
+                                p = p.trim();
+                                const [key, value] = p.split(': ');
+                                if (key && value) {
+                                    const normalizedKey = key.toLowerCase();
+                                    if (normalizedKey === 'size') {
+                                        currentVehicle!.size = value;
+                                    } else if (normalizedKey === 'handling') {
+                                        currentVehicle!.handling = value;
+                                    } else if (normalizedKey === 'toughness') {
+                                        currentVehicle!.toughness = value;
+                                    } else if (normalizedKey === 'pace') {
+                                        currentVehicle!.pace = value;
+                                    } else if (normalizedKey === 'running die') {
+                                        currentVehicle!.runningDie = value;
+                                    } else if (normalizedKey === 'top speed') {
+                                        currentVehicle!.topSpeed = value;
+                                    } else if (normalizedKey === 'notes') {
+                                        currentVehicle!.notes = value;
+                                    }
+                                }
+                            });
+                
+                            character.vehicles!.push(currentVehicle);
+                            Debug.log(`  Created vehicle: ${JSON.stringify(currentVehicle)}`);
+                        }
+                    } else if (line.startsWith('Contains:')) {
+                        const containsStr = line.replace(/^Contains:\s*/i, '').trim();
+                        if (currentVehicle && containsStr) {
+                            currentVehicle.contains = containsStr.split(', ').map(item => item.trim());
+                            Debug.log(`  Added contains to vehicle: ${JSON.stringify(currentVehicle.contains)}`);
+                        }
                     }
                 });
                 Debug.log(`Parsed ${character.vehicles?.length} vehicles`);
@@ -1309,6 +1374,18 @@ export class Savaged {
                 }
                 // Remove dashes from gear string
                 gearStr = Util.removeDashes(gearStr);
+                // Add vehicle contains to gearStr
+                if (character.vehicles) {
+                    const vehicleContains: string[] = [];
+                    character.vehicles.forEach(vehicle => {
+                        if (vehicle.contains) {
+                            vehicleContains.push(...vehicle.contains);
+                        }
+                    });
+                    if (vehicleContains.length > 0) {
+                        gearStr += ', ' + vehicleContains.join(', ');
+                    }
+                }
                 character.gear = [];
                 splitIgnoringParentheses(gearStr, ', ').forEach(g => {
                     g = g.trim();
@@ -1577,7 +1654,7 @@ export class Savaged {
         "Experience", "Bennies", "Pace",
         "Arcane Background", "Powers", "Weapons", "Languages",
         "Wealth", "Power Points", "Description",
-        "Vehicles", // Add this line
+        "Vehicles",
         "Armor", //Armor is last for reasons
     ];
 
@@ -2202,88 +2279,6 @@ export class Savaged {
                 }
             }
         }
-        // Vehicles - find Vehicles: line and collect until next section
-        let vehiclesStart = false;
-        let vehiclesStr = '';
-        lineIndex = 0;
-        while (lineIndex < lines.length) {
-            const line = lines[lineIndex];
-            if (line.match(/^Vehicles:/i)) {
-                vehiclesStart = true;
-                vehiclesStr = line.replace(/^Vehicles:\s*/i, '').trim();
-                lineIndex++;
-                continue;
-            }
-            if (vehiclesStart) {
-                if (line.match(Savaged.sectionHeadersRegEx)) {
-                    break;
-                } else {
-                    vehiclesStr += ' ' + line;
-                }
-                lineIndex++;
-            } else {
-                lineIndex++;
-            }
-        }
-        vehiclesStr = vehiclesStr.replace(/\((\d)\-(\d)\)/g, '[$1-$2]');
-        if (vehiclesStr) {
-            // Improved regex to handle vehicles with complex properties
-            const vehicleMatches = [...vehiclesStr.matchAll(/([^,]+?(?:\([^)]+\))*?)(?=,|$)/g)];
-
-            character.vehicles = [];
-            for (const match of vehicleMatches) {
-                const vehicleText = match[1].trim();
-                if (!vehicleText) continue;
-
-                // Extract vehicle name (everything before the first parenthesis)
-                let vehicleName = vehicleText;
-                let detailsStr = '';
-
-                const lastParenIndex = vehicleText.lastIndexOf('(');
-                if (lastParenIndex !== -1) {
-                    vehicleName = vehicleText.substring(0, lastParenIndex).trim();
-                    const detailsWithParen = vehicleText.substring(lastParenIndex).trim();
-                    if (detailsWithParen.startsWith('(') && detailsWithParen.endsWith(')')) {
-                        detailsStr = detailsWithParen.substring(1, detailsWithParen.length - 1).trim();
-                    }
-                }
-
-                Debug.log(`  Vehicle parsing - Name: "${vehicleName}", Details: "${detailsStr}""`);
-
-                if (vehicleName && detailsStr) {
-                    const vehicle: Vehicle = {
-                        name: vehicleName
-                    };
-
-                    // Parse vehicle properties from details string
-                    const detailParts = detailsStr.split('; ');
-                    detailParts.forEach(p => {
-                        p = p.trim();
-                        const [key, value] = p.split(': ');
-                        if (key && value) {
-                            const normalizedKey = key.toLowerCase();
-                            if (normalizedKey === 'size') {
-                                vehicle.size = value;
-                            } else if (normalizedKey === 'handling') {
-                                vehicle.handling = value;
-                            } else if (normalizedKey === 'toughness') {
-                                vehicle.toughness = value;
-                            } else if (normalizedKey === 'pace') {
-                                vehicle.pace = value;
-                            } else if (normalizedKey === 'running die') {
-                                vehicle.runningDie = value;
-                            } else if (normalizedKey === 'top speed') {
-                                vehicle.topSpeed = value;
-                            } else if (normalizedKey === 'notes') {
-                                vehicle.notes = value;
-                            }
-                        }
-                    });
-
-                    character.vehicles!.push(vehicle);
-                }
-            }
-        }
 
         // Arcane Background
         lineIndex = 0;
@@ -2501,6 +2496,155 @@ export class Savaged {
             lineIndex++;
         }
 
+               
+        // Vehicles - find Vehicles: line and collect until next section
+        let vehiclesStart = false;
+        let vehiclesStr = '';
+        lineIndex = 0;
+        while (lineIndex < lines.length) {
+            const line = lines[lineIndex];
+            if (line.match(/^Vehicles:?/i)) {
+                vehiclesStart = true;
+                vehiclesStr = line.replace(/^Vehicles:?\s*/i, '').trim();
+                lineIndex++;
+                continue;
+            }
+            if (vehiclesStart) {
+                if (line.match(Savaged.sectionHeadersRegEx)) {
+                    break;
+                } else {
+                    vehiclesStr += '\n' + line;
+                }
+                lineIndex++;
+            } else {
+                lineIndex++;
+            }
+        }
+        vehiclesStr = vehiclesStr.replace(/\((\d)\-(\d)\)/g, '[$1-$2]');
+        if (vehiclesStr) {
+            // Split vehicles by newlines and process each line
+            const vehicleLines = vehiclesStr.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+            Debug.log(`Found ${vehicleLines.length} vehicle lines to process`);
+
+            character.vehicles = [];
+            let currentVehicleLine = '';
+            let inVehicle = false;
+            let currentVehicle: Vehicle | null = null;
+            
+            vehicleLines.forEach((line, index) => {
+                Debug.log(`Processing vehicle line ${index + 1}: "${line}"`);
+            
+                if (inVehicle) {
+                    currentVehicleLine += ' ' + line;
+                    if (line.includes(')')) {
+                        // parse the accumulated line
+                        const fullLine = currentVehicleLine;
+                        const nameMatch = fullLine.match(/^(.*)\(/);
+                        let vehicleName = '';
+                        let detailsStr = '';
+            
+                        if (nameMatch) {
+                            vehicleName = nameMatch[1].trim();
+                            const detailsMatch = fullLine.match(/\(([^)]+)\)$/);
+                            if (detailsMatch) {
+                                detailsStr = detailsMatch[1].trim();
+                            }
+                        }
+            
+                        if (vehicleName && detailsStr) {
+                            currentVehicle = {
+                                name: vehicleName
+                            };
+            
+                            const detailParts = detailsStr.split('; ');
+                            detailParts.forEach(p => {
+                                p = p.trim();
+                                const [key, value] = p.split(': ');
+                                if (key && value) {
+                                    const normalizedKey = key.toLowerCase();
+                                    if (normalizedKey === 'size') {
+                                        currentVehicle!.size = value;
+                                    } else if (normalizedKey === 'handling') {
+                                        currentVehicle!.handling = value;
+                                    } else if (normalizedKey === 'toughness') {
+                                        currentVehicle!.toughness = value;
+                                    } else if (normalizedKey === 'pace') {
+                                        currentVehicle!.pace = value;
+                                    } else if (normalizedKey === 'running die') {
+                                        currentVehicle!.runningDie = value;
+                                    } else if (normalizedKey === 'top speed') {
+                                        currentVehicle!.topSpeed = value;
+                                    } else if (normalizedKey === 'notes') {
+                                        currentVehicle!.notes = value;
+                                    }
+                                }
+                            });
+            
+                            character.vehicles!.push(currentVehicle);
+                            Debug.log(`  Created vehicle: ${JSON.stringify(currentVehicle)}`);
+                        }
+            
+                        inVehicle = false;
+                        currentVehicleLine = '';
+                    }
+                } else if (line.includes('(') && !line.includes(')')) {
+                    currentVehicleLine = line;
+                    inVehicle = true;
+                } else if (line.includes('(') && line.includes(')')) {
+                    const nameMatch = line.match(/^(.*?)\(/);
+                    let vehicleName = '';
+                    let detailsStr = '';
+            
+                    if (nameMatch) {
+                        vehicleName = nameMatch[1].trim();
+                        const detailsMatch = line.match(/\((.*)\)\s*$/);
+                        if (detailsMatch) {
+                            detailsStr = detailsMatch[1].trim();
+                        }
+                    }
+            
+                    if (vehicleName && detailsStr) {
+                        currentVehicle = {
+                            name: vehicleName
+                        };
+            
+                        const detailParts = detailsStr.split('; ');
+                        detailParts.forEach(p => {
+                            p = p.trim();
+                            const [key, value] = p.split(': ');
+                            if (key && value) {
+                                const normalizedKey = key.toLowerCase();
+                                if (normalizedKey === 'size') {
+                                    currentVehicle!.size = value;
+                                } else if (normalizedKey === 'handling') {
+                                    currentVehicle!.handling = value;
+                                } else if (normalizedKey === 'toughness') {
+                                    currentVehicle!.toughness = value;
+                                } else if (normalizedKey === 'pace') {
+                                    currentVehicle!.pace = value;
+                                } else if (normalizedKey === 'running die') {
+                                    currentVehicle!.runningDie = value;
+                                } else if (normalizedKey === 'top speed') {
+                                    currentVehicle!.topSpeed = value;
+                                } else if (normalizedKey === 'notes') {
+                                    currentVehicle!.notes = value;
+                                }
+                            }
+                        });
+            
+                        character.vehicles!.push(currentVehicle);
+                        Debug.log(`  Created vehicle: ${JSON.stringify(currentVehicle)}`);
+                    }
+                } else if (line.startsWith('Contains:')) {
+                    const containsStr = line.replace(/^Contains:\s*/i, '').trim();
+                    if (currentVehicle && containsStr) {
+                        currentVehicle.contains = containsStr.split(', ').map(item => item.trim());
+                        Debug.log(`  Added contains to vehicle: ${JSON.stringify(currentVehicle.contains)}`);
+                    }
+                }
+            });
+        }
+
         // Gear - using new extraction function
         lineIndex = 0;
         while (lineIndex < lines.length) {
@@ -2511,6 +2655,18 @@ export class Savaged {
                 let gearContent = gearResult.content.replace(/^Gear:\s*/i, '').trim();
                 // Remove dashes from gear content
                 gearContent = Util.removeDashes(gearContent);
+                // Add vehicle contains to gearContent
+                if (character.vehicles) {
+                    const vehicleContains: string[] = [];
+                    character.vehicles.forEach(vehicle => {
+                        if (vehicle.contains) {
+                            vehicleContains.push(...vehicle.contains);
+                        }
+                    });
+                    if (vehicleContains.length > 0) {
+                        gearContent += ', ' + vehicleContains.join(', ');
+                    }
+                }
                 lineIndex = gearResult.endIndex;
 
                 // NEW: Enhanced gear parsing to extract weapons and other proper sections
