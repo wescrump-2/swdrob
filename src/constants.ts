@@ -45,6 +45,21 @@ export enum GangUp {
 	Gang_Up_4 = 4,
 }
 
+export enum Wound {
+	Wound_0 = 0,
+	Wound_1 = 1,
+	Wound_2 = 2,
+	Wound_3 = 3,
+	Wound_4 = 4,
+	Wound_5 = 5,
+}
+
+export enum Fatigue {
+	Fatigue_0 = 0,
+	Fatigue_1 = 1,
+	Fatigue_2 = 2,
+}
+
 export const getEnumKeys = <T extends object>(e: T): (keyof T)[] =>
 	Object.keys(e).filter((k) => Number.isNaN(Number(k))) as (keyof T)[];
 
@@ -74,7 +89,18 @@ export const CONST = {
 		JOKER: '🃏',
 		ADJUST: '🎚',
 		REROLL: '🔄',
-		WOUND: '🩸'
+		WOUND: '🩸',
+		FATIGUE: '🩹',
+		WILD_ATTACK: '🌀',
+		DISTRACTED: '👀',
+		VULNERABLE: '💔',
+		THE_DROP: '🥷🏻',
+		MULTI_ACTION: '🔀',
+		GANG_UP: '🤼',
+		CALLED_SHOT: '🎯',
+		COVER: '🧱',
+		RANGE: '🔭',
+		ILLUMINATION: '💡',
 	},
 	COLOR_THEMES: {
 		PRIMARY: '#c6c4af',
@@ -93,26 +119,35 @@ export const CONST = {
 		BONUS: 'Bonus',
 	},
 	DEFAULTS: {
-		WILD_DIE: "d6",
-		WILD_DIE_ENABLED: true,
-		TARGET_NUMBER: "4",
+		DICE_MODE: "trait",
 		MODIFIER: "0",
-		TARGET_NUMBER_MIN: "4",
 		MODIFIER_MIN: "-14",
-		TARGET_NUMBER_MAX: "24",
 		MODIFIER_MAX: "14",
+		TARGET_NUMBER: "4",
+		TARGET_NUMBER_MIN: "4",
+		TARGET_NUMBER_MAX: "24",
+		WILD_DIE_ENABLED: true,
+		WILD_DIE: "d6",
+
+		JOKER_DRAWN_ENABLED: false,
+		OPPOSED_ENABLED: false,
+		
 		BREAK_OBJECTS: false,
 		BONUS_DAMAGE: false,
-		OPPOSED_ENABLED: false,
-		JOKER_DRAWN_ENABLED: false,
+
 		WOUND_ENABLED: false,
+		WOUND_VALUE: Wound.Wound_0,
 		FATIGUE_ENABLED: false,
-		ILLUMN_VALUE: Illumination.Light,
-		DICE_MODE: "trait",
+		FATIGUE_VALUE: Fatigue.Fatigue_0,
 		DISTRACTED_ENABLED: false,
-		MULTI_VALUE: MultiAction.One_Action,
 		WILD_ATTACK_ENABLED: false,
 		THE_DROP_ENABLED: false,
 		VULNERABLE_ENABLED: false,
+		MULTI_VALUE: MultiAction.One_Action,
+		GANG_UP_VALUE: GangUp.Gang_Up,
+		CALLED_SHOT_VALUE: CalledShot.Called_Shot,
+		COVER_VALUE: Cover.No_Cover,
+		RANGE_VALUE: Range.Short_Range,
+		ILLUMN_VALUE: Illumination.Light,
 	}
 };

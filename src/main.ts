@@ -656,16 +656,28 @@ class SWDR {
     criticalFailure: boolean = false
     description: string = ''
     rollType: string = ''
+    modifier: number = 0
     targetNumber: number = 4
     isReroll: boolean = false
-    modifier: number = 0
     rollResult: RollResult[] = []
     total: number = 0
     onesCount: number = 0
-    isJoker: boolean = false
-    illumination: number = CONST.DEFAULTS.ILLUMN_VALUE
     isAdjustment: boolean = false
+
+    isJoker: boolean = false
     isWound: boolean = false
+    woundCount: number = CONST.DEFAULTS.WOUND_VALUE
+    fatigueCount: number = CONST.DEFAULTS.FATIGUE_VALUE
+    isDistracted: boolean = CONST.DEFAULTS.DISTRACTED_ENABLED
+    isWildAttack: boolean = CONST.DEFAULTS.WILD_ATTACK_ENABLED
+    isTheDrop: boolean = CONST.DEFAULTS.THE_DROP_ENABLED
+    isVulnerable: boolean = CONST.DEFAULTS.VULNERABLE_ENABLED
+    multiCount: number = CONST.DEFAULTS.MULTI_VALUE
+    gangUpCount: number = CONST.DEFAULTS.GANG_UP_VALUE
+    calledShotCount: number = CONST.DEFAULTS.CALLED_SHOT_VALUE
+    coverCount: number = CONST.DEFAULTS.COVER_VALUE
+    rangeCount: number = CONST.DEFAULTS.RANGE_VALUE
+    illumination: number = CONST.DEFAULTS.ILLUMN_VALUE
 };
 
 class DieResult {
@@ -901,6 +913,26 @@ const DB = new DiceBox({
         RollCollection.rollType = DB.rollType
         RollCollection.isReroll = DB.isReroll
         RollCollection.targetNumber = DB.targetNumber
+
+        RollCollection.isReroll = DB.isReroll;
+        RollCollection.modifier = rollResult[0].modifier;
+        RollCollection.isJoker = getState(jokerDrawnToggle) && DB.rollType != CONST.ROLL_TYPES.STANDARD;
+        RollCollection.isWound = getWoundsModifier(DB.rollType) !== 0;
+        RollCollection.rollResult = rollResult;
+
+        RollCollection.woundCount = 0; ///getValue(woundToggle);
+        RollCollection.fatigueCount = 0; ///getValue(fatigueToggle);
+        RollCollection.isDistracted = getState(distractedToggle);
+        RollCollection.isWildAttack = getState(wildAttackToggle);
+        RollCollection.isTheDrop = getState(theDropToggle);
+        RollCollection.isVulnerable = getState(vulnerableToggle);
+        RollCollection.multiCount = getValue(multiToggle);
+        RollCollection.gangUpCount = getValue(gangUpToggle);
+        RollCollection.calledShotCount = getValue(calledShotToggle);
+        RollCollection.coverCount = getValue(coverToggle);
+        RollCollection.rangeCount = getValue(rangeToggle);
+        RollCollection.illumination = getValue(illumToggle);
+
         const LOG_ENTRY_WRAPPER_ELEMENT = document.createElement('fieldset')
         LOG_ENTRY_WRAPPER_ELEMENT.classList.add('log-entry-wrapper')
         LOG_ENTRY_WRAPPER_ELEMENT.dataset.rolltype = RollCollection.rollType
@@ -927,12 +959,12 @@ const DB = new DiceBox({
                 DIE_ROLL.rollDetails = breakdownResult(DIE_ROLL);
             }
 
-            RollCollection.isReroll = DB.isReroll;
-            RollCollection.modifier = rollResult[0].modifier;
-            RollCollection.isJoker = getState(jokerDrawnToggle) && DB.rollType != CONST.ROLL_TYPES.STANDARD;
-            RollCollection.illumination = DB.rolltype === CONST.ROLL_TYPES.TRAIT ? getValue(illumToggle) : 0;
-            RollCollection.isWound = getWoundsModifier(DB.rollType) != 0;
-            RollCollection.rollResult = rollResult;
+            // RollCollection.isReroll = DB.isReroll;
+            // RollCollection.modifier = rollResult[0].modifier;
+            // RollCollection.isJoker = getState(jokerDrawnToggle) && DB.rollType != CONST.ROLL_TYPES.STANDARD;
+            // RollCollection.illumination = getValue(illumToggle);
+            // RollCollection.isWound = getWoundsModifier(DB.rollType) != 0;
+            // RollCollection.rollResult = rollResult;
 
             await buildOutputHTML(RollCollection, DB.rollType, rollResult, LOG_ENTRY_WRAPPER_ELEMENT)
             updateRollHistory({ ...RollCollection });
@@ -1020,7 +1052,9 @@ async function buildOutputHTML(rCollection: SWDR, rType: string, rResult: RollRe
         }
 
         // Format the roll details (i.e., break down of each die, if it aced, and whatever modifier might be applied).
-        const ROLL_DETAILS_ELEMENT = createRollDetailsElement(`${rCollection.modifier != 0 || rCollection.isJoker || rCollection.isWound ? signModOutput(rCollection.modifier, rCollection.isJoker, rCollection.isWound) : ''}${rollDetails}`);
+        // const ROLL_DETAILS_ELEMENT = createRollDetailsElement(`${rCollection.modifier != 0 || rCollection.isJoker || rCollection.isWound ? signModOutput(rCollection.modifier, rCollection.isJoker, rCollection.isWound) : ''}${rollDetails}`);
+
+        const ROLL_DETAILS_ELEMENT = createRollDetailsElement(`${rCollection.modifier != 0 || rCollection.isJoker || rCollection.isWound ? signModOutput(rCollection) : ''}${rollDetails}`);
 
         if (rCollection.criticalFailure) {
             descriptionString = `Critical Failure! ${CONST.EMOJIS.CRITICAL_FAILURE}`;
@@ -1058,7 +1092,9 @@ async function buildOutputHTML(rCollection: SWDR, rType: string, rResult: RollRe
         }
 
         // Format the roll details (i.e., break down of each die, if it aced, and whatever modifier might be applied).
-        rollDetailsElement = createRollDetailsElement(`${rCollection.modifier != 0 || rCollection.isJoker || rCollection.isWound ? signModOutput(rCollection.modifier, rCollection.isJoker, rCollection.isWound) : ''}${rollDetails}`);
+        // rollDetailsElement = createRollDetailsElement(`${rCollection.modifier != 0 || rCollection.isJoker || rCollection.isWound ? signModOutput(rCollection.modifier, rCollection.isJoker, rCollection.isWound) : ''}${rollDetails}`);
+
+        rollDetailsElement = createRollDetailsElement(`${rCollection.modifier != 0 || rCollection.isJoker || rCollection.isWound ? signModOutput(rCollection) : ''}${rollDetails}`);
         wrapper.append(rollDetailsElement);
         // Generate the HTML markup for the description and result value.
         const RESULTS = markupResult(rCollection, rCollection.total, { description: DESCRIPTION_STRING! });
@@ -1427,8 +1463,13 @@ function sidesNumber(s: string) {
     return numberResult;
 }
 
-function signModOutput(modifier: number, joker: boolean, isWound: boolean) {
-    return `<p class="modifier" data-modifier="${modifier}">Modifier: ${modifier < 0 ? '−' : '+'}${Math.abs(modifier)}${joker ? CONST.EMOJIS.JOKER : ''}${isWound ? CONST.EMOJIS.WOUND : ''}</p>`;
+// function signModOutput(modifier: number, joker:boolean, isWound:boolean) { 
+//     return `<p class="modifier" data-modifier="${modifier}">Modifier: ${modifier < 0 ? '−' : '+'}${Math.abs(modifier)}${joker ? CONST.EMOJIS.JOKER : ''}${isWound ? CONST.EMOJIS.WOUND : ''}</p>`;
+// }
+
+function signModOutput(rc: SWDR) {
+    const result = `<p class="modifier" data-modifier="${rc.modifier}">Modifier: ${rc.modifier < 0 ? '−' : '+'}${Math.abs(rc.modifier)}${rc.isJoker ? CONST.EMOJIS.JOKER : ''}${rc.woundCount > 0 ? CONST.EMOJIS.WOUND : ''}${rc.fatigueCount > 0 ? CONST.EMOJIS.FATIGUE : ''}${rc.isWildAttack ? CONST.EMOJIS.WILD_ATTACK : ''}${rc.isDistracted ? CONST.EMOJIS.DISTRACTED : ''}${rc.isVulnerable ? CONST.EMOJIS.VULNERABLE : ''}${rc.isTheDrop ? CONST.EMOJIS.THE_DROP : ''}${rc.multiCount > 0 ? CONST.EMOJIS.MULTI_ACTION : ''}${rc.gangUpCount > 0 ? CONST.EMOJIS.GANG_UP : ''}${rc.calledShotCount > 0 ? CONST.EMOJIS.CALLED_SHOT : ''}${rc.coverCount > 0 ? CONST.EMOJIS.COVER : ''}${rc.rangeCount > 0 ? CONST.EMOJIS.RANGE : ''}${rc.illumination > 0 ? CONST.EMOJIS.ILLUMINATION : ''}</p>`;
+    return result;
 }
 
 function markupDieRollDetails(dieRoll: RollResult, rType: string, joker: boolean, isWound: boolean, targetNumber?: number) {
@@ -1530,7 +1571,13 @@ function getCalledShotModifier(rollType: string): number {
     const val: number = getValue(calledShotToggle);
     let result: number = 0;
     if (rollType === CONST.ROLL_TYPES.TRAIT) {
-
+        if (val=== CalledShot.Limb) result=-2;
+        else if (val=== CalledShot.Hand) result=-4;
+        else if (val=== CalledShot.Head) result=-4;
+        else if (val=== CalledShot.Item_Sword) result=-2;
+        else if (val=== CalledShot.Item_Pistol) result=-4;
+        else if (val=== CalledShot.Unarmored) result=-4;
+        else if (val=== CalledShot.Eyeslit) result=-6;
     } else if (rollType === CONST.ROLL_TYPES.DAMAGE) {
         if (val === CalledShot.Head) result = 4;
     }
@@ -1747,7 +1794,8 @@ async function adjustTheRoll() {
                 OUTPUT_ELEMENT.innerHTML = '';
 
                 if (NEW_MODIFIER !== 0 || IS_JOKER || IS_WOUND) {
-                    let mod = signModOutput(NEW_MODIFIER, IS_JOKER, IS_WOUND);
+                    LAST_ROLL.modifier=NEW_MODIFIER;//not sure
+                    let mod = signModOutput(LAST_ROLL) ; //NEW_MODIFIER, IS_JOKER, IS_WOUND);
                     OUTPUT_ELEMENT.insertAdjacentHTML('afterbegin', mod);
                 }
 
