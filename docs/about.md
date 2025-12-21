@@ -39,7 +39,7 @@ The extension supports three roll modes: Trait Rolls, Damage Rolls, and Standard
 ### 1. Trait Rolls
 
 ![Trait Mode](traitmode.png)
-Used for skill checks, attacks, spellcasting, and other trait-based rolls. Trait rolls determine success based on meeting or exceeding a Target Number (TN), with possible raises.
+Used for skill checks, attacks, spellcasting, and other trait-based rolls. Trait rolls determine success based on meeting or exceeding a Target Number (TN), with possible raises. There are buttons for indicating various conditions of combat and trait rolls that can be chosen such as wounds, fatigue, distracted, wild attack, vulnerable, illumination, etc. You may use them or just set the modifier slider to the cumlative penalty or bonus. Or just do the math yourself.
 
 **Controls:**
 
@@ -80,7 +80,7 @@ Used for skill checks, attacks, spellcasting, and other trait-based rolls. Trait
 
 ![Damage Roll Interface](damagedice.png)
 
-Used for calculating damage from weapons, spells, etc. Damage rolls sum all dice, with modifiers applied.
+Used for calculating damage from weapons, spells, etc. Damage rolls sum all dice, with modifiers applied. Common modifier buttons are available to set the modifiers to the roll for damage such as joker, wild attack, the drop, etc. Again, these are optional as you can just set the total modifier value with the slider or don't bother and just roll and apply the penalty/bonus yourself to the total.
 
 ![Damage Mode](damagemode.png)
 
@@ -146,16 +146,27 @@ The log displays past rolls with the following information:
 - **Player Name**: Who made the roll.
 - **Roll Details**: Breakdown of each die, modifiers, and calculations.
 - **Result**: Total and description (success/failure, raises, etc.).
-- **Emojis** indicate special outcomes:
+- **Emojis** indicate which settings were in effect when dice were rolled:
   - ⭐ Success
   - ❌ Failure
   - 🌟 Raise (additional success level)
   - 💥 Ace (die exploded and added another)
   - 💀 Critical Failure
   - 🃏 Joker bonus applied
-  - 🎚 Roll adjusted after the fact
+  - 🎚 Roll adjusted post dice roll
   - 🔄 Reroll of previous roll
-  - 🩸 Wound/fatigue penalty applied
+  - 🩸 Wound penalty applied
+  - 🩹 Fatigue penalty applied
+  - 🌀 Wild Attack
+  - 👀 Distracted
+  - 💔 Vulnerable target
+  - 🥷🏻 Has The Drop on target
+  - 🔀 Multiple Action penalty
+  - 🤼 Has Gang Up bonus on target
+  - 🎯 Using a Called Shot
+  - 🧱 Target has Cover
+  - 🔭 Target is at Range
+  - 💡 Illumination penalty in effect
 
 The log persists across sessions and syncs across players in the Owlbear Rodeo room.
 

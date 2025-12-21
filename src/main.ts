@@ -913,25 +913,30 @@ const DB = new DiceBox({
         RollCollection.rollType = DB.rollType
         RollCollection.isReroll = DB.isReroll
         RollCollection.targetNumber = DB.targetNumber
+        RollCollection.modifier = rollResult[0].modifier;
 
         RollCollection.isReroll = DB.isReroll;
-        RollCollection.modifier = rollResult[0].modifier;
-        RollCollection.isJoker = getState(jokerDrawnToggle) && DB.rollType != CONST.ROLL_TYPES.STANDARD;
+
+        RollCollection.isJoker = DB.rollType !== CONST.ROLL_TYPES.STANDARD ? getState(jokerDrawnToggle) : false;
         RollCollection.isWound = getWoundsModifier(DB.rollType) !== 0;
         RollCollection.rollResult = rollResult;
 
-        RollCollection.woundCount = 0; ///getValue(woundToggle);
-        RollCollection.fatigueCount = 0; ///getValue(fatigueToggle);
-        RollCollection.isDistracted = getState(distractedToggle);
-        RollCollection.isWildAttack = getState(wildAttackToggle);
-        RollCollection.isTheDrop = getState(theDropToggle);
-        RollCollection.isVulnerable = getState(vulnerableToggle);
-        RollCollection.multiCount = getValue(multiToggle);
-        RollCollection.gangUpCount = getValue(gangUpToggle);
-        RollCollection.calledShotCount = getValue(calledShotToggle);
-        RollCollection.coverCount = getValue(coverToggle);
-        RollCollection.rangeCount = getValue(rangeToggle);
-        RollCollection.illumination = getValue(illumToggle);
+        ///FIX when wounds/fatigue changed to counter
+        RollCollection.woundCount = RollCollection.isWound ? 1 : 0; ///getValue(woundToggle); DB.rollType === CONST.ROLL_TYPES.TRAIT ? getValue(woundToggle):0;
+        const fat: number = (getState(fatigue1Toggle) ? 1 : 0) + (getState(fatigue2Toggle) ? 1 : 0)
+        RollCollection.fatigueCount = DB.rollType === CONST.ROLL_TYPES.TRAIT ? fat : 0; ///getValue(fatigueToggle);  DB.rollType === CONST.ROLL_TYPES.TRAIT ? getValue(fatigueToggle):0;
+        ///
+
+        RollCollection.isDistracted = DB.rollType === CONST.ROLL_TYPES.TRAIT ? getState(distractedToggle) : false;
+        RollCollection.isWildAttack = DB.rollType !== CONST.ROLL_TYPES.STANDARD ? getState(wildAttackToggle) : false;
+        RollCollection.isTheDrop = DB.rollType !== CONST.ROLL_TYPES.STANDARD ? getState(theDropToggle) : false;
+        RollCollection.isVulnerable = DB.rollType === CONST.ROLL_TYPES.TRAIT ? getState(vulnerableToggle) : false;
+        RollCollection.multiCount = DB.rollType === CONST.ROLL_TYPES.TRAIT ? getValue(multiToggle) : 0;
+        RollCollection.gangUpCount = DB.rollType === CONST.ROLL_TYPES.TRAIT ? getValue(gangUpToggle) : 0;
+        RollCollection.calledShotCount = DB.rollType !== CONST.ROLL_TYPES.STANDARD && getCalledShotModifier(DB.rollType) !== 0 ? getValue(calledShotToggle) : 0;
+        RollCollection.coverCount = DB.rollType === CONST.ROLL_TYPES.TRAIT ? getValue(coverToggle) : 0;
+        RollCollection.rangeCount = DB.rollType === CONST.ROLL_TYPES.TRAIT ? getValue(rangeToggle) : 0;
+        RollCollection.illumination = DB.rollType === CONST.ROLL_TYPES.TRAIT ? getValue(illumToggle) : 0;
 
         const LOG_ENTRY_WRAPPER_ELEMENT = document.createElement('fieldset')
         LOG_ENTRY_WRAPPER_ELEMENT.classList.add('log-entry-wrapper')
@@ -958,13 +963,6 @@ const DB = new DiceBox({
 
                 DIE_ROLL.rollDetails = breakdownResult(DIE_ROLL);
             }
-
-            // RollCollection.isReroll = DB.isReroll;
-            // RollCollection.modifier = rollResult[0].modifier;
-            // RollCollection.isJoker = getState(jokerDrawnToggle) && DB.rollType != CONST.ROLL_TYPES.STANDARD;
-            // RollCollection.illumination = getValue(illumToggle);
-            // RollCollection.isWound = getWoundsModifier(DB.rollType) != 0;
-            // RollCollection.rollResult = rollResult;
 
             await buildOutputHTML(RollCollection, DB.rollType, rollResult, LOG_ENTRY_WRAPPER_ELEMENT)
             updateRollHistory({ ...RollCollection });
@@ -1468,7 +1466,7 @@ function sidesNumber(s: string) {
 // }
 
 function signModOutput(rc: SWDR) {
-    const result = `<p class="modifier" data-modifier="${rc.modifier}">Modifier: ${rc.modifier < 0 ? '−' : '+'}${Math.abs(rc.modifier)}${rc.isJoker ? CONST.EMOJIS.JOKER : ''}${rc.woundCount > 0 ? CONST.EMOJIS.WOUND : ''}${rc.fatigueCount > 0 ? CONST.EMOJIS.FATIGUE : ''}${rc.isWildAttack ? CONST.EMOJIS.WILD_ATTACK : ''}${rc.isDistracted ? CONST.EMOJIS.DISTRACTED : ''}${rc.isVulnerable ? CONST.EMOJIS.VULNERABLE : ''}${rc.isTheDrop ? CONST.EMOJIS.THE_DROP : ''}${rc.multiCount > 0 ? CONST.EMOJIS.MULTI_ACTION : ''}${rc.gangUpCount > 0 ? CONST.EMOJIS.GANG_UP : ''}${rc.calledShotCount > 0 ? CONST.EMOJIS.CALLED_SHOT : ''}${rc.coverCount > 0 ? CONST.EMOJIS.COVER : ''}${rc.rangeCount > 0 ? CONST.EMOJIS.RANGE : ''}${rc.illumination > 0 ? CONST.EMOJIS.ILLUMINATION : ''}</p>`;
+    const result = `<p class="modifier" data-modifier="${rc.modifier}">Modifier: ${rc.modifier < 0 ? '−' : '+'}${Math.abs(rc.modifier)}${rc.isJoker ? CONST.EMOJIS.JOKER : ''}${rc.woundCount > 0 || rc.isWound ? CONST.EMOJIS.WOUND : ''}${rc.fatigueCount > 0 ? CONST.EMOJIS.FATIGUE : ''}${rc.isWildAttack ? CONST.EMOJIS.WILD_ATTACK : ''}${rc.isDistracted ? CONST.EMOJIS.DISTRACTED : ''}${rc.isVulnerable ? CONST.EMOJIS.VULNERABLE : ''}${rc.isTheDrop ? CONST.EMOJIS.THE_DROP : ''}${rc.multiCount > 0 ? CONST.EMOJIS.MULTI_ACTION : ''}${rc.gangUpCount > 0 ? CONST.EMOJIS.GANG_UP : ''}${rc.calledShotCount > 0 ? CONST.EMOJIS.CALLED_SHOT : ''}${rc.coverCount > 0 ? CONST.EMOJIS.COVER : ''}${rc.rangeCount > 0 ? CONST.EMOJIS.RANGE : ''}${rc.illumination > 0 ? CONST.EMOJIS.ILLUMINATION : ''}</p>`;
     return result;
 }
 
@@ -1571,13 +1569,13 @@ function getCalledShotModifier(rollType: string): number {
     const val: number = getValue(calledShotToggle);
     let result: number = 0;
     if (rollType === CONST.ROLL_TYPES.TRAIT) {
-        if (val=== CalledShot.Limb) result=-2;
-        else if (val=== CalledShot.Hand) result=-4;
-        else if (val=== CalledShot.Head) result=-4;
-        else if (val=== CalledShot.Item_Sword) result=-2;
-        else if (val=== CalledShot.Item_Pistol) result=-4;
-        else if (val=== CalledShot.Unarmored) result=-4;
-        else if (val=== CalledShot.Eyeslit) result=-6;
+        if (val === CalledShot.Limb) result = -2;
+        else if (val === CalledShot.Hand) result = -4;
+        else if (val === CalledShot.Head) result = -4;
+        else if (val === CalledShot.Item_Sword) result = -2;
+        else if (val === CalledShot.Item_Pistol) result = -4;
+        else if (val === CalledShot.Unarmored) result = -4;
+        else if (val === CalledShot.Eyeslit) result = -6;
     } else if (rollType === CONST.ROLL_TYPES.DAMAGE) {
         if (val === CalledShot.Head) result = 4;
     }
@@ -1760,6 +1758,25 @@ async function rerollTheDice() {
         }
     }
 }
+function isModLineNeeded(rc: SWDR): boolean {
+    const result = rc.modifier > 0 ||
+        rc.isJoker ||
+        rc.isWound ||
+        rc.woundCount !== 0 ||
+        rc.fatigueCount !== 0 ||
+        rc.isDistracted ||
+        rc.isWildAttack ||
+        rc.isTheDrop ||
+        rc.isVulnerable ||
+        rc.multiCount !== 0 ||
+        rc.gangUpCount !== 0 ||
+        rc.calledShotCount !== 0 ||
+        rc.coverCount !== 0 ||
+        rc.rangeCount !== 0 ||
+        rc.illumination !== 0
+
+    return result;
+}
 
 async function adjustTheRoll() {
     const pid = playerCache.ready ? playerCache.id : await OBR.player.getId();
@@ -1770,8 +1787,8 @@ async function adjustTheRoll() {
     const ROLL_TYPE = getRollType();
     const NEW_MODIFIER = getTotalModifier(DBrollType);
     const NEW_TARGET_NUMBER = getTargetNumber();
-    const IS_JOKER = LAST_ROLL.isJoker;
-    const IS_WOUND = LAST_ROLL.isWound;
+    //const IS_JOKER = LAST_ROLL.isJoker;
+    //const IS_WOUND = LAST_ROLL.isWound;
     const LOG_ENTRY_WRAPPER_ELEMENTS: NodeListOf<HTMLElement> = document.querySelectorAll('.log-entry-wrapper');
 
     for (const LOG_ENTRY_WRAPPER_ELEMENT of LOG_ENTRY_WRAPPER_ELEMENTS) {
@@ -1792,10 +1809,9 @@ async function adjustTheRoll() {
                 const NEW_TOTAL = isNaN(total) ? 0 : total - RECENT_ROLLS[INDEX].modifier + NEW_MODIFIER;
 
                 OUTPUT_ELEMENT.innerHTML = '';
-
-                if (NEW_MODIFIER !== 0 || IS_JOKER || IS_WOUND) {
-                    LAST_ROLL.modifier=NEW_MODIFIER;//not sure
-                    let mod = signModOutput(LAST_ROLL) ; //NEW_MODIFIER, IS_JOKER, IS_WOUND);
+                LAST_ROLL.modifier = NEW_MODIFIER;//not sure
+                if (isModLineNeeded(LAST_ROLL)) {
+                    let mod = signModOutput(LAST_ROLL); //NEW_MODIFIER, IS_JOKER, IS_WOUND);
                     OUTPUT_ELEMENT.insertAdjacentHTML('afterbegin', mod);
                 }
 
