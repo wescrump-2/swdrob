@@ -380,7 +380,7 @@ function populateForm(character: Character) {
     weaponsDiv.appendChild(button);
   });
 
-  
+
   // Powers
   const powersDiv = document.getElementById("powers")!;
   powersDiv.innerHTML = "";
@@ -433,12 +433,16 @@ function populateForm(character: Character) {
     }
   }
   if (character.rank !== undefined) (document.getElementById("rank") as HTMLSpanElement).textContent = String(character.rank);
-
+  if (character.race !== undefined) (document.getElementById("race") as HTMLSpanElement).textContent = String(character.race);
+    if (character.type !== undefined) (document.getElementById("type") as HTMLSpanElement).textContent = String(character.type);
+  if (character.gender !== undefined) (document.getElementById("gender") as HTMLSpanElement).textContent = String(character.gender);
+  if (character.profession !== undefined) (document.getElementById("profession") as HTMLSpanElement).textContent = String(character.profession);
+  if (character.languages !== undefined && character.languages.length>0) (document.getElementById("languanges") as HTMLSpanElement).textContent = `Languages: ${character.languages.join(', ')}`;
   // Set textarea values and hide empty sections
   const edgesTextarea = document.getElementById("edges") as HTMLTextAreaElement;
   const hindrancesTextarea = document.getElementById("hindrances") as HTMLTextAreaElement;
   const gearTextarea = document.getElementById("gear") as HTMLTextAreaElement;
-  const languagesTextarea = document.getElementById("languages") as HTMLTextAreaElement;
+  
   const vehiclesTextarea = document.getElementById("vehicles") as HTMLTextAreaElement;
   const specialAbilitiesTextarea = document.getElementById("specialAbilities") as HTMLTextAreaElement;
   const advancesTextarea = document.getElementById("advances") as HTMLTextAreaElement;
@@ -470,19 +474,10 @@ function populateForm(character: Character) {
     document.getElementById("gear-section")?.classList.add("hidden");
   }
 
-  if (character.languages && character.languages.length > 0) {
-    if (languagesTextarea.rows >= character.languages.length) languagesTextarea.rows = character.languages.length
-    else languagesTextarea.rows = 3;
-    languagesTextarea.value = character.languages.join("\n");
-    document.getElementById("languages-section")?.classList.remove("hidden");
-  } else {
-    document.getElementById("languages-section")?.classList.add("hidden");
-  }
-
   if (character.vehicles && character.vehicles.length > 0) {
     if (vehiclesTextarea.rows >= character.vehicles.length) vehiclesTextarea.rows = character.vehicles.length
     else vehiclesTextarea.rows = 3;
-    vehiclesTextarea.value = character.vehicles.map<string>(v=> `${v.name} (Size: ${v.size}; Handling${v.handling}; Toughness: ${v.toughness}; Pace: ${v.pace}; Running Die: ${v.runningDie}; Top Speed: ${v.topSpeed}; Notes: ${v.notes})`).join("\n");
+    vehiclesTextarea.value = character.vehicles.map<string>(v => `${v.name} (Size: ${v.size}; Handling${v.handling}; Toughness: ${v.toughness}; Pace: ${v.pace}; Running Die: ${v.runningDie}; Top Speed: ${v.topSpeed}; Notes: ${v.notes})`).join("\n");
     document.getElementById("vehicles-section")?.classList.remove("hidden");
   } else {
     document.getElementById("vehicles-section")?.classList.add("hidden");

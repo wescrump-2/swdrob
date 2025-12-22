@@ -62,6 +62,7 @@ export class Character {
     name: string = '';
     description?: string;
     race?: string;
+    type?: string;
     rank?: string;
     gender?: string;
     profession?: string;
@@ -89,6 +90,8 @@ export class Character {
     advances?: string[];
     isWildCard?: boolean;
     vehicles?: Vehicle[];
+
+
     public getSkillDie(name: string): string {
         // First try exact match
         const exactMatch = this.skills.find(t => t.name === name);
@@ -577,7 +580,8 @@ export class Savaged {
                         const [key, value] = part.split(': ').map(s => s.trim());
                         if (key === 'Rank') character.rank = value;
                         else if (key === 'Gender') character.gender = value;
-                        else if (key === 'Race' || key === 'Type') character.race = value;
+                        else if (key === 'Race') character.race = value;
+                        else if (key === 'Type') character.type = value;
                         else if (key === 'Profession') character.profession = value;
                     });
 
@@ -612,7 +616,6 @@ export class Savaged {
                             //Debug.log(`Parsed rank with parentheses: ${character.rank}`);
                         }
                     }
-                    if (!character.race) character.race = 'Human';
                 }
             }
 
@@ -759,7 +762,7 @@ export class Savaged {
                             if (trimmedLine.length > 10 &&
                                 !trimmedLine.includes(':') &&
                                 !trimmedLine.match(Savaged.rankRegEx) &&
-                                !trimmedLine.match(/^(Rank|Gender|Race|Profession):/i)) {
+                                !trimmedLine.match(/^(Rank|Gender|Race|Profession|Type):/i)) {
                                 backgroundLines.push(trimmedLine);
                             }
                         }
@@ -1029,10 +1032,10 @@ export class Savaged {
                 let currentVehicleLine = '';
                 let inVehicle = false;
                 let currentVehicle: Vehicle | null = null;
-                
+
                 vehicleLines.forEach((line, index) => {
                     Debug.log(`Processing vehicle line ${index + 1}: "${line}"`);
-                
+
                     if (inVehicle) {
                         currentVehicleLine += ' ' + line;
                         if (line.includes(')')) {
@@ -1041,7 +1044,7 @@ export class Savaged {
                             const nameMatch = fullLine.match(/^(.*)\(/);
                             let vehicleName = '';
                             let detailsStr = '';
-                
+
                             if (nameMatch) {
                                 vehicleName = nameMatch[1].trim();
                                 const detailsMatch = fullLine.match(/\(([^)]+)\)$/);
@@ -1049,12 +1052,12 @@ export class Savaged {
                                     detailsStr = detailsMatch[1].trim();
                                 }
                             }
-                
+
                             if (vehicleName && detailsStr) {
                                 currentVehicle = {
                                     name: vehicleName
                                 };
-                
+
                                 const detailParts = detailsStr.split('; ');
                                 detailParts.forEach(p => {
                                     p = p.trim();
@@ -1078,11 +1081,11 @@ export class Savaged {
                                         }
                                     }
                                 });
-                
+
                                 character.vehicles!.push(currentVehicle);
                                 Debug.log(`  Created vehicle: ${JSON.stringify(currentVehicle)}`);
                             }
-                
+
                             inVehicle = false;
                             currentVehicleLine = '';
                         }
@@ -1093,7 +1096,7 @@ export class Savaged {
                         const nameMatch = line.match(/^(.*)\(/);
                         let vehicleName = '';
                         let detailsStr = '';
-                
+
                         if (nameMatch) {
                             vehicleName = nameMatch[1].trim();
                             const detailsMatch = line.match(/\(([^)]+)\)$/);
@@ -1101,12 +1104,12 @@ export class Savaged {
                                 detailsStr = detailsMatch[1].trim();
                             }
                         }
-                
+
                         if (vehicleName && detailsStr) {
                             currentVehicle = {
                                 name: vehicleName
                             };
-                
+
                             const detailParts = detailsStr.split('; ');
                             detailParts.forEach(p => {
                                 p = p.trim();
@@ -1130,7 +1133,7 @@ export class Savaged {
                                     }
                                 }
                             });
-                
+
                             character.vehicles!.push(currentVehicle);
                             Debug.log(`  Created vehicle: ${JSON.stringify(currentVehicle)}`);
                         }
@@ -1642,7 +1645,7 @@ export class Savaged {
         'chomp', 'snap', 'slash', 'stab', 'pierce', 'bludgeon', 'horn', 'trunk',
         'touch', 'tongue', 'tendrils', 'swarm', 'sting or bite', 'bite or sting',
         'tail', 'vines', 'beak', 'fist', 'unarmed', 'antler', 'tusks', 'mandibles',
-        'tentacle', 'fang', 'talon', 'hoof', 'pincer', 'mandible',
+        'tentacle', 'fang', 'talon', 'hoof', 'pincer', 'mandible', 'bash',
     ];
 
 
@@ -1651,11 +1654,10 @@ export class Savaged {
         "Attributes", "Skills", "Edges", "Hindrances", "Gear",
         "Special Abilities", "Advances", "Background", "Type",
         "Rank", "Race", "Profession", "Charisma", "Cybertech",
-        "Experience", "Bennies", "Pace",
+        "Experience", "Bennies", "Pace", "Type",
         "Arcane Background", "Powers", "Weapons", "Languages",
         "Wealth", "Power Points", "Description",
-        "Vehicles",
-        "Armor", //Armor is last for reasons
+        "Vehicles", "Armor", //Armor is last for reasons
     ];
 
     static escaped = Savaged.sectionHeaders.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
@@ -1705,13 +1707,15 @@ export class Savaged {
             quickText += (quickText ? ', ' : '') + lines[lineIndex];
             lineIndex++;
         }
+
         //const startLineIndex = lineIndex; // Save position after quick info
         const parts = quickText.split(', ').map(p => p.trim());
         parts.forEach(part => {
             const [key, value] = part.split(': ').map(s => s.trim());
             if (key === 'Rank') character.rank = value;
             else if (key === 'Gender') character.gender = value;
-            else if (key === 'Race' || key === 'Type') character.race = value;
+            else if (key === 'Race') character.race = value;
+            else if (key === 'Type') character.type = value;
             else if (key === 'Profession') character.profession = value;
         });
 
@@ -1740,16 +1744,24 @@ export class Savaged {
             }
         }
 
-        if (!character.race) character.race = 'Human';
         let tempLineIndex = 0;
         while (tempLineIndex < lines.length) {
             const line = lines[tempLineIndex];
-            if (line.match(/^(Race|Type)[:]?/i)) {
+            if (line.match(/^(Race)[:]?/i)) {
                 // Use new extraction function to get all description content
                 const typeResult = extractSectionContent(lines, tempLineIndex, Savaged.sectionHeaders);
-                const typeText = typeResult.content.replace(/^(Race|Type)[:]?\s*/i, '').trim();
+                const typeText = typeResult.content.replace(/^(Race)[:]?\s*/i, '').trim();
                 if (typeText.length > 0) {
                     character.race = typeText;
+                }
+                tempLineIndex = typeResult.endIndex;
+                break;
+            } else if (line.match(/^(Type)[:]?/i)) {
+                // Use new extraction function to get all description content
+                const typeResult = extractSectionContent(lines, tempLineIndex, Savaged.sectionHeaders);
+                const typeText = typeResult.content.replace(/^(Type)[:]?\s*/i, '').trim();
+                if (typeText.length > 0) {
+                    character.type = typeText;
                 }
                 tempLineIndex = typeResult.endIndex;
                 break;
@@ -1797,7 +1809,7 @@ export class Savaged {
                 // If we haven't found a section header yet, this might be description text
                 if (!foundSectionHeader) {
                     // Skip lines that look like they contain structured data (key: value pairs)
-                    if (!trimmedLine.includes(':') && trimmedLine.length > 10 && !trimmedLine.match(Savaged.rankRegEx)) {
+                    if (!trimmedLine.includes(':') && !trimmedLine.match(Savaged.rankRegEx)) {
                         descriptionLines.push(trimmedLine);
                     } else {
                         foundSectionHeader = true; // Found a structured line, stop looking for fallback pattern
@@ -2496,7 +2508,7 @@ export class Savaged {
             lineIndex++;
         }
 
-               
+
         // Vehicles - find Vehicles: line and collect until next section
         let vehiclesStart = false;
         let vehiclesStr = '';
@@ -2530,10 +2542,10 @@ export class Savaged {
             let currentVehicleLine = '';
             let inVehicle = false;
             let currentVehicle: Vehicle | null = null;
-            
+
             vehicleLines.forEach((line, index) => {
                 Debug.log(`Processing vehicle line ${index + 1}: "${line}"`);
-            
+
                 if (inVehicle) {
                     currentVehicleLine += ' ' + line;
                     if (line.includes(')')) {
@@ -2542,7 +2554,7 @@ export class Savaged {
                         const nameMatch = fullLine.match(/^(.*)\(/);
                         let vehicleName = '';
                         let detailsStr = '';
-            
+
                         if (nameMatch) {
                             vehicleName = nameMatch[1].trim();
                             const detailsMatch = fullLine.match(/\(([^)]+)\)$/);
@@ -2550,12 +2562,12 @@ export class Savaged {
                                 detailsStr = detailsMatch[1].trim();
                             }
                         }
-            
+
                         if (vehicleName && detailsStr) {
                             currentVehicle = {
                                 name: vehicleName
                             };
-            
+
                             const detailParts = detailsStr.split('; ');
                             detailParts.forEach(p => {
                                 p = p.trim();
@@ -2579,11 +2591,11 @@ export class Savaged {
                                     }
                                 }
                             });
-            
+
                             character.vehicles!.push(currentVehicle);
                             Debug.log(`  Created vehicle: ${JSON.stringify(currentVehicle)}`);
                         }
-            
+
                         inVehicle = false;
                         currentVehicleLine = '';
                     }
@@ -2594,7 +2606,7 @@ export class Savaged {
                     const nameMatch = line.match(/^(.*?)\(/);
                     let vehicleName = '';
                     let detailsStr = '';
-            
+
                     if (nameMatch) {
                         vehicleName = nameMatch[1].trim();
                         const detailsMatch = line.match(/\((.*)\)\s*$/);
@@ -2602,12 +2614,12 @@ export class Savaged {
                             detailsStr = detailsMatch[1].trim();
                         }
                     }
-            
+
                     if (vehicleName && detailsStr) {
                         currentVehicle = {
                             name: vehicleName
                         };
-            
+
                         const detailParts = detailsStr.split('; ');
                         detailParts.forEach(p => {
                             p = p.trim();
@@ -2631,7 +2643,7 @@ export class Savaged {
                                 }
                             }
                         });
-            
+
                         character.vehicles!.push(currentVehicle);
                         Debug.log(`  Created vehicle: ${JSON.stringify(currentVehicle)}`);
                     }
@@ -3081,6 +3093,7 @@ export class Savaged {
 
         // Languages - using new extraction function
         lineIndex = 0;
+        character.languages=[];
         while (lineIndex < lines.length) {
             const line = lines[lineIndex];
             if (line.match(/^Languages:\s*(.*)$/i)) {
@@ -3221,6 +3234,7 @@ export class Savaged {
         if (character.specialAbilities && character.specialAbilities.length > 0) {
             const attackPattern = /^(.+?):\s*(.+)$/i; // Pattern like "Bite: Str+d8"
             const weaponsFromSpecialAbilities: Weapon[] = [];
+            const powersFromSpecialAbilities: Power[] = [];
 
             // Process special abilities in reverse order to avoid index issues when removing
             for (let i = character.specialAbilities.length - 1; i >= 0; i--) {
@@ -3291,6 +3305,30 @@ export class Savaged {
 
                         // Remove this from special abilities since it's now a weapon
                         character.specialAbilities.splice(i, 1);
+                    } else if (weaponName.endsWith('powers')) {
+                        const powersStr = this.replaceCharInParens(match[2],',',';');
+                        powersStr.split(', ').forEach(power => {
+                            let name: string, book: string | undefined, page: string | undefined;
+                            let properties: Record<string, string> = {};
+                            const simpleMatch = power.trim().match(/(.*?) \((.*?)\)/);
+                            book = undefined
+                            page = undefined
+                            if (simpleMatch) {
+                                name = simpleMatch[1].trim();
+                                //handle props
+                            } else {
+                                name = power.split(' (')[0].trim();
+                            }
+                            // Create power object with additional properties
+                            const powerObj: Power = { name, book, page };
+                            if (Object.keys(properties).length > 0) {
+                                Object.assign(powerObj, properties);
+                            }
+                            // Enhance power with damage information from damagePowers array
+                            Savaged.enhancePowerWithDamageInfo(powerObj);
+                            powersFromSpecialAbilities.push(powerObj);
+                        });
+                        character.specialAbilities?.splice(i, 1);
                     }
                 }
             }
@@ -3302,14 +3340,33 @@ export class Savaged {
                 }
                 character.weapons.push(...weaponsFromSpecialAbilities);
             }
-        }
 
+            if (powersFromSpecialAbilities.length > 0) {
+                if (!character.powers) {
+                    character.powers = [];
+                }
+                character.powers.push(...powersFromSpecialAbilities);
+            }
+        }
         // Add default unskilled roll
         character.skills.push({ name: 'unskilled', die: 'd4-2' });
 
         Debug.log('Character parsed successfully', character);
         return character;
     }
+
+    static replaceCharInParens(str:string, find:string,replace:string) {
+    let result = '';
+    let depth = 0;
+    for (let char of str) {
+        if (char === '(') depth++;
+        else if (char === ')') depth--;
+        else if (char === find && depth > 0) char = replace;
+        result += char;
+    }
+    return result;
+}
+
 
     static extractTextFromHtml1(htmlString: string): string {
         const parser = new DOMParser();
@@ -3540,6 +3597,7 @@ export class Savaged {
                 description: htmlCharacter.description === textCharacter.description,
                 rank: htmlCharacter.rank === textCharacter.rank,
                 race: htmlCharacter.race === textCharacter.race,
+                type: htmlCharacter.type === textCharacter.type,
                 gender: htmlCharacter.gender === textCharacter.gender,
                 profession: htmlCharacter.profession === textCharacter.profession,
                 background: htmlCharacter.background === textCharacter.background,
