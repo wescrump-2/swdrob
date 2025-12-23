@@ -26,7 +26,8 @@ function ensureCharacterInstance(charData: any): Character {
 }
 
 OBR.onReady(async () => {
-  Debug.log("Popup onReady called");
+  console.log("Popup onReady called");
+  console.log(`Start onReady: ${new Date().toLocaleTimeString()}`);
 
   // Add close button functionality
   const closeButton = document.getElementById("close-popup");
@@ -223,7 +224,7 @@ OBR.onReady(async () => {
       alert("Failed to parse stat block text. Please check the format and try again.");
     }
   };
-
+  console.log(`End onReady: ${new Date().toLocaleTimeString()}`);
 });
 
 
@@ -369,7 +370,7 @@ function populateForm(character: Character) {
   weaponsDiv.innerHTML = "";
   (character.weapons || []).forEach((weapon) => {
     const button = document.createElement("button");
-    button.textContent = `${Util.toTitleCase(weapon.name)} ${weapon.damage ? weapon.damage : '?d?'}`;
+    button.textContent = `${Util.toTitleCase(weapon.name)} ${weapon.damage ? weapon.damage : '?d?'}${weapon.ap?" AP "+weapon.ap:""}`;
     button.type = "button";
     button.className = "popup-roll-btn popup-weapon-btn";
     button.dataset.die = weapon.damage;
@@ -448,8 +449,7 @@ function populateForm(character: Character) {
   const advancesTextarea = document.getElementById("advances") as HTMLTextAreaElement;
 
   if (character.edges && character.edges.length > 0) {
-    if (edgesTextarea.rows >= character.edges.length) edgesTextarea.rows = character.edges.length
-    else edgesTextarea.rows = 3;
+    edgesTextarea.rows = character.edges.length;
     edgesTextarea.value = character.edges.join("\n");
     document.getElementById("edges-section")?.classList.remove("hidden");
   } else {
@@ -457,8 +457,7 @@ function populateForm(character: Character) {
   }
 
   if (character.hindrances && character.hindrances.length > 0) {
-    if (hindrancesTextarea.rows >= character.hindrances.length) hindrancesTextarea.rows = character.hindrances.length
-    else hindrancesTextarea.rows = 3;
+    hindrancesTextarea.rows = character.hindrances.length
     hindrancesTextarea.value = character.hindrances.join("\n");
     document.getElementById("hindrances-section")?.classList.remove("hidden");
   } else {
@@ -466,8 +465,7 @@ function populateForm(character: Character) {
   }
 
   if (character.gear && character.gear.length > 0) {
-    if (gearTextarea.rows >= character.gear.length) gearTextarea.rows = character.gear.length
-    else gearTextarea.rows = 3;
+    gearTextarea.rows = character.gear.length
     gearTextarea.value = character.gear.join("\n");
     document.getElementById("gear-section")?.classList.remove("hidden");
   } else {
@@ -475,8 +473,7 @@ function populateForm(character: Character) {
   }
 
   if (character.vehicles && character.vehicles.length > 0) {
-    if (vehiclesTextarea.rows >= character.vehicles.length) vehiclesTextarea.rows = character.vehicles.length
-    else vehiclesTextarea.rows = 3;
+    vehiclesTextarea.rows = character.vehicles.length
     vehiclesTextarea.value = character.vehicles.map<string>(v => `${v.name} (Size: ${v.size}; Handling${v.handling}; Toughness: ${v.toughness}; Pace: ${v.pace}; Running Die: ${v.runningDie}; Top Speed: ${v.topSpeed}; Notes: ${v.notes})`).join("\n");
     document.getElementById("vehicles-section")?.classList.remove("hidden");
   } else {
@@ -484,8 +481,7 @@ function populateForm(character: Character) {
   }
 
   if (character.specialAbilities && character.specialAbilities.length > 0) {
-    if (specialAbilitiesTextarea.rows >= character.specialAbilities.length) specialAbilitiesTextarea.rows = character.specialAbilities.length
-    else specialAbilitiesTextarea.rows = 3;
+    specialAbilitiesTextarea.rows = character.specialAbilities.length
     specialAbilitiesTextarea.value = character.specialAbilities.join("\n");
     document.getElementById("special-abilities-section")?.classList.remove("hidden");
   } else {
@@ -493,8 +489,7 @@ function populateForm(character: Character) {
   }
 
   if (character.advances && character.advances.length > 0) {
-    if (advancesTextarea.rows >= character.advances.length) advancesTextarea.rows = character.advances.length
-    else advancesTextarea.rows = 3;
+    advancesTextarea.rows = character.advances.length
     advancesTextarea.value = character.advances.join("\n");
     document.getElementById("advances-section")?.classList.remove("hidden");
   } else {

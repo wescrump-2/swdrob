@@ -56,32 +56,40 @@ function loadSVG(svgObjectId: string, svgPath: string): Promise<Document> {
 }
 
 async function applyTheme() {
-    const theme = await OBR.theme.getTheme();
+    console.log("applyTheme: Starting theme fetch");
+    try {
+        const theme = await OBR.theme.getTheme();
+        console.log("applyTheme: Theme fetched successfully", theme);
 
-    // Background
-    document.documentElement.style.setProperty("--obr-background-default", theme.background.default);
-    document.documentElement.style.setProperty("--obr-background-paper", theme.background.paper);
+        // Background
+        document.documentElement.style.setProperty("--obr-background-default", theme.background.default);
+        document.documentElement.style.setProperty("--obr-background-paper", theme.background.paper);
 
-    // Text
-    document.documentElement.style.setProperty("--obr-text-primary", theme.text.primary);
-    document.documentElement.style.setProperty("--obr-text-secondary", theme.text.secondary);
-    document.documentElement.style.setProperty("--obr-text-disabled", theme.text.disabled);
+        // Text
+        document.documentElement.style.setProperty("--obr-text-primary", theme.text.primary);
+        document.documentElement.style.setProperty("--obr-text-secondary", theme.text.secondary);
+        document.documentElement.style.setProperty("--obr-text-disabled", theme.text.disabled);
 
-    // Primary color variants
-    document.documentElement.style.setProperty("--obr-primary-main", theme.primary.main);
-    document.documentElement.style.setProperty("--obr-primary-light", theme.primary.light);
-    document.documentElement.style.setProperty("--obr-primary-dark", theme.primary.dark);
-    document.documentElement.style.setProperty("--obr-primary-contrast", theme.primary.contrastText);
+        // Primary color variants
+        document.documentElement.style.setProperty("--obr-primary-main", theme.primary.main);
+        document.documentElement.style.setProperty("--obr-primary-light", theme.primary.light);
+        document.documentElement.style.setProperty("--obr-primary-dark", theme.primary.dark);
+        document.documentElement.style.setProperty("--obr-primary-contrast", theme.primary.contrastText);
 
-    // Secondary color variants
-    document.documentElement.style.setProperty("--obr-secondary-main", theme.secondary.main);
-    document.documentElement.style.setProperty("--obr-secondary-light", theme.secondary.light);
-    document.documentElement.style.setProperty("--obr-secondary-dark", theme.secondary.dark);
-    document.documentElement.style.setProperty("--obr-secondary-contrast", theme.secondary.contrastText);
+        // Secondary color variants
+        document.documentElement.style.setProperty("--obr-secondary-main", theme.secondary.main);
+        document.documentElement.style.setProperty("--obr-secondary-light", theme.secondary.light);
+        document.documentElement.style.setProperty("--obr-secondary-dark", theme.secondary.dark);
+        document.documentElement.style.setProperty("--obr-secondary-contrast", theme.secondary.contrastText);
 
-    // Optional: Add classes for mode-specific styling
-    document.body.classList.toggle("obr-dark", theme.mode === "DARK");
-    document.body.classList.toggle("obr-light", theme.mode === "LIGHT");
+        // Optional: Add classes for mode-specific styling
+        document.body.classList.toggle("obr-dark", theme.mode === "DARK");
+        document.body.classList.toggle("obr-light", theme.mode === "LIGHT");
+
+        console.log("applyTheme: Theme applied successfully");
+    } catch (error) {
+        console.error("applyTheme: Failed to fetch or apply theme", error);
+    }
 }
 
 // Usage
@@ -804,6 +812,7 @@ async function cleanupLegacyRoomMetadata() {
 
 OBR.onReady(async () => {
     console.log("OBR.onReady fired");
+    console.log("OBR.isReady:", OBR.isReady);
     await applyTheme();
     const unsubscribeThemeChange = OBR.theme.onChange(async () => {
         try {

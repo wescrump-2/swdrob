@@ -60,13 +60,13 @@ export interface Power {
 
 export class Character {
     name: string = '';
-    description?: string;
-    race?: string;
-    type?: string;
-    rank?: string;
-    gender?: string;
-    profession?: string;
-    background?: string;
+    description?: string = '';
+    race?: string = '';
+    type?: string = '';
+    rank?: string = '';
+    gender?: string = '';
+    profession?: string = '';
+    background?: string = '';
     experience?: number;
     bennies?: number;
     attributes: Trait[] = [];
@@ -82,8 +82,8 @@ export class Character {
     gear?: string[];
     languages?: string[];
     wealth?: string;
-    arcaneBackground?: string;
-    arcaneSkill?: string;
+    arcaneBackground?: string = '';
+    arcaneSkill?: string = '';
     powerPoints?: number;
     powers?: Power[];
     specialAbilities?: string[];
@@ -177,7 +177,8 @@ export class Character {
             'Oracle': 'faith',
             'Gifted': 'focus',
             'Psionics': 'psionics',
-            'Weird Science': 'weird science'
+            'Weird Science': 'weird science',
+            'Super Powers': 'focus'
         };
         // Debug logging to help diagnose arcane background parsing
         Debug.log(`setArcaneBackground called with: "${arcaneStr}"`);
@@ -574,6 +575,12 @@ export class Savaged {
             if (h1) {
                 const nextDiv = h1.nextElementSibling;
                 if (nextDiv && nextDiv.tagName === 'DIV') {
+                    character.rank = '';
+                    character.race = '';
+                    character.gender = '';
+                    character.type = '';
+                    character.profession = '';
+
                     const quickText = nextDiv.textContent || '';
                     const parts = quickText.split(', ').map(p => p.trim());
                     parts.forEach(part => {
@@ -1645,17 +1652,17 @@ export class Savaged {
         'chomp', 'snap', 'slash', 'stab', 'pierce', 'bludgeon', 'horn', 'trunk',
         'touch', 'tongue', 'tendrils', 'swarm', 'sting or bite', 'bite or sting',
         'tail', 'vines', 'beak', 'fist', 'unarmed', 'antler', 'tusks', 'mandibles',
-        'tentacle', 'fang', 'talon', 'hoof', 'pincer', 'mandible', 'bash',
+        'tentacle', 'fang', 'talon', 'hoof', 'pincer', 'mandible', 'bash', 'attack', 'melee',
     ];
 
 
     // Define section headers for extraction functions (moved to top)
     static sectionHeaders = [
         "Attributes", "Skills", "Edges", "Hindrances", "Gear",
-        "Special Abilities", "Advances", "Background", "Type",
-        "Rank", "Race", "Profession", "Charisma", "Cybertech",
-        "Experience", "Bennies", "Pace", "Type",
-        "Arcane Background", "Powers", "Weapons", "Languages",
+        "Special Abilities", "Advances", "Background",
+        "Charisma", "Cybertech",
+        "Experience", "Bennies", "Pace",
+        "Arcane Background", "Powers", "Super Powers", "Weapons", "Languages",
         "Wealth", "Power Points", "Description",
         "Vehicles", "Armor", //Armor is last for reasons
     ];
@@ -1710,6 +1717,11 @@ export class Savaged {
 
         //const startLineIndex = lineIndex; // Save position after quick info
         const parts = quickText.split(', ').map(p => p.trim());
+        character.rank = '';
+        character.race = '';
+        character.gender = '';
+        character.type = '';
+        character.profession = '';
         parts.forEach(part => {
             const [key, value] = part.split(': ').map(s => s.trim());
             if (key === 'Rank') character.rank = value;
@@ -2309,11 +2321,11 @@ export class Savaged {
         // Powers - ENHANCED with complex pattern matching
         lineIndex = 0;
         while (lineIndex < lines.length) {
-            const line = lines[lineIndex];
+            const line = lines[lineIndex].replace(/^Super\s/i,''); //fix for super powers
             if (line.match(/^Powers:\s*(.*)$/i)) {
                 // Use new extraction function to get all powers content
                 const powersResult = extractSectionContent(lines, lineIndex, Savaged.sectionHeaders);
-                let powersStr = powersResult.content.replace(/^Powers:\s*/i, '').trim();
+                let powersStr = powersResult.content.replace(/^(Super\s)?Powers:\s*/i, '').trim();
                 // Remove dashes from powers string
                 powersStr = Util.removeDashes(powersStr);
                 // Split powers but stop when we encounter "Power Points"
@@ -3093,7 +3105,7 @@ export class Savaged {
 
         // Languages - using new extraction function
         lineIndex = 0;
-        character.languages=[];
+        character.languages = [];
         while (lineIndex < lines.length) {
             const line = lines[lineIndex];
             if (line.match(/^Languages:\s*(.*)$/i)) {
@@ -3151,7 +3163,7 @@ export class Savaged {
                         (currentLine.match(/^[A-Z]/) && currentLine.includes(':'));
                     const isSectionHeader = currentLine.match(Savaged.sectionHeadersRegEx);
 
-                    if (isSectionHeader && isSectionHeader[0] != 'Armor') { //Armor could be a section header but also, could be in special abilites, so exclude it here.
+                    if (isSectionHeader && isSectionHeader[0].toLowerCase() != 'armor') { //Armor could be a section header but also, could be in special abilites, so exclude it here.
                         break; // Stop at next section
                     }
 
@@ -3306,7 +3318,7 @@ export class Savaged {
                         // Remove this from special abilities since it's now a weapon
                         character.specialAbilities.splice(i, 1);
                     } else if (weaponName.endsWith('powers')) {
-                        const powersStr = this.replaceCharInParens(match[2],',',';');
+                        const powersStr = this.replaceCharInParens(match[2], ',', ';');
                         powersStr.split(', ').forEach(power => {
                             let name: string, book: string | undefined, page: string | undefined;
                             let properties: Record<string, string> = {};
@@ -3355,17 +3367,17 @@ export class Savaged {
         return character;
     }
 
-    static replaceCharInParens(str:string, find:string,replace:string) {
-    let result = '';
-    let depth = 0;
-    for (let char of str) {
-        if (char === '(') depth++;
-        else if (char === ')') depth--;
-        else if (char === find && depth > 0) char = replace;
-        result += char;
+    static replaceCharInParens(str: string, find: string, replace: string) {
+        let result = '';
+        let depth = 0;
+        for (let char of str) {
+            if (char === '(') depth++;
+            else if (char === ')') depth--;
+            else if (char === find && depth > 0) char = replace;
+            result += char;
+        }
+        return result;
     }
-    return result;
-}
 
 
     static extractTextFromHtml1(htmlString: string): string {
