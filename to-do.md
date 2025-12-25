@@ -1,5 +1,14 @@
 # To-Do List
 
+- improvements to parsing stat blocks
+  - extract common data from Special Abilities
+    - [complete] Armor
+    - Senses i.e.  Blindsense, blindsight, darkvision, Watersense, tremorsense, lifesense, magesense, low-light vision, truevision, etc.
+    - Special Movement paces i.e. fly, swim, swimmer, burrow, wall walker, amphibious, aquatic, etc.
+    - [complete] Breath weapons and other AOE weapons
+    - [complete] Size
+    - Resistances, weaknesses, immunities
+
 - improvements and bug fixes
   - [complete] handle Smarts d6 (A) and Smarts d4 (M)
   - [complete] remove em or en dash or hyphen from Gear, Edges, Powers, string

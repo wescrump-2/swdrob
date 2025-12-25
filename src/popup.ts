@@ -370,7 +370,7 @@ function populateForm(character: Character) {
   weaponsDiv.innerHTML = "";
   (character.weapons || []).forEach((weapon) => {
     const button = document.createElement("button");
-    button.textContent = `${Util.toTitleCase(weapon.name)} ${weapon.damage ? weapon.damage : '?d?'}${weapon.ap?" AP "+weapon.ap:""}`;
+    button.textContent = `${Util.toTitleCase(weapon.name)} ${weapon.damage ? weapon.damage : '?d?'}${weapon.ap ? " AP " + weapon.ap : ""}`;
     button.type = "button";
     button.className = "popup-roll-btn popup-weapon-btn";
     button.dataset.die = weapon.damage;
@@ -435,15 +435,20 @@ function populateForm(character: Character) {
   }
   if (character.rank !== undefined) (document.getElementById("rank") as HTMLSpanElement).textContent = String(character.rank);
   if (character.race !== undefined) (document.getElementById("race") as HTMLSpanElement).textContent = String(character.race);
-    if (character.type !== undefined) (document.getElementById("type") as HTMLSpanElement).textContent = String(character.type);
+  if (character.type !== undefined) (document.getElementById("type") as HTMLSpanElement).textContent = String(character.type);
   if (character.gender !== undefined) (document.getElementById("gender") as HTMLSpanElement).textContent = String(character.gender);
   if (character.profession !== undefined) (document.getElementById("profession") as HTMLSpanElement).textContent = String(character.profession);
-  if (character.languages !== undefined && character.languages.length>0) (document.getElementById("languanges") as HTMLSpanElement).textContent = `Languages: ${character.languages.join(', ')}`;
+  if (character.armor !== undefined && character.armor.length > 0) (document.getElementById("armor") as HTMLSpanElement).textContent = `Armor: ${character.armor[0].name} (${character.armor[0].value})`;
+  if (character.size !== undefined ) (document.getElementById("size") as HTMLSpanElement).textContent = `Size: ${character.size}`;
+  const wounds = character.getWounds();
+  if (wounds>0) (document.getElementById("wounds") as HTMLSpanElement).textContent = `Can take ${wounds} wound(s).`;
+  if (character.languages !== undefined && character.languages.length > 0) (document.getElementById("languanges") as HTMLSpanElement).textContent = `Languages: ${character.languages.join(', ')}`;
+
   // Set textarea values and hide empty sections
   const edgesTextarea = document.getElementById("edges") as HTMLTextAreaElement;
   const hindrancesTextarea = document.getElementById("hindrances") as HTMLTextAreaElement;
   const gearTextarea = document.getElementById("gear") as HTMLTextAreaElement;
-  
+
   const vehiclesTextarea = document.getElementById("vehicles") as HTMLTextAreaElement;
   const specialAbilitiesTextarea = document.getElementById("specialAbilities") as HTMLTextAreaElement;
   const advancesTextarea = document.getElementById("advances") as HTMLTextAreaElement;

@@ -36,9 +36,9 @@ export interface Weapon {
     blast?: string;
 }
 
-export interface Armor {
-    name: string;
-    value: number;
+export class Armor {
+    name: string = '';
+    value: number = 0;
     minStr?: string;
     weight?: number;
     cost?: number;
@@ -90,7 +90,7 @@ export class Character {
     advances?: string[];
     isWildCard?: boolean;
     vehicles?: Vehicle[];
-
+    size?: number;
 
     public getSkillDie(name: string): string {
         // First try exact match
@@ -165,6 +165,18 @@ export class Character {
         character.gear = [];
 
         return character;
+    }
+
+    getWounds(): number {
+        let wounds = 0;
+        if (this.isWildCard) {
+            wounds = 3 + (this.edges?.some(s=>s.toLowerCase() === 'tougher than nails') ? 2 : this.edges?.some(s=>s.toLowerCase() === 'tough as nails') ? 1 : 0);
+        } else {
+            wounds = this.specialAbilities?.some(s=>s.toLowerCase().startsWith('very resilient')) ? 2 : this.specialAbilities?.some(s=>s.toLowerCase().startsWith('resilient')) ? 1 : 0;
+        }
+        if (this.size) wounds += (this.size>3?1:0) + (this.size>7?1:0) + (this.size>11?1:0);
+
+        return wounds;
     }
 
     setArcaneBackground(arcaneStr: string) {
@@ -1647,14 +1659,15 @@ export class Savaged {
     }
 
     static weaponAttackNames = [
-        'bite', 'claw', 'slam', 'strike', 'punch', 'kick', 'gore', 'trample',
-        'crush', 'rend', 'maul', 'rake', 'peck', 'sting', 'lash', 'swipe',
-        'chomp', 'snap', 'slash', 'stab', 'pierce', 'bludgeon', 'horn', 'trunk',
-        'touch', 'tongue', 'tendrils', 'swarm', 'sting or bite', 'bite or sting',
-        'tail', 'vines', 'beak', 'fist', 'unarmed', 'antler', 'tusks', 'mandibles',
-        'tentacle', 'fang', 'talon', 'hoof', 'pincer', 'mandible', 'bash', 'attack', 'melee',
+        'antler', 'attach', 'attack', 'barb', 'barbs', 'bash', 'beak', 'bite or sting', 
+        'bite', 'bludgeon', 'bolt', 'breath weapon', 'burst', 'cannon', 'chomp', 'claw', 
+        'crush', 'dart', 'fang', 'fist', 'gore', 'hoof', 'hooves', 'horn', 'jet', 'kick', 
+        'lash', 'mandible', 'maul', 'melee', 'peck', 'pierce', 'pincer', 'punch', 'rake', 
+        'ray', 'rend', 'rock throwing', 'scales', 'slap', 'slam', 'slash', 'snap', 'spit', 
+        'spittle', 'spray', 'stab', 'sting or bite', 'sting', 'strike', 'stomp', 'swarm', 
+        'swipe', 'tail', 'talon', 'tendrils', 'tentacle', 'tongue', 'touch', 'trample', 
+        'trunk', 'tusks', 'unarmed', 'vines', 'volley',
     ];
-
 
     // Define section headers for extraction functions (moved to top)
     static sectionHeaders = [
@@ -2321,7 +2334,7 @@ export class Savaged {
         // Powers - ENHANCED with complex pattern matching
         lineIndex = 0;
         while (lineIndex < lines.length) {
-            const line = lines[lineIndex].replace(/^Super\s/i,''); //fix for super powers
+            const line = lines[lineIndex].replace(/^Super\s/i, ''); //fix for super powers
             if (line.match(/^Powers:\s*(.*)$/i)) {
                 // Use new extraction function to get all powers content
                 const powersResult = extractSectionContent(lines, lineIndex, Savaged.sectionHeaders);
@@ -3163,7 +3176,7 @@ export class Savaged {
                         (currentLine.match(/^[A-Z]/) && currentLine.includes(':'));
                     const isSectionHeader = currentLine.match(Savaged.sectionHeadersRegEx);
 
-                    if (isSectionHeader && isSectionHeader[0].toLowerCase() != 'armor') { //Armor could be a section header but also, could be in special abilites, so exclude it here.
+                    if (isSectionHeader && isSectionHeader[0].toLowerCase() != 'armor' && isSectionHeader[0].toLowerCase() != 'armour') { //Armor could be a section header but also, could be in special abilites, so exclude it here.
                         break; // Stop at next section
                     }
 
@@ -3245,6 +3258,8 @@ export class Savaged {
         // Parse attacks from special abilities (e.g., "Bite: Str+d8")
         if (character.specialAbilities && character.specialAbilities.length > 0) {
             const attackPattern = /^(.+?):\s*(.+)$/i; // Pattern like "Bite: Str+d8"
+            const armorPattern = /^armou?r \+?\s*(\d+)/i;
+            const sizePattern = /^size \+?\s*(\d+)/i;
             const weaponsFromSpecialAbilities: Weapon[] = [];
             const powersFromSpecialAbilities: Power[] = [];
 
@@ -3255,6 +3270,9 @@ export class Savaged {
                 if (match) {
                     const weaponName = match[1].trim().toLowerCase();
                     let damageStr = match[2].trim();
+
+                    const armormatch = weaponName.match(armorPattern);
+                    const sizematch = weaponName.match(sizePattern);
 
                     // More precise detection: must be a known weapon attack name
                     const isWeaponAttackName = Savaged.weaponAttackNames.some(name => weaponName.includes(name));
@@ -3340,6 +3358,18 @@ export class Savaged {
                             Savaged.enhancePowerWithDamageInfo(powerObj);
                             powersFromSpecialAbilities.push(powerObj);
                         });
+                        character.specialAbilities?.splice(i, 1);
+                    } else if (armormatch) {
+                        let armorObj = new Armor();
+                        armorObj.name = match[2].trim();
+                        armorObj.value = parseInt(armormatch[1]);
+                        if (!character.armor) {
+                            character.armor = [];
+                        }
+                        character.armor.push(armorObj);
+                        character.specialAbilities?.splice(i, 1);
+                    } else if (sizematch) {
+                        character.size = Number(sizematch[1]);
                         character.specialAbilities?.splice(i, 1);
                     }
                 }
